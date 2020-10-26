@@ -1,10 +1,7 @@
 # Barbacoa Server Lib
 
 This library based on the experience of writing the really working live applications. 
-The main goal of this project is to make the process of writing server applications on C ++ **more productive**. 
-Why rush to the side of other languages and get into the new troubles if 
-jast here there is good old proven C++ (no less than version 14 of course, ha-ha).
-And I even hope that C++ becomes more convenient with new standards.
+The main goal of this project is to make the process of writing server applications in C ++ **more productive**.
 
 Usually when people say "server", they mean a network server serving incoming connections on some protocol from the TCP/IP stack. 
 But the server is also a lot of stuff that you have to deal with from solution to solution. 
