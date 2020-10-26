@@ -9,4 +9,4 @@
 	url = ../barbacoa-ssl-helpers.git
 [submodule "libs/server-clib"]
 	path = libs/server-clib
-	url = git@github.com:romualdo-bar/barbacoa-server-clib.git
+	url = ../barbacoa-server-clib.git
