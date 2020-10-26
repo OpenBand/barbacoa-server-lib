@@ -1,0 +1,12 @@
+[submodule "libs/tacopie"]
+	path = libs/tacopie
+	url = ../tacopie.git
+[submodule "libs/web"]
+	path = libs/web
+	url = ../moonlight-web-server.git
+[submodule "libs/ssl-helpers"]
+	path = libs/ssl-helpers
+	url = ../barbacoa-ssl-helpers.git
+[submodule "libs/server-clib"]
+        path = libs/server-clib
+        url = ../barbacoa-server-clib.git
