@@ -1,4 +1,4 @@
-# Server Lib
+# Barbacoa Server Lib
 
 This library based on the experience of writing the really working live applications. 
 The main goal of this project is to make the process of writing server applications on C ++ **more productive**. 
