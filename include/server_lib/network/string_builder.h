@@ -32,13 +32,13 @@ namespace network {
 
         void reset() override;
 
-        void set_size(const uint32_t size)
+        void set_size(const size_t size)
         {
             _size = size;
         }
 
     private:
-        uint32_t _size = 0;
+        size_t _size = 0;
 
         std::string _buffer;
 

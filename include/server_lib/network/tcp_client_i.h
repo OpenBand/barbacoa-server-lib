@@ -25,7 +25,7 @@ namespace network {
          * @param timeout_ms max time to connect in ms
          *
          */
-        virtual void connect(const std::string& addr, std::uint32_t port, std::uint32_t timeout_ms = 0) = 0;
+        virtual void connect(const std::string& addr, uint16_t port, uint32_t timeout_ms = 0) = 0;
 
         /**
          * stop the tcp client
@@ -54,7 +54,7 @@ namespace network {
         *
         * \param nb_threads number of threads
         */
-        virtual void set_nb_workers(std::uint8_t nb_threads) = 0;
+        virtual void set_nb_workers(uint8_t nb_threads) = 0;
 
     public:
         /**

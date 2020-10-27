@@ -18,11 +18,11 @@
 namespace server_lib {
 namespace network {
 
-    void tcp_client_impl::connect(const std::string& addr, std::uint32_t port, std::uint32_t timeout_ms)
+    void tcp_client_impl::connect(const std::string& addr, uint16_t port, uint32_t timeout_ms)
     {
         SRV_LOGC_TRACE("attempts to connect");
 
-        _impl.connect(addr, port, timeout_ms);
+        _impl.connect(addr, static_cast<uint32_t>(port), timeout_ms);
         _impl.set_on_disconnection_handler(std::bind(&tcp_client_impl::on_diconnected, this));
 
         SRV_LOGC_TRACE("connected");
@@ -44,7 +44,7 @@ namespace network {
         return _impl.is_connected();
     }
 
-    void tcp_client_impl::set_nb_workers(std::uint8_t nb_threads)
+    void tcp_client_impl::set_nb_workers(uint8_t nb_threads)
     {
         _impl.get_io_service()->set_nb_workers(static_cast<size_t>(nb_threads));
     }

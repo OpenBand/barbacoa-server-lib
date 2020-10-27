@@ -12,7 +12,7 @@ namespace tests {
 
     using namespace server_lib::network;
 
-    BOOST_AUTO_TEST_SUITE(network_app_unit_tests)
+    BOOST_AUTO_TEST_SUITE(network_tests)
 
     BOOST_AUTO_TEST_CASE(raw_builder_recive_check)
     {

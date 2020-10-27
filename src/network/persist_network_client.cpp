@@ -65,14 +65,14 @@ namespace network {
     }
 
     bool persist_network_client::connect(
-        const std::string& host, std::size_t port,
-        const std::shared_ptr<app_unit_builder_i>& protocol,
+        const std::string& host, uint16_t port,
+        const app_unit_builder_i* protocol,
         event_loop* callback_thread,
         const connect_callback_type& connect_callback,
-        std::uint32_t timeout_ms,
-        std::int32_t max_reconnects,
-        std::uint32_t reconnect_interval_ms,
-        std::uint8_t nb_threads)
+        uint32_t timeout_ms,
+        int32_t max_reconnects,
+        uint32_t reconnect_interval_ms,
+        uint8_t nb_threads)
     {
         try
         {
@@ -133,7 +133,7 @@ namespace network {
         return false;
     }
 
-    void persist_network_client::set_nb_workers(std::uint8_t nb_threads)
+    void persist_network_client::set_nb_workers(uint8_t nb_threads)
     {
         SRV_LOGC_TRACE("changed number of workers. Old = " << _nb_threads << ", New = " << nb_threads);
 
@@ -357,7 +357,7 @@ namespace network {
     {
         ++_current_reconnect_attempts;
 
-        connect(_host, _port, _protocol, _callback_thread, _connect_callback, _connect_timeout_ms, _max_reconnects,
+        connect(_host, _port, _protocol.get(), _callback_thread, _connect_callback, _connect_timeout_ms, _max_reconnects,
                 _reconnect_interval_ms, _nb_threads);
 
         if (!is_connected())

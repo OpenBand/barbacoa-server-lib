@@ -37,11 +37,11 @@ namespace network {
     }
 
     bool network_server::start(const std::string& host,
-                               std::uint32_t port,
-                               const std::shared_ptr<app_unit_builder_i>& protocol,
+                               uint16_t port,
+                               const app_unit_builder_i* protocol,
                                event_loop* callback_thread,
                                const on_new_connection_callback_type& callback,
-                               std::uint8_t nb_threads)
+                               uint8_t nb_threads)
     {
         try
         {
@@ -74,7 +74,7 @@ namespace network {
         return false;
     }
 
-    void network_server::set_nb_workers(std::uint8_t nb_threads)
+    void network_server::set_nb_workers(uint8_t nb_threads)
     {
         SRV_LOGC_TRACE("changed number of workers. New = " << nb_threads);
 

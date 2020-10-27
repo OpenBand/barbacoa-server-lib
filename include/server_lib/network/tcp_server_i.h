@@ -33,7 +33,7 @@ namespace network {
         * \param port port to be connected to
         * \param callback callback to be called on new connections (may be null, connections are then handled automatically by the tcp_server object)
         */
-        virtual void start(const std::string& host, std::uint32_t port, event_loop* callback_thread = nullptr, const on_new_connection_callback_type& callback = nullptr) = 0;
+        virtual void start(const std::string& host, uint16_t port, event_loop* callback_thread = nullptr, const on_new_connection_callback_type& callback = nullptr) = 0;
 
         /**
         * Disconnect the tcp_server if it was currently running.
@@ -63,7 +63,7 @@ namespace network {
         *
         * \param nb_threads number of threads
         */
-        virtual void set_nb_workers(std::uint8_t nb_threads) = 0;
+        virtual void set_nb_workers(uint8_t nb_threads) = 0;
     };
 
 } // namespace network

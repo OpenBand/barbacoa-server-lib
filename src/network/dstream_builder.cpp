@@ -4,7 +4,7 @@
 namespace server_lib {
 namespace network {
 
-    app_unit dstream_builder::create(const std::string& buff)
+    app_unit dstream_builder::create(const std::string& buff) const
     {
         std::string buff_ { buff };
         buff_.append(_delimeter);

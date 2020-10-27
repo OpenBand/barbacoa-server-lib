@@ -2,17 +2,21 @@
 #include <server_lib/asserts.h>
 
 #include <algorithm>
+#include <limits>
 
 namespace server_lib {
 namespace network {
 
-    app_unit msg_builder::create(const std::string& msg)
+    app_unit msg_builder::create(const std::string& msg) const
     {
         SRV_ASSERT(msg.size() <= _msg_max_size);
 
         app_unit msg_unit { true };
 
-        msg_unit << app_unit { integer_builder::pack(msg.size()) } << app_unit { msg };
+        auto sz = msg.size();
+        SRV_ASSERT(sz <= static_cast<size_type>(std::numeric_limits<size_type>::max()));
+
+        msg_unit << app_unit { integer_builder::pack(static_cast<size_type>(sz)) } << app_unit { msg };
         return msg_unit;
     }
 

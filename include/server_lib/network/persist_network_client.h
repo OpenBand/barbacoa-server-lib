@@ -71,16 +71,16 @@ namespace network {
          */
         bool connect(
             const std::string& host,
-            std::size_t port,
-            const std::shared_ptr<app_unit_builder_i>& protocol,
+            uint16_t port,
+            const app_unit_builder_i* protocol,
             event_loop* callback_thread = nullptr,
             const connect_callback_type& connect_callback = nullptr,
-            std::uint32_t timeout_ms = 0,
-            std::int32_t max_reconnects = 0,
-            std::uint32_t reconnect_interval_ms = 0,
-            std::uint8_t nb_threads = 0);
+            uint32_t timeout_ms = 0,
+            int32_t max_reconnects = 0,
+            uint32_t reconnect_interval_ms = 0,
+            uint8_t nb_threads = 0);
 
-        void set_nb_workers(std::uint8_t nb_threads);
+        void set_nb_workers(uint8_t nb_threads);
 
         void disconnect(bool wait_for_removal = true);
 
@@ -139,14 +139,14 @@ namespace network {
 
     private:
         std::string _host;
-        std::size_t _port = 0;
+        uint16_t _port = 0;
         event_loop* _callback_thread = nullptr;
         connect_callback_type _connect_callback;
-        std::uint32_t _connect_timeout_ms = 0;
-        std::int32_t _max_reconnects = 0;
-        std::int32_t _current_reconnect_attempts = 0;
-        std::uint32_t _reconnect_interval_ms = 0;
-        std::uint8_t _nb_threads = 1;
+        uint32_t _connect_timeout_ms = 0;
+        int32_t _max_reconnects = 0;
+        int32_t _current_reconnect_attempts = 0;
+        uint32_t _reconnect_interval_ms = 0;
+        uint8_t _nb_threads = 1;
         std::shared_ptr<app_unit_builder_i> _protocol;
 
         std::shared_ptr<tcp_client_i> _transport_layer;

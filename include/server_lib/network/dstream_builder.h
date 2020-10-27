@@ -18,12 +18,12 @@ namespace network {
 
         virtual ~dstream_builder() override = default;
 
-        app_unit_builder_i* clone() override
+        app_unit_builder_i* clone() const override
         {
             return new dstream_builder { _delimeter.c_str() };
         }
 
-        app_unit create(const std::string&) override;
+        app_unit create(const std::string&) const override;
 
         app_unit_builder_i& operator<<(std::string& network_data) override;
 

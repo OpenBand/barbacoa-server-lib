@@ -20,17 +20,17 @@ namespace network {
 
         //Ability to create clones.
         //It is required if builder is used like protocol
-        virtual app_unit_builder_i* clone()
+        virtual app_unit_builder_i* clone() const
         {
             return nullptr;
         }
 
-        virtual app_unit create(const std::string&)
+        virtual app_unit create(const std::string&) const
         {
             return {};
         }
 
-        virtual app_unit create(const char* buff, const size_t sz)
+        virtual app_unit create(const char* buff, const size_t sz) const
         {
             return create(std::string { buff, sz });
         }

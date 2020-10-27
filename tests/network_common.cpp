@@ -9,7 +9,7 @@
 namespace server_lib {
 namespace tests {
 
-    uint32_t basic_network_fixture::get_free_port()
+    uint16_t basic_network_fixture::get_free_port()
     {
         int result = 0;
 #if defined(SERVER_LIB_PLATFORM_LINUX)
@@ -38,8 +38,8 @@ namespace tests {
             close(socket_fd);
 #endif
         if (result < 1024)
-            return static_cast<int>(get_default_port());
-        return result;
+            return get_default_port();
+        return static_cast<uint16_t>(result);
     }
 
 } // namespace tests

@@ -47,13 +47,13 @@ namespace network {
 
     bool network_client::connect(
         const std::string& host,
-        std::size_t port,
-        const std::shared_ptr<app_unit_builder_i>& protocol,
+        uint16_t port,
+        const app_unit_builder_i* protocol,
         event_loop* callback_thread,
         const disconnection_callback_type& disconnection_callback,
         const receive_callback_type& receive_callback,
-        std::uint32_t timeout_ms,
-        std::uint8_t nb_threads)
+        uint32_t timeout_ms,
+        uint8_t nb_threads)
     {
         try
         {
@@ -95,7 +95,7 @@ namespace network {
         return false;
     }
 
-    void network_client::set_nb_workers(std::uint8_t nb_threads)
+    void network_client::set_nb_workers(uint8_t nb_threads)
     {
         SRV_LOGC_TRACE("changed number of workers. New = " << nb_threads);
 

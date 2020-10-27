@@ -22,7 +22,7 @@ namespace tests {
             return 9999;
         }
 
-        uint32_t get_free_port();
+        uint16_t get_free_port();
     };
 
 } // namespace tests

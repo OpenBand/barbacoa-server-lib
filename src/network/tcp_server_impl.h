@@ -17,13 +17,13 @@ namespace network {
     public:
         tcp_server_impl() = default;
 
-        void start(const std::string& host, std::uint32_t port, event_loop* callback_thread = nullptr, const on_new_connection_callback_type& callback = nullptr) override;
+        void start(const std::string& host, uint16_t port, event_loop* callback_thread = nullptr, const on_new_connection_callback_type& callback = nullptr) override;
 
         void stop(bool wait_for_removal = false, bool recursive_wait_for_removal = true) override;
 
         bool is_running(void) const override;
 
-        void set_nb_workers(std::uint8_t nb_threads) override;
+        void set_nb_workers(uint8_t nb_threads) override;
 
     private:
         bool on_new_connection(const std::shared_ptr<tacopie::tcp_client>&);
