@@ -13,7 +13,7 @@ namespace network {
     public:
         integer_builder() = default;
 
-        virtual ~integer_builder() override = default;
+        ~integer_builder() override = default;
 
         using integer_type = app_unit::integer_type;
 

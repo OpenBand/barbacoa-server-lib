@@ -16,6 +16,12 @@ namespace network {
         _builder = builder;
     }
 
+    app_unit_builder_i& app_units_builder::builder()
+    {
+        SRV_ASSERT(_builder);
+        return *_builder;
+    }
+
     app_units_builder&
     app_units_builder::operator<<(const std::string& data)
     {

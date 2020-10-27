@@ -16,7 +16,7 @@ namespace network {
         {
         }
 
-        virtual ~string_builder() override = default;
+        ~string_builder() override = default;
 
         app_unit_builder_i& operator<<(std::string& network_data) override;
 

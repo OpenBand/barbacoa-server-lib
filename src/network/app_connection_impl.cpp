@@ -57,6 +57,11 @@ namespace network {
         return _raw_connection->is_connected();
     }
 
+    app_unit_builder_i& app_connection_impl::protocol()
+    {
+        return _protocol.builder();
+    }
+
     app_connection_i& app_connection_impl::send(const app_unit& unit)
     {
         std::lock_guard<std::mutex> lock(_buffer_mutex);

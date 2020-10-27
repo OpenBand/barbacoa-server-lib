@@ -42,6 +42,8 @@ namespace network {
     public:
         void set_builder(const std::shared_ptr<app_unit_builder_i> builder);
 
+        app_unit_builder_i& builder();
+
         /**
      * add data to unit builder
      * data is used to build replies that can be retrieved with get_front later on if receive_available returns true

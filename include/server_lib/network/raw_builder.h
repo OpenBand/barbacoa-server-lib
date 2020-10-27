@@ -13,9 +13,9 @@ namespace network {
     class raw_builder : public app_unit_builder_i
     {
     public:
-        raw_builder() = default;
+        raw_builder();
 
-        virtual ~raw_builder() override = default;
+        ~raw_builder() override;
 
         app_unit_builder_i* clone() const override
         {

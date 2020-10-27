@@ -60,6 +60,8 @@ namespace network {
 
         bool is_running(void) const;
 
+        app_unit_builder_i& protocol();
+
     private:
         void on_new_connection(const std::shared_ptr<tcp_connection_i>&);
 

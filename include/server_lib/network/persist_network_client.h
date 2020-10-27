@@ -90,6 +90,8 @@ namespace network {
 
         bool is_reconnecting() const;
 
+        app_unit_builder_i& protocol();
+
         using receive_callback_type = std::function<void(app_unit&)>;
 
         persist_network_client& send(const app_unit& cmd, const receive_callback_type& callback);
@@ -129,6 +131,7 @@ namespace network {
         bool should_reconnect() const;
         void resend_failed_commands();
         void clear_callbacks();
+        void clear_connection();
 
     private:
         struct command_request

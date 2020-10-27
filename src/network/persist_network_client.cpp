@@ -101,7 +101,7 @@ namespace network {
                 _nb_threads = nb_threads;
                 _transport_layer->set_nb_workers(nb_threads);
             }
-            _transport_layer->connect(host, static_cast<uint32_t>(port), timeout_ms);
+            _transport_layer->connect(host, port, timeout_ms);
             if (!_transport_layer->is_connected())
             {
                 SRV_LOGC_TRACE("connection failed");
@@ -161,11 +161,24 @@ namespace network {
     void persist_network_client::cancel_reconnect()
     {
         _cancel = true;
+
+        if (is_reconnecting())
+        {
+            _callbacks_running.store(0);
+            decltype(_commands) clear;
+            _commands.swap(clear);
+        }
     }
 
     bool persist_network_client::is_reconnecting() const
     {
         return _reconnecting;
+    }
+
+    app_unit_builder_i& persist_network_client::protocol()
+    {
+        SRV_ASSERT(_protocol);
+        return *_protocol;
     }
 
     persist_network_client&
@@ -286,14 +299,7 @@ namespace network {
     {
         if (_cancel.load())
         {
-            if (_connect_callback)
-            {
-                _connect_callback(connect_state::stopped);
-            }
-
-            SRV_LOGC_TRACE("reset connection");
-
-            _connection.reset();
+            clear_connection();
         }
         else
         {
@@ -324,14 +330,7 @@ namespace network {
             {
                 clear_callbacks();
 
-                if (_connect_callback)
-                {
-                    _connect_callback(connect_state::stopped);
-                }
-
-                SRV_LOGC_TRACE("reset connection");
-
-                _connection.reset();
+                clear_connection();
             }
         }
 
@@ -442,5 +441,17 @@ namespace network {
         }
     }
 
+    void persist_network_client::clear_connection()
+    {
+        SRV_LOGC_TRACE("reset connection");
+
+        if (_connect_callback)
+        {
+            _connect_callback(connect_state::stopped);
+        }
+
+        _connection.reset();
+        _protocol.reset();
+    }
 } // namespace network
 } // namespace server_lib

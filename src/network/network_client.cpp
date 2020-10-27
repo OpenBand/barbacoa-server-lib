@@ -66,7 +66,7 @@ namespace network {
 
             if (nb_threads > 0)
                 _transport_layer->set_nb_workers(nb_threads);
-            _transport_layer->connect(host, static_cast<uint32_t>(port), timeout_ms);
+            _transport_layer->connect(host, port, timeout_ms);
             if (!_transport_layer->is_connected())
             {
                 SRV_LOGC_TRACE("connection failed");
@@ -114,6 +114,12 @@ namespace network {
     bool network_client::is_connected() const
     {
         return _transport_layer->is_connected() && _connection && _connection->is_connected();
+    }
+
+    app_unit_builder_i& network_client::protocol()
+    {
+        SRV_ASSERT(_connection);
+        return _connection->protocol();
     }
 
     network_client& network_client::send(const app_unit& unit)
