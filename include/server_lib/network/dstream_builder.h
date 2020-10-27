@@ -16,7 +16,7 @@ namespace network {
         {
         }
 
-        virtual ~dstream_builder() override = default;
+        ~dstream_builder() override = default;
 
         app_unit_builder_i* clone() const override
         {

@@ -19,7 +19,7 @@ namespace network {
         {
         }
 
-        virtual ~msg_builder() override = default;
+        ~msg_builder() override = default;
 
         using size_type = integer_builder::integer_type;
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/app_unit.h>
+#include <server_lib/network/app_unit_builder_i.h>
 
 #include <server_lib/event_loop.h>
 
@@ -26,6 +26,8 @@ namespace network {
         virtual bool is_connected() const = 0;
 
     public:
+        virtual app_unit_builder_i& protocol() = 0;
+
         virtual app_connection_i& send(const app_unit& unit) = 0;
 
         virtual app_connection_i& commit() = 0;

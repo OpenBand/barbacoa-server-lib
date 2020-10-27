@@ -100,6 +100,12 @@ namespace network {
         return _transport_layer->is_running();
     }
 
+    app_unit_builder_i& network_server::protocol()
+    {
+        SRV_ASSERT(_protocol);
+        return *_protocol;
+    }
+
     void network_server::on_new_connection(const std::shared_ptr<tcp_connection_i>& raw_connection)
     {
         if (!is_running())

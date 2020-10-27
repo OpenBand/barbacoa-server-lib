@@ -25,6 +25,8 @@ namespace network {
 
         bool is_connected() const override;
 
+        app_unit_builder_i& protocol() override;
+
         app_connection_i& send(const app_unit& unit) override;
 
         app_connection_i& commit() override;

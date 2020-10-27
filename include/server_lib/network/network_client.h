@@ -66,6 +66,8 @@ namespace network {
 
         bool is_connected() const;
 
+        app_unit_builder_i& protocol();
+
         network_client& send(const app_unit& unit);
 
         network_client& commit();
