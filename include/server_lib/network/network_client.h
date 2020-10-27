@@ -52,15 +52,15 @@ namespace network {
          */
         bool connect(
             const std::string& host,
-            std::size_t port,
-            const std::shared_ptr<app_unit_builder_i>& protocol,
+            uint16_t port,
+            const app_unit_builder_i* protocol,
             event_loop* callback_thread = nullptr,
             const disconnection_callback_type& disconnection_callback = nullptr,
             const receive_callback_type& receive_callback = nullptr,
-            std::uint32_t timeout_ms = 0,
-            std::uint8_t nb_threads = 0);
+            uint32_t timeout_ms = 0,
+            uint8_t nb_threads = 0);
 
-        void set_nb_workers(std::uint8_t nb_threads);
+        void set_nb_workers(uint8_t nb_threads);
 
         void disconnect(bool wait_for_removal = true);
 

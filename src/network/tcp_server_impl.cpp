@@ -18,7 +18,7 @@
 namespace server_lib {
 namespace network {
 
-    void tcp_server_impl::start(const std::string& host, std::uint32_t port, event_loop* callback_thread, const on_new_connection_callback_type& callback)
+    void tcp_server_impl::start(const std::string& host, uint16_t port, event_loop* callback_thread, const on_new_connection_callback_type& callback)
     {
         SRV_ASSERT(!is_running());
         SRV_ASSERT(callback);
@@ -30,7 +30,7 @@ namespace network {
             _callback_thread = callback_thread;
             _new_connection_handler = callback;
             auto new_connection_handler = std::bind(&tcp_server_impl::on_new_connection, this, std::placeholders::_1);
-            _impl.start(host, port, new_connection_handler);
+            _impl.start(host, static_cast<uint32_t>(port), new_connection_handler);
 
             SRV_LOGC_TRACE("started");
         }
@@ -76,7 +76,7 @@ namespace network {
         return _impl.is_running();
     }
 
-    void tcp_server_impl::set_nb_workers(std::uint8_t nb_threads)
+    void tcp_server_impl::set_nb_workers(uint8_t nb_threads)
     {
         _impl.get_io_service()->set_nb_workers(static_cast<size_t>(nb_threads));
     }

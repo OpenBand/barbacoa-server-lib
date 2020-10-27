@@ -15,7 +15,9 @@ namespace network {
 
         virtual ~integer_builder() override = default;
 
-        static std::string pack(const uint32_t);
+        using integer_type = app_unit::integer_type;
+
+        static std::string pack(const integer_type);
 
         app_unit_builder_i& operator<<(std::string& network_data) override;
 

@@ -29,11 +29,13 @@ namespace network {
         {
         }
 
-        app_unit(const uint32_t value, const bool success = true);
+        using integer_type = uint32_t;
+
+        app_unit(const integer_type value, const bool success = true);
 
         template <typename T>
         app_unit(const T value, const bool success = true)
-            : app_unit(static_cast<uint32_t>(value), success)
+            : app_unit(static_cast<integer_type>(value), success)
         {
         }
 
@@ -81,7 +83,7 @@ namespace network {
 
         const std::string& as_string() const;
 
-        uint32_t as_integer() const;
+        integer_type as_integer() const;
 
         // print any type of data
         std::string to_printable_string() const;
@@ -93,7 +95,7 @@ namespace network {
 
         void set(const std::string& value, const bool success = true);
 
-        void set(const uint32_t value, const bool success = true);
+        void set(const integer_type value, const bool success = true);
 
         void set(const std::vector<app_unit>& nested, const bool success = true);
 
@@ -108,7 +110,7 @@ namespace network {
 
     private:
         using variant_type = boost::variant<std::string,
-                                            uint32_t,
+                                            integer_type,
                                             bool>;
 
         bool _success = false;

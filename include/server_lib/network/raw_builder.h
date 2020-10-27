@@ -17,17 +17,17 @@ namespace network {
 
         virtual ~raw_builder() override = default;
 
-        app_unit_builder_i* clone() override
+        app_unit_builder_i* clone() const override
         {
             return new raw_builder;
         }
 
-        app_unit create(const std::string& buff) override
+        app_unit create(const std::string& buff) const override
         {
             return { buff };
         }
 
-        app_unit create(const char* buff, const size_t sz) override
+        app_unit create(const char* buff, const size_t sz) const override
         {
             return { buff, sz };
         }

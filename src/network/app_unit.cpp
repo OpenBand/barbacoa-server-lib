@@ -22,7 +22,7 @@ namespace network {
     {
     }
 
-    app_unit::app_unit(const uint32_t value, const bool success)
+    app_unit::app_unit(const integer_type value, const bool success)
         : _success(success)
         , _data(value)
     {
@@ -85,7 +85,7 @@ namespace network {
         _data = value;
     }
 
-    void app_unit::set(const uint32_t value, const bool success)
+    void app_unit::set(const integer_type value, const bool success)
     {
         _success = success;
         _data = value;
@@ -117,9 +117,9 @@ namespace network {
             {
                 return std::is_same<std::string, T>::value;
             }
-            auto operator()(const uint32_t)
+            auto operator()(const app_unit::integer_type)
             {
-                return std::is_same<uint32_t, T>::value;
+                return std::is_same<app_unit::integer_type, T>::value;
             }
             auto operator()(const bool)
             {
@@ -136,7 +136,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const uint32_t data)
+            auto operator()(const app_unit::integer_type data)
             {
                 return std::to_string(data);
             }
@@ -155,7 +155,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const uint32_t data)
+            auto operator()(const app_unit::integer_type data)
             {
                 return integer_builder::pack(data);
             }
@@ -184,7 +184,7 @@ namespace network {
 
     bool app_unit::is_integer() const
     {
-        impl::is_lunit_type<uint32_t> check;
+        impl::is_lunit_type<integer_type> check;
         return boost::apply_visitor(check, _data);
     }
 
@@ -207,11 +207,11 @@ namespace network {
         return boost::get<std::string>(_data);
     }
 
-    uint32_t app_unit::as_integer() const
+    app_unit::integer_type app_unit::as_integer() const
     {
         SRV_ASSERT(is_integer(), "Logic unit is not a integer");
 
-        return boost::get<uint32_t>(_data);
+        return boost::get<integer_type>(_data);
     }
 
     std::string app_unit::to_printable_string() const

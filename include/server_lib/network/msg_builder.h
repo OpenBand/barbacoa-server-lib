@@ -21,12 +21,14 @@ namespace network {
 
         virtual ~msg_builder() override = default;
 
-        app_unit_builder_i* clone() override
+        using size_type = integer_builder::integer_type;
+
+        app_unit_builder_i* clone() const override
         {
             return new msg_builder { _msg_max_size };
         }
 
-        app_unit create(const std::string& msg) override;
+        app_unit create(const std::string& msg) const override;
 
         app_unit_builder_i& operator<<(std::string& network_data) override;
 

@@ -14,13 +14,13 @@ namespace network {
     public:
         tcp_client_impl() = default;
 
-        void connect(const std::string& addr, std::uint32_t port, std::uint32_t timeout_ms = 0) override;
+        void connect(const std::string& addr, uint16_t port, uint32_t timeout_ms = 0) override;
 
         void disconnect(bool wait_for_removal = false) override;
 
         bool is_connected() const override;
 
-        void set_nb_workers(std::uint8_t nb_threads) override;
+        void set_nb_workers(uint8_t nb_threads) override;
 
         std::shared_ptr<tcp_connection_i> create_connection() override;
 

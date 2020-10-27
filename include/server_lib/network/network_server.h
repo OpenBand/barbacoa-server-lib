@@ -48,13 +48,13 @@ namespace network {
          *
          */
         bool start(const std::string& host,
-                   std::uint32_t port,
-                   const std::shared_ptr<app_unit_builder_i>& protocol,
+                   uint16_t port,
+                   const app_unit_builder_i* protocol,
                    event_loop* callback_thread = nullptr,
                    const on_new_connection_callback_type& callback = nullptr,
-                   std::uint8_t nb_threads = 0);
+                   uint8_t nb_threads = 0);
 
-        void set_nb_workers(std::uint8_t nb_threads);
+        void set_nb_workers(uint8_t nb_threads);
 
         void stop(bool wait_for_removal = false, bool recursive_wait_for_removal = true);
 
