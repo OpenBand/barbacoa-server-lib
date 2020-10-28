@@ -51,7 +51,7 @@ namespace impl {
         std::string thread_name;
 #if defined(USE_SERVER_LOGS) && defined(SERVER_LIB_PLATFORM_LINUX)
         thread_id = static_cast<decltype(thread_id)>(syscall(SYS_gettid));
-        static constexpr int MAX_THREAD_NAME_SZ = 15;
+        static int MAX_THREAD_NAME_SZ = 15;
         char buff[MAX_THREAD_NAME_SZ + 1];
         if (!pthread_getname_np(pthread_self(),
                                 buff, sizeof(buff)))
@@ -62,7 +62,7 @@ namespace impl {
         return std::make_pair(thread_id, thread_name);
     }
 
-    auto s_main_thread_info = get_thread_info();
+    static auto s_main_thread_info = get_thread_info();
 } // namespace impl
 #if defined(USE_SERVER_LOGS)
 BOOST_LOG_GLOBAL_LOGGER(sysLogger, boost::log::sources::severity_logger<boost::log::trivial::severity_level>);
@@ -97,11 +97,11 @@ namespace impl {
 
 // clang-format off
 template <typename SinkTypePtr>
-void logger::add_boost_log_destination(const SinkTypePtr &sink)
+void logger::add_boost_log_destination(const SinkTypePtr &sink, const std::string &dtf)
 {
 #if defined(USE_SERVER_LOGS)
 
-    assert(sink);
+    SRV_ASSERT(sink);
 
     auto to_boost_level = [](level lv) ->boost::log::trivial::severity_level {
         switch (lv)
@@ -127,7 +127,7 @@ void logger::add_boost_log_destination(const SinkTypePtr &sink)
     using namespace boost::log;
 
     sink->set_formatter(
-        expr::stream << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%H:%M:%S.%f")
+        expr::stream << expr::format_date_time<boost::posix_time::ptime>("TimeStamp", dtf)
         << " [" << std::setw(5) << expr::attr<trivial::severity_level>("Severity") << "]"
         << expr::smessage);
 
@@ -221,7 +221,7 @@ void logger::init_sys_log()
 #endif
 }
 
-void logger::init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush)
+void logger::init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush, const char* dtf)
 {
 #if defined(USE_SERVER_LOGS)
 
@@ -240,7 +240,7 @@ void logger::init_file_log(const char* file_path, const size_t rotation_size_kb,
         sink->locked_backend()->auto_flush(true);
     }
 
-    add_boost_log_destination(sink);
+    add_boost_log_destination(sink, (dtf && strlen(dtf) > 1) ? std::string { dtf } : std::string { DEFAULT_DATE_TIME_FORMAT });
 
 #if defined(DUPLICATE_LOGS_TO_COUT)
     add_stdout_destination();
@@ -248,7 +248,7 @@ void logger::init_file_log(const char* file_path, const size_t rotation_size_kb,
 #endif
 }
 
-void logger::init_debug_log(bool async, bool cerr)
+void logger::init_debug_log(bool async, bool cerr, const char* dtf)
 {
 #if defined(USE_SERVER_LOGS)
     using namespace boost::log;
@@ -285,7 +285,7 @@ void logger::init_debug_log(bool async, bool cerr)
         }
     }
 
-    add_boost_log_destination(sink);
+    add_boost_log_destination(sink, (dtf && strlen(dtf) > 1) ? std::string { dtf } : std::string { DEFAULT_DATE_TIME_FORMAT });
 #endif
 }
 

@@ -75,7 +75,7 @@ void event_loop::apply_thread_name()
 
 void event_loop::change_thread_name(const std::string& name)
 {
-    static constexpr int MAX_THREAD_NAME_SZ = 15;
+    static int MAX_THREAD_NAME_SZ = 15;
     if (name.length() > MAX_THREAD_NAME_SZ)
         _thread_name = name.substr(0, MAX_THREAD_NAME_SZ);
     else

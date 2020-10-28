@@ -58,9 +58,11 @@ protected:
     friend class singleton<logger>;
 
 public:
+    static constexpr const char* DEFAULT_DATE_TIME_FORMAT = "%Y-%m-%d_%H:%M:%S.%f";
+
     void init_sys_log();
-    void init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush);
-    void init_debug_log(bool async = false, bool cerr = false);
+    void init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
+    void init_debug_log(bool async = false, bool cerr = false, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
 
     //suppress trace logs by default
     void set_level_filter(int filter = 0x10);
@@ -78,7 +80,7 @@ private:
     void add_syslog_destination();
     void add_stdout_destination();
     template <typename SinkTypePtr>
-    void add_boost_log_destination(const SinkTypePtr& sink);
+    void add_boost_log_destination(const SinkTypePtr& sink, const std::string& dtf);
 
 private:
     std::vector<log_handler_type> _appenders;

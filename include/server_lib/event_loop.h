@@ -8,6 +8,7 @@
 
 #include <server_lib/types.h>
 #include <server_lib/timers.h>
+#include <server_lib/asserts.h>
 
 #include "wait_asynch_request.h"
 
@@ -33,13 +34,13 @@ public:
     template <typename Handler>
     void post(Handler&& handler)
     {
-        assert(_pservice);
+        SRV_ASSERT(_pservice);
         _pservice->post(_strand.wrap(std::move(handler)));
     }
 
     operator boost::asio::io_service&()
     {
-        assert(_pservice);
+        SRV_ASSERT(_pservice);
         return *_pservice;
     }
 
@@ -90,7 +91,7 @@ protected:
     template <typename DurationType, typename Handler>
     void start_timer(DurationType&& duration, Handler&& callback)
     {
-        assert(_pservice);
+        SRV_ASSERT(_pservice);
 
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
         auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
