@@ -75,7 +75,7 @@ protected:
     void run();
 
 protected:
-    bool _run_in_separate_thread = false;
+    const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
     std::atomic_bool _is_main;
     long _tid = 0;
