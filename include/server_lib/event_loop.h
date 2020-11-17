@@ -35,7 +35,17 @@ public:
     void post(Handler&& handler)
     {
         SRV_ASSERT(_pservice);
-        _pservice->post(_strand.wrap(std::move(handler)));
+        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
+            handler();
+            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
+        };
+        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+        _pservice->post(_strand.wrap(std::move(handler_)));
+    }
+
+    auto queue_size() const
+    {
+        return _queue_size.load();
     }
 
     operator boost::asio::io_service&()
@@ -84,6 +94,7 @@ protected:
     boost::optional<boost::asio::io_service::work> _loop_maintainer;
     std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
+    std::atomic_uint64_t _queue_size;
 
 protected:
     friend class server_lib::timer<event_loop>;

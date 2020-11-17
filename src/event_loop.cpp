@@ -25,6 +25,7 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
     : _run_in_separate_thread(in_separate_thread)
     , _pservice(std::make_shared<boost::asio::io_service>())
     , _strand(*_pservice)
+    , _queue_size(0)
 {
     if (_run_in_separate_thread)
     {
