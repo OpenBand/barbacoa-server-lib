@@ -72,8 +72,8 @@ public:
         return _is_main;
     }
 
-    template <typename Result, typename TAsynchFunc>
-    Result wait_async(const Result initial_result, TAsynchFunc&& asynch_func)
+    template <typename Result, typename AsynchFunc>
+    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func)
     {
         auto call = [this](auto asynch_func) {
             this->post(asynch_func);

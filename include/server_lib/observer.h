@@ -8,32 +8,33 @@
 
 namespace server_lib {
 
-template <class TObserverSink_i>
+template <class Observer>
 class observable
 {
-    using sink_member = std::function<void(TObserverSink_i*)>;
+    using observer_i = Observer;
+    using sink_member = std::function<void(observer_i*)>;
 
 public:
     //for observer:
     //  'sink' and 'loop' objects are required
     //  until they will be unsubscribed!
     //
-    void subscribe(TObserverSink_i& sink_impl)
+    void subscribe(observer_i& sink_impl)
     {
         subscribe_impl(sink_impl, true, nullptr);
     }
-    void subscribe(TObserverSink_i& sink_impl, event_loop& loop)
+    void subscribe(observer_i& sink_impl, event_loop& loop)
     {
         subscribe_impl(sink_impl, true, &loop);
     }
-    void unsubscribe(TObserverSink_i& sink_impl)
+    void unsubscribe(observer_i& sink_impl)
     {
         subscribe_impl(sink_impl, false, nullptr);
     }
 
     //for observable to signal with any arguments. Exp:
-    //  notify(&TObserverSink_i::on_event1)
-    //  notify(&TObserverSink_i::on_event2, val1, val2)
+    //  notify(&observer_i::on_event1)
+    //  notify(&observer_i::on_event2, val1, val2)
     //
     template <typename F, typename... Arg>
     void notify(F&& f)
@@ -56,7 +57,7 @@ public:
     }
 
 protected:
-    void subscribe_impl(TObserverSink_i& sink, bool on, event_loop* ploop)
+    void subscribe_impl(observer_i& sink, bool on, event_loop* ploop)
     {
         std::lock_guard<std::mutex> lck(_guard_for_observers);
         void* psink = (void*)(&sink);
@@ -85,7 +86,7 @@ protected:
         std::lock_guard<std::mutex> lck(_guard_for_observers);
         for (auto&& item : _observers)
         {
-            TObserverSink_i* psink = reinterpret_cast<TObserverSink_i*>(item.first);
+            observer_i* psink = reinterpret_cast<observer_i*>(item.first);
             if (!psink)
                 continue;
 

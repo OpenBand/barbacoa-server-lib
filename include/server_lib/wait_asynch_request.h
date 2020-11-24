@@ -7,8 +7,8 @@
 
 namespace server_lib {
 
-template <typename Result, typename TCallerFunc, typename TAsynchFunc>
-Result wait_preliminary_async_call(const Result initial_result, TCallerFunc&& caller_func, TAsynchFunc&& asynch_func, int32_t timeout_ms = -1)
+template <typename Result, typename CallerFunc, typename AsynchFunc>
+Result wait_preliminary_async_call(const Result initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {
     std::condition_variable _donecheck;
     std::mutex _cond_data_guard;
@@ -48,8 +48,8 @@ Result wait_preliminary_async_call(const Result initial_result, TCallerFunc&& ca
     return result;
 }
 
-template <typename Result, typename TCallerFunc, typename TAsynchFunc>
-Result wait_async_call(const Result initial_result, TCallerFunc&& caller_func, TAsynchFunc&& asynch_func, int32_t timeout_ms = -1)
+template <typename Result, typename CallerFunc, typename AsynchFunc>
+Result wait_async_call(const Result initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {
     // ignore preliminary check
     auto caller_func_wrapper = [&initial_result, &caller_func](auto asynch_func) -> Result {
