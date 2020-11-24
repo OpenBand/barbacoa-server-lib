@@ -210,6 +210,13 @@ namespace tests {
         std::tuple<bool, int, std::string> _on_test4 = std::make_tuple(false, 0, std::string {});
     };
 
+    struct test_wrong_sink_i
+    {
+        virtual ~test_wrong_sink_i() = default;
+
+        virtual void on_any_test() = 0;
+    };
+
     BOOST_AUTO_TEST_CASE(observer_check)
     {
         server_lib::observable<test_sink_i> testing_observable;
@@ -222,6 +229,18 @@ namespace tests {
 
             testing_observable.subscribe(observer1);
 
+#if 0 //check for compilation errors (std::bind protection)
+            testing_observable.notify(&test_wrong_sink_i::on_any_test);
+            testing_observable.notify(&test_wrong_sink_i::on_any_test, 111);
+            testing_observable.notify(&test_sink_i::on_test1, 111);
+            testing_observable.notify(&test_sink_i::on_test2, 111, test_int_value);
+            testing_observable.notify(&test_sink_i::on_test2, 111, test_str_value);
+
+            //type protection
+            auto wrong_callback = []() {
+            };
+            testing_observable.notify(wrong_callback);
+#endif
             testing_observable.notify(&test_sink_i::on_test1);
             testing_observable.notify(&test_sink_i::on_test2, test_int_value);
 
@@ -303,11 +322,11 @@ namespace tests {
         loop1.start();
         loop2.start();
 
-        auto wait_ = []() {
+        auto waiting_for_loop_ready = []() {
             return true;
         };
-        loop1.wait_async(false, wait_);
-        loop2.wait_async(false, wait_);
+        loop1.wait_async(false, waiting_for_loop_ready);
+        loop2.wait_async(false, waiting_for_loop_ready);
 
         observer2.expect_on_test1();
         observer3.expect_on_test1();
