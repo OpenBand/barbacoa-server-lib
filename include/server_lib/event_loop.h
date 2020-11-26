@@ -81,6 +81,19 @@ public:
         return wait_async_call(initial_result, call, asynch_func);
     }
 
+    template <typename Result, typename AsynchFunc, typename DurationType>
+    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+        auto call = [this](auto asynch_func) {
+            this->post(asynch_func);
+        };
+        return wait_async_call(initial_result, call, asynch_func, ms.count());
+    }
+
     template <typename DurationType, typename Handler>
     void start_timer(DurationType&& duration, Handler&& callback)
     {
