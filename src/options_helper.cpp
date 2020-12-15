@@ -47,24 +47,47 @@ namespace impl {
             if (!od)
                 continue;
 
-            if (!od->description().empty())
-                out_cfg << "# " << od->description() << "\n";
+            std::string description = od->description();
+            if (!description.empty())
+                out_cfg << "# " << description << "\n";
             boost::any store;
             if (!od->semantic()->apply_default(store))
                 out_cfg << "# " << od->long_name() << " = \n";
             else
             {
+                out_cfg << od->long_name() << " = ";
+
                 auto example = od->format_parameter();
                 if (example.empty())
                     // This is a boolean switch
-                    out_cfg << od->long_name() << " = "
-                            << "false\n";
-                else
+                    out_cfg << "false\n";
+                else if (example.length() > 6)
                 {
                     // The string is formatted "arg (=<interesting part>)"
                     example.erase(0, 6);
                     example.erase(example.length() - 1);
-                    out_cfg << od->long_name() << " = " << example << "\n";
+
+                    bool suggest_bool_type = false;
+                    if (example.size() == 1)
+                    {
+                        if (example.at(0) == '1' || example.at(0) == '0')
+                        {
+                            suggest_bool_type = description.find("Switch") != std::string::npos;
+                            if (suggest_bool_type)
+                            {
+                                if (example.at(0) == '1')
+                                    out_cfg << "true\n";
+                                else
+                                    out_cfg << "false\n";
+                            }
+                        }
+                    }
+                    if (!suggest_bool_type)
+                        out_cfg << example << "\n";
+                }
+                else
+                {
+                    out_cfg << "\n";
                 }
             }
             out_cfg << "\n";
