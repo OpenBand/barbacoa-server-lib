@@ -164,7 +164,7 @@ const char* server_options::get_application_name() const
 
 const char* server_options::get_application_version() const
 {
-    return "0.0.0";
+    return "";
 }
 
 const char* server_options::get_config_file_name() const
@@ -180,13 +180,18 @@ void server_options::print_version(std::ostream& stream) const
         stream << capitalized_header << "\n";
     }
 
-    static const char* version_header = " - internal Version: ";
+    std::string internal_ver { get_application_version() };
+    static const char* version_header = " - Version: ";
     size_t header_sz = std::strlen(version_header);
     header_sz += std::strlen(get_application_name());
-    header_sz += std::strlen(get_application_version());
+    if (!internal_ver.empty())
+        header_sz += internal_ver.length();
     header_sz += 1;
 
-    stream << get_application_name() << version_header << get_application_version() << "\n";
+    stream << get_application_name() << version_header;
+    if (!internal_ver.empty())
+        stream << internal_ver;
+    stream << "\n";
     stream << std::setfill('_') << std::setw(static_cast<int>(header_sz)) << '\n'
            << std::setfill(' ');
     stream << "Boost: " << boost::replace_all_copy(std::string(BOOST_LIB_VERSION), "_", ".") << "\n";
