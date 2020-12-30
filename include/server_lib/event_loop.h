@@ -67,9 +67,15 @@ public:
     {
         return _is_running;
     }
+
     bool is_main() const
     {
         return _is_main;
+    }
+
+    bool is_this_loop() const
+    {
+        return _id.load() == std::this_thread::get_id();
     }
 
     template <typename Result, typename AsynchFunc>
@@ -128,6 +134,7 @@ protected:
     std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
     std::atomic_uint64_t _queue_size;
+    std::atomic<std::thread::id> _id;
 
 private:
     bool is_main_loop();
