@@ -28,7 +28,7 @@ Result wait_preliminary_async_call(const Result initial_result, CallerFunc&& cal
 
     result = caller_func(_asynch);
 
-    while (result == initial_result && !_done_request) //for OS interruptions case
+    while (!_done_request) //for OS interruptions case
     {
         auto done = [&_done_request]() {
             return _done_request;
