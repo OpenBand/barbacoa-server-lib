@@ -91,7 +91,7 @@ protected:
                 continue;
 
             event_loop* p_el = item.second;
-            if (p_el)
+            if (!p_el || !p_el->is_this_loop())
             {
                 auto pending = [memf, psink]() {
                     memf(psink);
