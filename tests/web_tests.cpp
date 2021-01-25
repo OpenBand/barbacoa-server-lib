@@ -895,6 +895,136 @@ namespace tests {
         server_th.stop();
     }
 
+    BOOST_AUTO_TEST_CASE(server_with_thread_pool_check)
+    {
+        print_current_test_name();
+
+        WebServer server;
+        event_loop server_th;
+
+        server.config.port = get_free_port();
+        server.config.address = get_default_address();
+        server.config.timeout_request = 5;
+        server.config.timeout_content = 10;
+        server.config.max_request_streambuf_size = 1024;
+        server.config.thread_pool_size = 9;
+        server_th.change_thread_name("!S");
+
+        const std::string RESOURCE_PATH = "/test";
+        std::string resource;
+        resource.append("^");
+        resource.append(RESOURCE_PATH);
+        resource.append("$");
+
+        auto server_recieve_callback = [](
+                                           std::shared_ptr<WebServer::Response> response,
+                                           std::shared_ptr<WebServer::Request> request) {
+            try
+            {
+                BOOST_REQUIRE(request);
+                BOOST_REQUIRE(response);
+
+                auto ip_address = request->remote_endpoint_address();
+
+                LOG_TRACE("Service has recive request: " << request->header);
+                LOG_TRACE("Service has recive content: " << request->content.string());
+
+                response->write(HttpStatusCode::success_ok, "Ok");
+                response->close_connection_after_response = true;
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_REQUIRE_EQUAL(e.what(), "");
+            }
+        };
+        server.resource[resource]["POST"] = server_recieve_callback;
+
+        server.on_error = [&](std::shared_ptr<WebServer::Request>, const web::error_code& ec) {
+            LOG_ERROR(ec.message());
+        };
+
+        server.io_service = server_th.service();
+        auto server_run = [&]() {
+            try
+            {
+                LOG_TRACE("Server is started");
+                server.start(); //It stuck into this call until it will be stopped
+                return true;
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_REQUIRE_EQUAL(e.what(), "");
+            }
+            return false;
+        };
+        server_th.start();
+        server_th.post(server_run);
+
+        using WebClient = web::Client<SimpleWeb::HTTP>;
+        std::string address { server.config.address };
+        address.append(":");
+        address.append(std::to_string(server.config.port));
+        WebClient client { address };
+
+        client.config.timeout_connect = 1;
+        client.config.timeout = 5;
+        client.config.max_response_streambuf_size = 1024;
+
+        const int REQUESTS = 5;
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+        int requests_left = REQUESTS;
+
+        auto client_recieve_callback = [&](std::shared_ptr<WebClient::Response> response, const web::error_code&) {
+            LOG_TRACE("Client recive response: " << response->content.string());
+
+            long status_code = std::atol(response->status_code.c_str());
+            BOOST_REQUIRE_EQUAL(static_cast<int>(status_code), static_cast<int>(HttpStatusCode::success_ok));
+            --requests_left;
+
+            if (requests_left < 1)
+            {
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+            }
+        };
+
+        event_loop client_th;
+
+        client_th.change_thread_name("!C");
+        client.io_service = client_th.service();
+        client_th.start();
+
+        for (int ci = 0; ci < REQUESTS; ++ci)
+        {
+            web::CaseInsensitiveMultimap headers;
+            headers.emplace("Content-Type", "text/plain");
+            headers.emplace("X-Client-Id", std::to_string(ci));
+            std::string message { "Hi from " };
+            message.append(std::to_string(ci));
+            client.request("POST", RESOURCE_PATH, message, headers, client_recieve_callback);
+
+            LOG_TRACE("Client send request: " << message);
+        };
+
+        std::unique_lock<std::mutex> lck(done_test_cond_guard);
+        while (!done_test)
+        {
+            done_test_cond.wait(lck, [&done_test]() {
+                return done_test;
+            });
+        }
+
+        client_th.stop();
+
+        server.stop();
+        server_th.stop();
+    }
+
     BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace tests
