@@ -35,7 +35,17 @@ public:
     void post(Handler&& handler)
     {
         SRV_ASSERT(_pservice);
-        _pservice->post(_strand.wrap(std::move(handler)));
+        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
+            handler();
+            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
+        };
+        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+        _pservice->post(_strand.wrap(std::move(handler_)));
+    }
+
+    auto queue_size() const
+    {
+        return _queue_size.load();
     }
 
     operator boost::asio::io_service&()
@@ -57,18 +67,57 @@ public:
     {
         return _is_running;
     }
+
     bool is_main() const
     {
         return _is_main;
     }
 
-    template <typename Result, typename TAsynchFunc>
-    Result wait_async(const Result initial_result, TAsynchFunc&& asynch_func)
+    bool is_this_loop() const
+    {
+        return _id.load() == std::this_thread::get_id();
+    }
+
+    template <typename Result, typename AsynchFunc>
+    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func)
     {
         auto call = [this](auto asynch_func) {
             this->post(asynch_func);
         };
         return wait_async_call(initial_result, call, asynch_func);
+    }
+
+    template <typename Result, typename AsynchFunc, typename DurationType>
+    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+        auto call = [this](auto asynch_func) {
+            this->post(asynch_func);
+        };
+        return wait_async_call(initial_result, call, asynch_func, ms.count());
+    }
+
+    template <typename DurationType, typename Handler>
+    void start_timer(DurationType&& duration, Handler&& callback)
+    {
+        SRV_ASSERT(_pservice);
+
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum timer accuracy");
+
+        auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
+
+        timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
+        timer->async_wait(_strand.wrap([timer /*save timer object*/, callback](const boost::system::error_code& ec) {
+            if (!ec)
+            {
+                callback();
+            }
+        }));
     }
 
 protected:
@@ -84,26 +133,8 @@ protected:
     boost::optional<boost::asio::io_service::work> _loop_maintainer;
     std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
-
-protected:
-    friend class server_lib::timer<event_loop>;
-
-    template <typename DurationType, typename Handler>
-    void start_timer(DurationType&& duration, Handler&& callback)
-    {
-        SRV_ASSERT(_pservice);
-
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-        auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
-
-        timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
-        timer->async_wait(_strand.wrap([timer, callback](const boost::system::error_code& ec) {
-            if (!ec)
-            {
-                callback();
-            }
-        }));
-    }
+    std::atomic_uint64_t _queue_size;
+    std::atomic<std::thread::id> _id;
 
 private:
     bool is_main_loop();

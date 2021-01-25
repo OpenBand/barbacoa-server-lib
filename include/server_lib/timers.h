@@ -7,7 +7,7 @@
 
 namespace server_lib {
 
-template <typename Transport>
+template <typename EventLoop>
 class timer
 {
     DECLARE_PTR(id)
@@ -18,8 +18,8 @@ class timer
     };
 
 public:
-    timer(Transport& transport)
-        : _transport_layer(transport)
+    timer(EventLoop& el)
+        : _el(el)
         , _current_timer_id(std::make_shared<id>())
     {
     }
@@ -32,12 +32,10 @@ public:
     template <typename DurationType, typename Callback>
     void start(DurationType&& duration, Callback&& callback)
     {
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-
         int timer_id = ++_current_timer_id->value;
         auto id = _current_timer_id;
 
-        _transport_layer.start_timer(ms, [=]() {
+        _el.start_timer(std::forward<DurationType>(duration), [=]() {
             if (id->value == timer_id)
                 callback();
         });
@@ -50,24 +48,24 @@ public:
     }
 
 private:
-    Transport& _transport_layer;
+    EventLoop& _el;
     id_ptr _current_timer_id;
 };
 
 
-template <typename Transport>
+template <typename EventLoop>
 class periodical_timer
 {
 public:
-    periodical_timer(Transport& transport)
-        : _timer(transport)
+    periodical_timer(EventLoop& el)
+        : _timer(el)
     {
     }
 
     template <typename DurationType, typename Callback>
     void start(DurationType&& duration, Callback&& callback)
     {
-        _timer.start(duration, [=]() {
+        _timer.start(std::forward<DurationType>(duration), [=]() {
             this->start(duration, callback);
             callback();
         });
@@ -79,7 +77,7 @@ public:
     }
 
 private:
-    timer<Transport> _timer;
+    timer<EventLoop> _timer;
 };
 
 

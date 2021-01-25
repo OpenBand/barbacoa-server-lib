@@ -47,24 +47,47 @@ namespace impl {
             if (!od)
                 continue;
 
-            if (!od->description().empty())
-                out_cfg << "# " << od->description() << "\n";
+            std::string description = od->description();
+            if (!description.empty())
+                out_cfg << "# " << description << "\n";
             boost::any store;
             if (!od->semantic()->apply_default(store))
                 out_cfg << "# " << od->long_name() << " = \n";
             else
             {
+                out_cfg << od->long_name() << " = ";
+
                 auto example = od->format_parameter();
                 if (example.empty())
                     // This is a boolean switch
-                    out_cfg << od->long_name() << " = "
-                            << "false\n";
-                else
+                    out_cfg << "false\n";
+                else if (example.length() > 6)
                 {
                     // The string is formatted "arg (=<interesting part>)"
                     example.erase(0, 6);
                     example.erase(example.length() - 1);
-                    out_cfg << od->long_name() << " = " << example << "\n";
+
+                    bool suggest_bool_type = false;
+                    if (example.size() == 1)
+                    {
+                        if (example.at(0) == '1' || example.at(0) == '0')
+                        {
+                            suggest_bool_type = description.find("Switch") != std::string::npos;
+                            if (suggest_bool_type)
+                            {
+                                if (example.at(0) == '1')
+                                    out_cfg << "true\n";
+                                else
+                                    out_cfg << "false\n";
+                            }
+                        }
+                    }
+                    if (!suggest_bool_type)
+                        out_cfg << example << "\n";
+                }
+                else
+                {
+                    out_cfg << "\n";
                 }
             }
             out_cfg << "\n";
@@ -141,7 +164,7 @@ const char* server_options::get_application_name() const
 
 const char* server_options::get_application_version() const
 {
-    return "0.0.0";
+    return "";
 }
 
 const char* server_options::get_config_file_name() const
@@ -157,13 +180,18 @@ void server_options::print_version(std::ostream& stream) const
         stream << capitalized_header << "\n";
     }
 
-    static const char* version_header = " - internal Version: ";
+    std::string internal_ver { get_application_version() };
+    static const char* version_header = " - Version: ";
     size_t header_sz = std::strlen(version_header);
     header_sz += std::strlen(get_application_name());
-    header_sz += std::strlen(get_application_version());
+    if (!internal_ver.empty())
+        header_sz += internal_ver.length();
     header_sz += 1;
 
-    stream << get_application_name() << version_header << get_application_version() << "\n";
+    stream << get_application_name() << version_header;
+    if (!internal_ver.empty())
+        stream << internal_ver;
+    stream << "\n";
     stream << std::setfill('_') << std::setw(static_cast<int>(header_sz)) << '\n'
            << std::setfill(' ');
     stream << "Boost: " << boost::replace_all_copy(std::string(BOOST_LIB_VERSION), "_", ".") << "\n";

@@ -25,6 +25,8 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
     : _run_in_separate_thread(in_separate_thread)
     , _pservice(std::make_shared<boost::asio::io_service>())
     , _strand(*_pservice)
+    , _queue_size(0)
+    , _id(std::this_thread::get_id())
 {
     if (_run_in_separate_thread)
     {
@@ -163,6 +165,7 @@ void event_loop::run()
     {
         SRV_LOGC_TRACE("loop = " << ++cloop);
 
+        _id.store(std::this_thread::get_id());
         apply_thread_name();
 
         try
