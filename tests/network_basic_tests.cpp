@@ -107,13 +107,7 @@ namespace tests {
             client_th.start([&]() { client_run(); });
         });
 
-        std::unique_lock<std::mutex> lck(done_test_cond_guard);
-        while (!done_test)
-        {
-            done_test_cond.wait(lck, [&done_test]() {
-                return done_test;
-            });
-        }
+        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_CASE(tcp_connection_close_by_server_check)
@@ -205,13 +199,7 @@ namespace tests {
             client_th.start([&]() { client_run(); });
         });
 
-        std::unique_lock<std::mutex> lck(done_test_cond_guard);
-        while (!done_test)
-        {
-            done_test_cond.wait(lck, [&done_test]() {
-                return done_test;
-            });
-        }
+        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_SUITE_END()

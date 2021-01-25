@@ -130,55 +130,61 @@ namespace tests {
         test_observer_impl() = default;
         ~test_observer_impl() override {}
 
-        void expect_on_test1(bool expect = true)
+        bool expect_on_test1(bool expect = true)
         {
             if (expect)
             {
-                BOOST_REQUIRE(_on_test1);
+                return _on_test1;
             }
             else
             {
-                BOOST_REQUIRE(!_on_test1);
+                return !_on_test1;
             }
         }
 
-        void expect_on_test2(const int value, bool expect = true)
+        bool expect_on_test2(const int value, bool expect = true)
         {
             if (expect)
             {
-                BOOST_REQUIRE(std::get<0>(_on_test2));
-                BOOST_REQUIRE_EQUAL(std::get<1>(_on_test2), value);
+                if (!std::get<0>(_on_test2))
+                    return false;
+                return std::get<1>(_on_test2) == value;
             }
             else
             {
-                BOOST_REQUIRE(!std::get<0>(_on_test2));
+                return !std::get<0>(_on_test2);
             }
         }
 
-        void expect_on_test3(const std::string& value, bool expect = true)
+        bool expect_on_test3(const std::string& value, bool expect = true)
         {
             if (expect)
             {
-                BOOST_REQUIRE(std::get<0>(_on_test3));
-                BOOST_REQUIRE_EQUAL(std::get<1>(_on_test3), value);
+                if (!std::get<0>(_on_test3))
+                    return false;
+                return std::get<1>(_on_test3) == value;
             }
             else
             {
-                BOOST_REQUIRE(!std::get<0>(_on_test3));
+                return !std::get<0>(_on_test3);
             }
         }
 
-        void expect_on_test4(const int value1, const std::string& value2, bool expect = true)
+        bool expect_on_test4(const int value1, const std::string& value2, bool expect = true)
         {
             if (expect)
             {
-                BOOST_REQUIRE(std::get<0>(_on_test4));
-                BOOST_REQUIRE_EQUAL(std::get<1>(_on_test4), value1);
-                BOOST_REQUIRE_EQUAL(std::get<2>(_on_test4), value2);
+                if (!std::get<0>(_on_test4))
+                    return false;
+                if (std::get<1>(_on_test4) != value1)
+                    return false;
+                if (std::get<2>(_on_test4) != value2)
+                    return false;
+                return true;
             }
             else
             {
-                BOOST_REQUIRE(!std::get<0>(_on_test4));
+                return !std::get<0>(_on_test4);
             }
         }
 
@@ -201,6 +207,14 @@ namespace tests {
         {
             LOG_TRACE(__FUNCTION__ << ", " << value1 << ", " << value2);
             _on_test4 = std::make_tuple(true, value1, value2);
+        }
+
+        void reset()
+        {
+            _on_test1 = false;
+            _on_test2 = std::make_tuple(false, 0);
+            _on_test3 = std::make_tuple(false, std::string {});
+            _on_test4 = std::make_tuple(false, 0, std::string {});
         }
 
     private:
@@ -244,8 +258,8 @@ namespace tests {
             testing_observable.notify(&test_sink_i::on_test1);
             testing_observable.notify(&test_sink_i::on_test2, test_int_value);
 
-            observer1.expect_on_test1();
-            observer1.expect_on_test2(test_int_value);
+            BOOST_REQUIRE(observer1.expect_on_test1());
+            BOOST_REQUIRE(observer1.expect_on_test2(test_int_value));
 
             test_observer_impl observer2;
 
@@ -254,10 +268,10 @@ namespace tests {
             testing_observable.notify(&test_sink_i::on_test3, test_str_value);
             testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
 
-            observer1.expect_on_test3(test_str_value);
-            observer1.expect_on_test4(test_int_value, test_str_value);
-            observer2.expect_on_test3(test_str_value);
-            observer2.expect_on_test4(test_int_value, test_str_value);
+            BOOST_REQUIRE(observer1.expect_on_test3(test_str_value));
+            BOOST_REQUIRE(observer1.expect_on_test4(test_int_value, test_str_value));
+            BOOST_REQUIRE(observer2.expect_on_test3(test_str_value));
+            BOOST_REQUIRE(observer2.expect_on_test4(test_int_value, test_str_value));
 
             testing_observable.unsubscribe(observer1);
             testing_observable.unsubscribe(observer2);
@@ -272,10 +286,10 @@ namespace tests {
             testing_observable.notify(&test_sink_i::on_test3, test_str_value);
             testing_observable.notify(&test_sink_i::on_test1);
 
-            observer1.expect_on_test3(test_str_value);
-            observer2.expect_on_test3(test_str_value);
-            observer1.expect_on_test1();
-            observer2.expect_on_test1();
+            BOOST_REQUIRE(observer1.expect_on_test3(test_str_value));
+            BOOST_REQUIRE(observer2.expect_on_test3(test_str_value));
+            BOOST_REQUIRE(observer1.expect_on_test1());
+            BOOST_REQUIRE(observer2.expect_on_test1());
         }
     }
 
@@ -306,36 +320,71 @@ namespace tests {
         testing_observable.notify(&test_sink_i::on_test3, test_str_value);
         testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
 
-        observer1.expect_on_test1();
-        observer2.expect_on_test1(false);
-        observer3.expect_on_test1(false);
-        observer1.expect_on_test2(test_int_value);
-        observer2.expect_on_test2(test_int_value, false);
-        observer3.expect_on_test2(test_int_value, false);
-        observer1.expect_on_test3(test_str_value);
-        observer2.expect_on_test3(test_str_value, false);
-        observer3.expect_on_test3(test_str_value, false);
-        observer1.expect_on_test4(test_int_value, test_str_value);
-        observer2.expect_on_test4(test_int_value, test_str_value, false);
-        observer3.expect_on_test4(test_int_value, test_str_value, false);
+        BOOST_REQUIRE(observer1.expect_on_test1());
+        BOOST_REQUIRE(observer2.expect_on_test1());
+        BOOST_REQUIRE(observer3.expect_on_test1());
+        BOOST_REQUIRE(observer1.expect_on_test2(test_int_value));
+        BOOST_REQUIRE(observer2.expect_on_test2(test_int_value));
+        BOOST_REQUIRE(observer3.expect_on_test2(test_int_value));
+        BOOST_REQUIRE(observer1.expect_on_test3(test_str_value));
+        BOOST_REQUIRE(observer2.expect_on_test3(test_str_value));
+        BOOST_REQUIRE(observer3.expect_on_test3(test_str_value));
+        BOOST_REQUIRE(observer1.expect_on_test4(test_int_value, test_str_value));
+        BOOST_REQUIRE(observer2.expect_on_test4(test_int_value, test_str_value));
+        BOOST_REQUIRE(observer3.expect_on_test4(test_int_value, test_str_value));
 
         loop1.start();
         loop2.start();
 
+        observer1.reset();
+        observer2.reset();
+        observer3.reset();
+
+        server_lib::event_loop loop0;
+
+        loop0.change_thread_name("!L0");
+
+        bool done = false;
+        std::mutex done_cond_guard;
+        std::condition_variable done_cond;
+
+        loop0.start([&done, &done_cond_guard, &done_cond,
+                     &testing_observable, test_int_value, test_str_value]() {
+            testing_observable.notify(&test_sink_i::on_test1);
+            testing_observable.notify(&test_sink_i::on_test2, test_int_value);
+            testing_observable.notify(&test_sink_i::on_test3, test_str_value);
+            testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
+
+            //done test
+            std::unique_lock<std::mutex> lck(done_cond_guard);
+            done = true;
+            done_cond.notify_one();
+        });
+
+        std::unique_lock<std::mutex> lck(done_cond_guard);
+        if (!done)
+        {
+            done_cond.wait_for(lck, std::chrono::seconds(10), [&done]() {
+                return done;
+            });
+        }
+        BOOST_REQUIRE(done);
+
+        //push events in queue
         auto waiting_for_loop_ready = []() {
             return true;
         };
         loop1.wait_async(false, waiting_for_loop_ready);
         loop2.wait_async(false, waiting_for_loop_ready);
 
-        observer2.expect_on_test1();
-        observer3.expect_on_test1();
-        observer2.expect_on_test2(test_int_value);
-        observer3.expect_on_test2(test_int_value);
-        observer2.expect_on_test3(test_str_value);
-        observer3.expect_on_test3(test_str_value);
-        observer2.expect_on_test4(test_int_value, test_str_value);
-        observer3.expect_on_test4(test_int_value, test_str_value);
+        BOOST_REQUIRE(observer2.expect_on_test1());
+        BOOST_REQUIRE(observer3.expect_on_test1());
+        BOOST_REQUIRE(observer2.expect_on_test2(test_int_value));
+        BOOST_REQUIRE(observer3.expect_on_test2(test_int_value));
+        BOOST_REQUIRE(observer2.expect_on_test3(test_str_value));
+        BOOST_REQUIRE(observer3.expect_on_test3(test_str_value));
+        BOOST_REQUIRE(observer2.expect_on_test4(test_int_value, test_str_value));
+        BOOST_REQUIRE(observer3.expect_on_test4(test_int_value, test_str_value));
     }
 
     BOOST_AUTO_TEST_SUITE_END()

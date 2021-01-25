@@ -4,6 +4,8 @@
 
 #include <cstdint>
 #include <string>
+#include <condition_variable>
+#include <mutex>
 
 namespace server_lib {
 namespace tests {
@@ -23,6 +25,11 @@ namespace tests {
         }
 
         uint16_t get_free_port();
+
+        bool waiting_for(bool& done,
+                         std::condition_variable& done_cond,
+                         std::mutex& done_cond_guard,
+                         size_t sec_timeout = 10);
     };
 
 } // namespace tests
