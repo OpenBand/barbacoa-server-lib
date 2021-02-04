@@ -146,7 +146,7 @@ int main(void)
         {
             LOG_DEBUG("Emulate memory fail");
 
-            try_fail(fail::try0x_1);
+            try_fail(fail::try_wrong_delete);
         }
     };
 

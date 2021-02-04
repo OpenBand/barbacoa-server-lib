@@ -15,13 +15,21 @@
 
 namespace bpo = server_lib::bpo;
 
-class Config : protected server_lib::server_options
+struct Config_i
+{
+    std::string test_case = "cerr";
+    bool show_crash_dump = false;
+};
+
+class Config : public Config_i,
+               protected server_lib::server_options
 {
     void set_program_options(bpo::options_description& cli)
     {
         // clang-format off
         cli.add_options()
-                ("try", bpo::value<uint16_t>()->default_value(0), "Fail number")
+                ("try,t", bpo::value<std::string>()->default_value(test_case),
+                         (std::string{"Case from list ["} + server_lib::get_fail_cases() + "]").c_str())
                 ("show,s", "Print crash dump and clear")
                 ("help,h", "Display help message")
                 ("version,v", "Print version number and exit");
@@ -29,9 +37,6 @@ class Config : protected server_lib::server_options
     }
 
 public:
-    server_lib::fail test_fail = server_lib::fail::try_none;
-    bool show_crash_dump = false;
-
     bool load(int argc, char* argv[])
     {
         try
@@ -59,13 +64,7 @@ public:
                 exit(0);
             }
 
-            if (options.count("try"))
-            {
-                auto opt = options["try"].as<uint16_t>();
-
-                test_fail = static_cast<server_lib::fail>(opt);
-            }
-
+            test_case = options["try"].as<std::string>();
             show_crash_dump = options.count("show");
         }
         catch (const std::exception& e)
@@ -75,6 +74,19 @@ public:
         }
 
         return true;
+    }
+
+    void print_help()
+    {
+        bpo::options_description cli_options(get_application_name());
+
+        boost::program_options::variables_map options;
+
+        bpo::options_description cli;
+        set_program_options(cli);
+        cli_options.add(cli);
+
+        cli_options.print(std::cerr);
     }
 };
 
@@ -115,14 +127,10 @@ int main(int argc, char* argv[])
         }
         else
         {
-            if (server_lib::fail::try_none != config.test_fail)
+            if (!try_fail(config.test_case))
             {
-                std::cout << "Try fail test " << static_cast<int>(config.test_fail) << std::endl;
-                try_fail(config.test_fail);
-            }
-            else
-            {
-                std::cout << "Try normal exit" << std::endl;
+                config.print_help();
+                exit(1);
             }
         }
         ml.exit(0);

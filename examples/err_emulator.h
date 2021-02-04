@@ -1,23 +1,29 @@
 #pragma once
 
+#include <string>
+
 namespace server_lib {
 
 enum class fail
 {
     try_none = 0,
-    tryc_err,
-    tryc_overflow,
-    try0x_1,
-    try0x_2,
-    try11_1,
-    try11_2,
-    try_infrec, //!!!
-    try_static_namespace,
-    try_cls1,
-    try_cls2,
-    try_cls_anonymous
+    try_cerr,
+    try_overflow,
+    try_wrong_delete,
+    try_double_delete,
+    try_wrong_pointer,
+    try_wrong_delete_in_lambda,
+    try_wrong_pointer_in_lambda,
+    try_inf_recursive,
+    try_wrong_delete_in_static_namespace,
+    try_wrong_delete_in_class,
+    try_wrong_pointer_in_inherited_class,
+    try_wrong_pointer_in_anonymous_namespace
 };
 
-void try_fail(const fail);
+bool try_fail(const fail);
+
+std::string get_fail_cases();
+bool try_fail(const std::string& fail);
 
 } // namespace server_lib

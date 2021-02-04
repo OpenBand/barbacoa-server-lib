@@ -37,7 +37,7 @@ int main(void)
         {
             std::cerr << "Emulate memory fail" << std::endl;
 
-            try_fail(fail::try0x_1);
+            try_fail(fail::try_wrong_delete);
         }
     };
 

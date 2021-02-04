@@ -2,17 +2,26 @@
 
 #include <server_clib/macro.h>
 
+#include <strstream>
+
 namespace server_lib {
 
-void try_1() //throw SIGABRT
+void try_wrong_pointer() //throw SIGSEGV
+{
+    *((int*)0xff00000000000000) = 0xff;
+}
+
+void try_wrong_delete() //throw SIGABRT
 {
     int wrong_del_;
     delete &wrong_del_;
 }
 
-void try_2() //throw SIGSEGV
+void try_double_delete() //throw SIGABRT
 {
-    *((int*)0xff00000000000000) = 0xff;
+    auto* p = new int { 10 };
+    delete p;
+    delete p;
 }
 
 void try_cerr(int n) //throw SIGABRT
@@ -32,17 +41,17 @@ void try_overflow(int v) //throw SIGFPE
     v /= 0;
 }
 
-void try_infrec()
+void try_inf_recursive()
 {
     for (;;)
     {
-        try_infrec();
+        try_inf_recursive();
     }
 }
 
-static void try_static_namespace()
+static void try_wrong_delete_in_static_namespace()
 {
-    try_1();
+    try_wrong_delete();
 }
 
 namespace tests {
@@ -64,7 +73,7 @@ namespace tests {
     protected:
         void _fail()
         {
-            try_1();
+            try_wrong_delete();
         }
 
         int _n = 0;
@@ -88,7 +97,7 @@ namespace tests {
     private:
         void _fail()
         {
-            try_2();
+            try_wrong_pointer();
         }
     };
 
@@ -108,76 +117,123 @@ namespace { //anonymous
 
 } // namespace
 
-void try_cls1()
+void try_wrong_delete_in_class()
 {
     tests::cls1 c { 1 };
 
     c.fail();
 }
 
-void try_cls2()
+void try_wrong_pointer_in_inherited_class()
 {
     tests::cls2 c { 2 };
 
     c.fail2();
 }
 
-static void try_cls_anonymous()
+static void try_wrong_pointer_in_anonymous_namespace()
 {
     cls_anonymous c { 1 };
 
     c.fail();
 }
 
-void try_fail(const fail f)
+bool try_fail(const fail f)
 {
     switch (f)
     {
-    case fail::tryc_err:
+    case fail::try_cerr:
         try_cerr(12);
         break;
-    case fail::tryc_overflow:
+    case fail::try_overflow:
         try_overflow(13);
         break;
-    case fail::try0x_1:
-        try_1();
+    case fail::try_wrong_delete:
+        try_wrong_delete();
         break;
-    case fail::try0x_2:
-        try_2();
+    case fail::try_double_delete:
+        try_double_delete();
         break;
-    case fail::try11_1:
+    case fail::try_wrong_pointer:
+        try_wrong_pointer();
+        break;
+    case fail::try_wrong_delete_in_lambda:
     {
         auto lmb_try = []() {
-            try_1();
+            try_wrong_delete();
         };
         lmb_try();
         break;
     }
-    case fail::try11_2:
+    case fail::try_wrong_pointer_in_lambda:
     {
         auto lmb_try = []() {
-            try_2();
+            try_wrong_pointer();
         };
         lmb_try();
         break;
     }
-    case fail::try_infrec:
-        try_infrec();
+    case fail::try_inf_recursive:
+        try_inf_recursive();
         break;
-    case fail::try_static_namespace:
-        try_static_namespace();
+    case fail::try_wrong_delete_in_static_namespace:
+        try_wrong_delete_in_static_namespace();
         break;
-    case fail::try_cls1:
-        try_cls1();
+    case fail::try_wrong_delete_in_class:
+        try_wrong_delete_in_class();
         break;
-    case fail::try_cls2:
-        try_cls2();
+    case fail::try_wrong_pointer_in_inherited_class:
+        try_wrong_pointer_in_inherited_class();
         break;
-    case fail::try_cls_anonymous:
-        try_cls_anonymous();
+    case fail::try_wrong_pointer_in_anonymous_namespace:
+        try_wrong_pointer_in_anonymous_namespace();
         break;
-    default:;
+    default:
+        return false;
     }
+    return true;
 };
 
+#define PRINT_FAIL_ID(fail_id) #fail_id
+
+#define TRY_IF(fail_id)                       \
+    if (fail == #fail_id)                     \
+    {                                         \
+        return try_fail(fail::try_##fail_id); \
+    }
+
+std::string get_fail_cases()
+{
+    std::strstream ss;
+    ss << PRINT_FAIL_ID(cerr) << " ";
+    ss << PRINT_FAIL_ID(overflow) << " ";
+    ss << PRINT_FAIL_ID(wrong_delete) << " ";
+    ss << PRINT_FAIL_ID(double_delete) << " ";
+    ss << PRINT_FAIL_ID(wrong_pointer) << " ";
+    ss << PRINT_FAIL_ID(wrong_delete_in_lambda) << " ";
+    ss << PRINT_FAIL_ID(wrong_pointer_in_lambda) << " ";
+    ss << PRINT_FAIL_ID(inf_recursive) << " ";
+    ss << PRINT_FAIL_ID(wrong_delete_in_static_namespace) << " ";
+    ss << PRINT_FAIL_ID(wrong_delete_in_class) << " ";
+    ss << PRINT_FAIL_ID(wrong_pointer_in_inherited_class) << " ";
+    ss << PRINT_FAIL_ID(wrong_pointer_in_anonymous_namespace);
+    return ss.str();
+}
+
+bool try_fail(const std::string& fail)
+{
+    TRY_IF(cerr)
+    TRY_IF(overflow)
+    TRY_IF(wrong_delete)
+    TRY_IF(double_delete)
+    TRY_IF(wrong_pointer)
+    TRY_IF(wrong_delete_in_lambda)
+    TRY_IF(wrong_pointer_in_lambda)
+    TRY_IF(inf_recursive)
+    TRY_IF(wrong_delete_in_static_namespace)
+    TRY_IF(wrong_delete_in_class)
+    TRY_IF(wrong_pointer_in_inherited_class)
+    TRY_IF(wrong_pointer_in_anonymous_namespace)
+    return false;
+}
 } // namespace server_lib
