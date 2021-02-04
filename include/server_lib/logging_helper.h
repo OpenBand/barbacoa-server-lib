@@ -82,11 +82,6 @@ public:
 #define LOGC_ERROR(ARG) LOG_ERROR(SRV_LOG_CONTEXT_ << ARG)
 #define LOGC_FATAL(ARG) LOG_FATAL(SRV_LOG_CONTEXT_ << ARG)
 
-#define PRINT_ENUM_VALUE(X, Y) \
-    case X::Y:                 \
-        stream << #Y;          \
-        break;
-
 template <typename K, typename V>
 std::string to_string(const std::map<K, V>& value)
 {
