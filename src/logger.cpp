@@ -314,4 +314,14 @@ void logger::write(log_message& msg)
     }
 }
 
+void logger::flush()
+{
+    if (!_appenders.empty())
+    {
+        using namespace boost::log;
+
+        core::get()->flush();
+    }
+}
+
 } // namespace server_lib

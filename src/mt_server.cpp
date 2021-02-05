@@ -301,18 +301,31 @@ void mt_server_impl::run_impl(main_loop& e,
         }
     }
     {
+        static auto make_coredump = [](const char*) {
+            // TODO: create standard core dump
+        };
+
+        static auto make_exit = []() {
+            _exit(1);
+        };
+
         std::unique_lock<std::mutex> lck(_process_fail_config_lock);
         if (fail_callback)
         {
-            _fail_callback = fail_callback;
+            _fail_callback = [fail_callback](const char* dump_path) {
+                make_coredump(dump_path);
+                fail_callback(dump_path);
+                make_exit();
+            };
         }
         else
         {
-            _fail_callback = [this](const char*) {
+            _fail_callback = [this](const char* dump_path) {
 #ifndef NDEBUG
                 fprintf(stderr, "Got signal in default fail callback\n");
 #endif
-                _e->exit(1);
+                make_coredump(dump_path);
+                make_exit();
             };
         }
     }

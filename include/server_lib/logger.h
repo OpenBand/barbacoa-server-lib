@@ -76,6 +76,8 @@ public:
         return _appenders.size();
     }
 
+    void flush();
+
 private:
     void add_syslog_destination();
     void add_stdout_destination();
