@@ -160,28 +160,23 @@ void event_loop::stop()
 
 void event_loop::run()
 {
-    int cloop = 0;
-    for (;;)
+    _id.store(std::this_thread::get_id());
+    apply_thread_name();
+
+    try
     {
-        SRV_LOGC_TRACE("loop = " << ++cloop);
-
-        _id.store(std::this_thread::get_id());
-        apply_thread_name();
-
-        try
-        {
-            _pservice->run();
-            break; // run() exited normally
-        }
-        catch (const std::exception& e)
-        {
-            // Deal with exception as appropriate.
-            SRV_LOGC_ERROR("Catched unexpected exception: " << e.what());
-        }
-        catch (...)
-        {
-            SRV_LOGC_ERROR("Unknown exception catched");
-        }
+        _pservice->run();
+    }
+    catch (const std::exception& e)
+    {
+        // Deal with exception as appropriate.
+        SRV_LOGC_ERROR("Catched unexpected exception: " << e.what());
+        throw;
+    }
+    catch (...)
+    {
+        SRV_LOGC_ERROR("Unknown exception catched");
+        throw;
     }
 }
 
