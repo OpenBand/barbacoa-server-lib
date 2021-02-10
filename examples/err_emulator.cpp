@@ -1,48 +1,65 @@
 #include "err_emulator.h"
 
+#include <server_lib/asserts.h>
 #include <server_clib/macro.h>
 
-#include <strstream>
+#include <iostream>
+#include <sstream>
 
 namespace server_lib {
 
-void try_wrong_pointer() //throw SIGSEGV
+void try_libassert(uint n)
 {
-    *((int*)0xff00000000000000) = 0xff;
-}
-
-void try_wrong_delete() //throw SIGABRT
-{
-    int wrong_del_;
-    delete &wrong_del_;
-}
-
-void try_double_delete() //throw SIGABRT
-{
-    auto* p = new int { 10 };
-    delete p;
-    delete p;
-}
-
-void try_cerr(int n) //throw SIGABRT
-{
-    if (n < 0) //wroten some mess code to avoid compiler optimization
-        return;
+    std::cerr << __FUNCTION__ << std::endl;
     for (;;)
     {
-        SRV_C_AASSERT_TEXT(1 > 2, "Assert for invalid condition");
+        SRV_ASSERT(n > n * 2, "Assert for invalid condition");
+    }
+}
+
+void try_clibassert(uint n)
+{
+    std::cerr << __FUNCTION__ << std::endl;
+    for (;;)
+    {
+        SRV_C_AASSERT_TEXT(n > n * 2, "Assert for invalid condition");
     }
 }
 
 #pragma GCC diagnostic ignored "-Wdiv-by-zero"
 
-void try_overflow(int v) //throw SIGFPE
+void try_overflow(int n)
 {
-    v /= 0;
+    std::cerr << __FUNCTION__ << std::endl;
+    n /= 0;
+}
+
+void try_wrong_delete()
+{
+    std::cerr << __FUNCTION__ << std::endl;
+    int wrong_del_;
+    delete &wrong_del_;
+}
+
+void try_double_delete(int n)
+{
+    std::cerr << __FUNCTION__ << std::endl;
+    auto* p = new int { n };
+    delete p;
+    delete p;
+}
+
+void try_wrong_pointer(int n)
+{
+    std::cerr << __FUNCTION__ << std::endl;
+    auto* p = new int { n };
+    delete p;
+    *p = n;
 }
 
 void try_inf_recursive()
 {
+    std::cerr << __FUNCTION__ << std::endl;
     for (;;)
     {
         try_inf_recursive();
@@ -51,6 +68,7 @@ void try_inf_recursive()
 
 static void try_wrong_delete_in_static_namespace()
 {
+    std::cerr << __FUNCTION__ << std::endl;
     try_wrong_delete();
 }
 
@@ -97,7 +115,7 @@ namespace tests {
     private:
         void _fail()
         {
-            try_wrong_pointer();
+            try_wrong_pointer(4);
         }
     };
 
@@ -119,6 +137,8 @@ namespace { //anonymous
 
 void try_wrong_delete_in_class()
 {
+    std::cerr << __FUNCTION__ << std::endl;
+
     tests::cls1 c { 1 };
 
     c.fail();
@@ -126,6 +146,8 @@ void try_wrong_delete_in_class()
 
 void try_wrong_pointer_in_inherited_class()
 {
+    std::cerr << __FUNCTION__ << std::endl;
+
     tests::cls2 c { 2 };
 
     c.fail2();
@@ -133,29 +155,41 @@ void try_wrong_pointer_in_inherited_class()
 
 static void try_wrong_pointer_in_anonymous_namespace()
 {
+    std::cerr << __FUNCTION__ << std::endl;
+
     cls_anonymous c { 1 };
 
     c.fail();
+}
+
+void try_unhandled_exception()
+{
+    std::cerr << __FUNCTION__ << std::endl;
+
+    throw std::logic_error("Test for unhandled_exception");
 }
 
 bool try_fail(const fail f)
 {
     switch (f)
     {
-    case fail::try_cerr:
-        try_cerr(12);
+    case fail::try_libassert:
+        try_libassert(12);
+        break;
+    case fail::try_clibassert:
+        try_clibassert(13);
         break;
     case fail::try_overflow:
-        try_overflow(13);
+        try_overflow(999);
         break;
     case fail::try_wrong_delete:
         try_wrong_delete();
         break;
     case fail::try_double_delete:
-        try_double_delete();
+        try_double_delete(1);
         break;
     case fail::try_wrong_pointer:
-        try_wrong_pointer();
+        try_wrong_pointer(2);
         break;
     case fail::try_wrong_delete_in_lambda:
     {
@@ -168,7 +202,7 @@ bool try_fail(const fail f)
     case fail::try_wrong_pointer_in_lambda:
     {
         auto lmb_try = []() {
-            try_wrong_pointer();
+            try_wrong_pointer(3);
         };
         lmb_try();
         break;
@@ -188,6 +222,9 @@ bool try_fail(const fail f)
     case fail::try_wrong_pointer_in_anonymous_namespace:
         try_wrong_pointer_in_anonymous_namespace();
         break;
+    case fail::try_unhandled_exception:
+        try_unhandled_exception();
+        break;
     default:
         return false;
     }
@@ -204,25 +241,43 @@ bool try_fail(const fail f)
 
 std::string get_fail_cases()
 {
-    std::strstream ss;
-    ss << PRINT_FAIL_ID(cerr) << " ";
-    ss << PRINT_FAIL_ID(overflow) << " ";
-    ss << PRINT_FAIL_ID(wrong_delete) << " ";
-    ss << PRINT_FAIL_ID(double_delete) << " ";
-    ss << PRINT_FAIL_ID(wrong_pointer) << " ";
-    ss << PRINT_FAIL_ID(wrong_delete_in_lambda) << " ";
-    ss << PRINT_FAIL_ID(wrong_pointer_in_lambda) << " ";
-    ss << PRINT_FAIL_ID(inf_recursive) << " ";
-    ss << PRINT_FAIL_ID(wrong_delete_in_static_namespace) << " ";
-    ss << PRINT_FAIL_ID(wrong_delete_in_class) << " ";
-    ss << PRINT_FAIL_ID(wrong_pointer_in_inherited_class) << " ";
-    ss << PRINT_FAIL_ID(wrong_pointer_in_anonymous_namespace);
+    static const char DELIM[] = "\t\n";
+    std::stringstream ss;
+    ss << DELIM
+       << PRINT_FAIL_ID(libassert);
+    ss << DELIM
+       << PRINT_FAIL_ID(clibassert);
+    ss << DELIM
+       << PRINT_FAIL_ID(overflow);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_delete);
+    ss << DELIM
+       << PRINT_FAIL_ID(double_delete);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_pointer);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_delete_in_lambda);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_pointer_in_lambda);
+    ss << DELIM
+       << PRINT_FAIL_ID(inf_recursive);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_delete_in_static_namespace);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_delete_in_class);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_pointer_in_inherited_class);
+    ss << DELIM
+       << PRINT_FAIL_ID(wrong_pointer_in_anonymous_namespace);
+    ss << DELIM
+       << PRINT_FAIL_ID(unhandled_exception);
     return ss.str();
 }
 
 bool try_fail(const std::string& fail)
 {
-    TRY_IF(cerr)
+    TRY_IF(libassert)
+    TRY_IF(clibassert)
     TRY_IF(overflow)
     TRY_IF(wrong_delete)
     TRY_IF(double_delete)
@@ -234,6 +289,7 @@ bool try_fail(const std::string& fail)
     TRY_IF(wrong_delete_in_class)
     TRY_IF(wrong_pointer_in_inherited_class)
     TRY_IF(wrong_pointer_in_anonymous_namespace)
+    TRY_IF(unhandled_exception)
     return false;
 }
 } // namespace server_lib

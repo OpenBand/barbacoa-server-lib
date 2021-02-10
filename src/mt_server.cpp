@@ -311,7 +311,7 @@ void mt_server_impl::run_impl(main_loop& e,
         }
         else
         {
-            _fail_callback = [this](const char* dump_path) {
+            _fail_callback = [](const char*) {
 #ifndef NDEBUG
                 fprintf(stderr, "Got signal in default fail callback\n");
 #endif

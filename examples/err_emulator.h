@@ -7,7 +7,8 @@ namespace server_lib {
 enum class fail
 {
     try_none = 0,
-    try_cerr,
+    try_libassert,
+    try_clibassert,
     try_overflow,
     try_wrong_delete,
     try_double_delete,
@@ -18,7 +19,8 @@ enum class fail
     try_wrong_delete_in_static_namespace,
     try_wrong_delete_in_class,
     try_wrong_pointer_in_inherited_class,
-    try_wrong_pointer_in_anonymous_namespace
+    try_wrong_pointer_in_anonymous_namespace,
+    try_unhandled_exception
 };
 
 bool try_fail(const fail);

@@ -17,7 +17,7 @@ namespace bpo = server_lib::bpo;
 
 struct Config_i
 {
-    std::string test_case = "cerr";
+    std::string test_case = "libassert";
     bool show_crash_dump = false;
 };
 
@@ -132,6 +132,7 @@ int main(int argc, char* argv[])
                 config.print_help();
                 exit(1);
             }
+            std::cerr << "Uops:(. Test case was vanished by compiler optiomization" << std::endl;
         }
         ml.exit(0);
     };
@@ -139,16 +140,20 @@ int main(int argc, char* argv[])
     ml.post(payload);
 
     auto exit_callback = [&server, &ml]() {
-        std::cout << "In normal exit" << std::endl;
+        std::cout << "Normal exit" << std::endl;
         assert(event_loop::is_main_thread());
         server.stop(ml);
     };
 
     auto fail_callback = [](const char* dump_file_path) {
-        fprintf(stderr, "emergency_helper dump saved to '%s'. Preview:\n", dump_file_path);
+        std::cerr << "Fail" << std::endl;
+        if (dump_file_path)
+        {
+            fprintf(stderr, "emergency_helper dump saved to '%s'. Preview:\n", dump_file_path);
 
-        auto dump = emergency_helper::load_dump(dump_file_path, false);
-        fprintf(stderr, "%s", dump.c_str());
+            auto dump = emergency_helper::load_dump(dump_file_path, false);
+            fprintf(stderr, "%s", dump.c_str());
+        }
     };
 
     return server.run(ml, exit_callback, fail_callback);
