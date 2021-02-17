@@ -1,10 +1,10 @@
 #pragma once
 
 #include <server_lib/event_loop.h>
+#include <server_lib/protected_mutex.h>
 
 #include <utility>
 #include <vector>
-#include <mutex>
 
 namespace server_lib {
 
@@ -13,6 +13,7 @@ class observable
 {
     using observer_i = Observer;
     using sink_member = std::function<void(observer_i*)>;
+    using mutex_type = protected_mutex<std::mutex>;
 
 public:
     //for observer:
@@ -59,7 +60,7 @@ public:
 protected:
     void subscribe_impl(observer_i& sink, bool on, event_loop* ploop)
     {
-        std::lock_guard<std::mutex> lck(_guard_for_observers);
+        std::lock_guard<mutex_type> lck(_guard_for_observers);
         void* psink = (void*)(&sink);
         size_t i = 0;
         for (auto&& item : _observers)
@@ -83,7 +84,7 @@ protected:
 
     void notify_impl(const sink_member& memf)
     {
-        std::lock_guard<std::mutex> lck(_guard_for_observers);
+        std::lock_guard<mutex_type> lck(_guard_for_observers);
         for (auto&& item : _observers)
         {
             observer_i* psink = reinterpret_cast<observer_i*>(item.first);
@@ -104,7 +105,7 @@ protected:
     }
 
 private:
-    std::mutex _guard_for_observers;
+    mutex_type _guard_for_observers;
     std::vector<std::pair<void*, event_loop*>> _observers;
 };
 

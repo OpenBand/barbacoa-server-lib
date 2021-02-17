@@ -387,6 +387,50 @@ namespace tests {
         BOOST_REQUIRE(observer3.expect_on_test4(test_int_value, test_str_value));
     }
 
+    struct test_renter_protection_sink
+    {
+        using observer_type = server_lib::observable<test_renter_protection_sink>;
+
+        test_renter_protection_sink(observer_type& observable)
+            : _observable(observable)
+        {
+        }
+
+        void on_test_ok()
+        {
+            LOG_TRACE(__FUNCTION__);
+        }
+
+        void on_test_renter()
+        {
+            LOG_TRACE(__FUNCTION__);
+            try
+            {
+                _observable.notify(&test_renter_protection_sink::on_test_renter);
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR(e.what());
+                throw;
+            }
+        }
+
+    private:
+        observer_type& _observable;
+    };
+
+    BOOST_AUTO_TEST_CASE(observer_renter_protection_check)
+    {
+        test_renter_protection_sink::observer_type testing_observable;
+
+        test_renter_protection_sink observer { testing_observable };
+
+        testing_observable.subscribe(observer);
+
+        BOOST_REQUIRE_NO_THROW(testing_observable.notify(&test_renter_protection_sink::on_test_ok));
+        BOOST_REQUIRE_THROW(testing_observable.notify(&test_renter_protection_sink::on_test_renter), std::logic_error);
+    }
+
     BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace tests
