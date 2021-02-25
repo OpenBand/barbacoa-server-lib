@@ -9,7 +9,7 @@
 namespace server_lib {
 
 template <typename Result, typename CallerFunc, typename AsynchFunc>
-Result wait_async_call(const Result initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
+Result wait_async_call(Result&& initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {
     std::condition_variable donecheck;
     std::mutex cond_data_guard;
@@ -18,7 +18,7 @@ Result wait_async_call(const Result initial_result, CallerFunc&& caller_func, As
     context_guard_type* pcontext_guard = nullptr;
 
     std::unique_lock<std::mutex> lck(cond_data_guard); //guard for result and done_request variables
-    Result result = initial_result;
+    Result result = std::forward<Result>(initial_result);
     bool done_request = false;
 
     if (timeout_ms > 0)
