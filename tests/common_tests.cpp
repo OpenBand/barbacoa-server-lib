@@ -431,6 +431,37 @@ namespace tests {
         BOOST_REQUIRE_THROW(testing_observable.notify(&test_renter_protection_sink::on_test_renter), std::logic_error);
     }
 
+    BOOST_AUTO_TEST_CASE(wait_async_timeout_check)
+    {
+        server_lib::event_loop loop1;
+
+        loop1.change_thread_name("!L1");
+        loop1.start();
+
+        BOOST_REQUIRE(loop1.wait_async(false, [] { return true; }));
+
+        auto payload = [] {
+            LOG_INFO("Payload start");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            LOG_INFO("Payload end");
+            return true;
+        };
+        BOOST_REQUIRE(loop1.wait_async(false, payload));
+
+        BOOST_REQUIRE(loop1.wait_async(false, payload, std::chrono::milliseconds(1500)));
+
+        BOOST_REQUIRE(!loop1.wait_async(false, payload, std::chrono::milliseconds(500)));
+
+        server_lib::event_loop loop2;
+
+        loop2.change_thread_name("!L2");
+        loop2.start();
+
+        BOOST_REQUIRE(!loop2.wait_async(false, payload, std::chrono::milliseconds(500)));
+
+        loop2.stop();
+    }
+
     BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace tests
