@@ -22,11 +22,11 @@ inline std::string int_to_string(int input)
     return s.str();
 }
 
-version::version(uint8_t m, uint8_t h, uint16_t r)
+version::version(uint8_t major, uint8_t minor, uint16_t patch)
 {
-    v_num = (0 | m) << 8;
-    v_num = (v_num | h) << 16;
-    v_num = v_num | r;
+    v_num = (0 | major) << 8;
+    v_num = (v_num | minor) << 16;
+    v_num = v_num | patch;
 }
 
 uint8_t version::major_v() const
