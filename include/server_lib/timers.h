@@ -62,6 +62,11 @@ public:
     {
     }
 
+    ~periodical_timer()
+    {
+        stop();
+    }
+
     template <typename DurationType, typename Callback>
     void start(DurationType&& duration, Callback&& callback)
     {
