@@ -837,6 +837,7 @@ namespace tests {
             auto& client = clients[ci].first;
             std::string message { "Hi from " };
             message.append(std::to_string(ci));
+            //asynch post request
             client->request("POST", RESOURCE_PATH, message, headers, client_recieve_callback);
 
             LOG_TRACE("Client send request: " << message);
@@ -987,6 +988,178 @@ namespace tests {
 
         server.stop();
         server_th.stop();
+    }
+
+    BOOST_AUTO_TEST_CASE(server_with_postponed_requests_check)
+    {
+        print_current_test_name();
+
+        WebServer server;
+        event_loop server_th, server_th_for_postponed;
+
+        server.config.port = get_free_port();
+        server.config.address = get_default_address();
+        server.config.timeout_request = 5;
+        server.config.timeout_content = 10;
+        server.config.max_request_streambuf_size = 1024;
+        server.config.thread_pool_size = 1;
+        server_th.change_thread_name("!S");
+        server_th_for_postponed.change_thread_name("!S-P");
+
+        const std::string RESOURCE_PATH = "/test";
+        std::string resource;
+        resource.append("^");
+        resource.append(RESOURCE_PATH);
+        resource.append("$");
+
+        size_t req_counter = 0;
+        auto server_recieve_callback = [&server_th_for_postponed, &req_counter](
+                                           std::shared_ptr<WebServer::Response> response,
+                                           std::shared_ptr<WebServer::Request> request) {
+            try
+            {
+                BOOST_REQUIRE(request);
+                BOOST_REQUIRE(response);
+
+                response->close_connection_after_response = true;
+
+                LOG_TRACE("Server has recive request: " << request->header);
+                auto content = request->content.string();
+                LOG_TRACE("Server has recive content: " << content);
+
+                if (++req_counter % 2)
+                {
+                    //fast payload emulation
+                    std::this_thread::sleep_for(100ms);
+
+                    response->write(HttpStatusCode::success_ok, content + " - Ok");
+
+                    LOG_TRACE("Server has PROCESSED content: " << content);
+                }
+                else
+                {
+                    server_th_for_postponed.post([response, request, content]() {
+                        LOG_TRACE("Server is processing postponed content: " << content);
+
+                        //slow payload emulation
+                        std::this_thread::sleep_for(500ms);
+
+                        response->write(HttpStatusCode::success_ok, content + " - Ok");
+
+                        LOG_TRACE("Server has PROCESSED POSTPONED content: " << content);
+                    });
+                }
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_REQUIRE_EQUAL(e.what(), "");
+            }
+        };
+        server.resource[resource]["POST"] = server_recieve_callback;
+
+        server.on_error = [&](std::shared_ptr<WebServer::Request>, const web::error_code& ec) {
+            LOG_ERROR(ec.message());
+        };
+
+        server.io_service = server_th.service();
+        auto server_run = [&]() {
+            try
+            {
+                server.start();
+                LOG_TRACE("Server is started");
+                return true;
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_REQUIRE_EQUAL(e.what(), "");
+            }
+            return false;
+        };
+        server_th.start();
+        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        server_th_for_postponed.start();
+
+        using WebClient = web::Client<SimpleWeb::HTTP>;
+        std::string address { server.config.address };
+        address.append(":");
+        address.append(std::to_string(server.config.port));
+
+        web::CaseInsensitiveMultimap headers;
+        headers.emplace("Content-Type", "text/plain");
+
+        const int REQUESTS = 5;
+
+        std::vector<std::pair<std::shared_ptr<WebClient>, std::shared_ptr<event_loop>>> clients;
+        clients.reserve(REQUESTS);
+
+        for (int ci = 0; ci < REQUESTS; ++ci)
+        {
+            auto client = std::make_shared<WebClient>(address);
+            client->config.timeout_connect = 1;
+            client->config.timeout = 10;
+            client->config.max_response_streambuf_size = 1024;
+
+            auto client_th = std::make_shared<event_loop>();
+            client_th->change_thread_name("!C");
+            client->io_service = client_th->service();
+            client_th->start();
+            clients.emplace_back(client, client_th);
+        }
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+        int requests_left = REQUESTS;
+
+        auto client_recieve_callback = [&](std::shared_ptr<WebClient::Response> response, const web::error_code&) {
+            LOG_TRACE("Client recive response: " << response->content.string());
+
+            long status_code = std::atol(response->status_code.c_str());
+            BOOST_REQUIRE_EQUAL(static_cast<int>(status_code), static_cast<int>(HttpStatusCode::success_ok));
+            --requests_left;
+
+            if (requests_left < 1)
+            {
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+            }
+        };
+
+        for (int ci = 0; ci < REQUESTS; ++ci)
+        {
+            auto& client = clients[ci].first;
+            std::string message { "Hi from " };
+            message.append(std::to_string(ci));
+            //asynch post request
+            client->request("POST", RESOURCE_PATH, message, headers, client_recieve_callback);
+
+            LOG_TRACE("Client send request: " << message);
+        };
+
+        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+
+        std::this_thread::sleep_for(500ms);
+
+        clients.clear();
+
+        auto server_stop = [&]() {
+            try
+            {
+                server.stop();
+                LOG_TRACE("Server is stopped");
+                return true;
+            }
+            catch (const std::exception& e)
+            {
+                BOOST_REQUIRE_EQUAL(e.what(), "");
+            }
+            return false;
+        };
+        server_th.wait_async(false, server_stop);
+        server_th.stop();
+        server_th_for_postponed.stop();
     }
 
     BOOST_AUTO_TEST_SUITE_END()
