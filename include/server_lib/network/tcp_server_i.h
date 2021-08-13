@@ -11,7 +11,17 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief wrapper for async TCP server
+     * \ingroup network
+     * \defgroup network_i Interfaces
+     * Auxiliary network object interfaces
+     */
+
+    /**
+     * \ingroup network_i
+     *
+     * \brief Interface for async TCP server
+     *
+     * Implementations: network_server
      */
     class tcp_server_i
     {
@@ -20,7 +30,7 @@ namespace network {
 
     public:
         /**
-        * callback called whenever a new client is connecting to the server
+        * Callback called whenever a new client is connecting to the server
         *
         * Takes as parameter a shared pointer to the tcp_connection_i that wishes to connect
         */
@@ -31,6 +41,7 @@ namespace network {
         *
         * \param host hostname to be connected to
         * \param port port to be connected to
+        * \param callback_thread
         * \param callback callback to be called on new connections (may be null, connections are then handled automatically by the tcp_server object)
         */
         virtual void start(const std::string& host, uint16_t port, event_loop* callback_thread = nullptr, const on_new_connection_callback_type& callback = nullptr) = 0;
@@ -52,14 +63,14 @@ namespace network {
         virtual bool is_running(void) const = 0;
 
         /**
-        * reset the number of threads working in the thread pool
+        * Reset the number of threads working in the thread pool
         * this can be safely called at runtime and can be useful if you need to adjust the number of workers
         *
-        * this function returns immediately, but change might be applied in the background
+        * This function returns immediately, but change might be applied in the background
         * that is, increasing number of threads will spwan new threads directly from this function (but they may take a while to start)
         * moreover, shrinking the number of threads can only be applied in the background to make sure to not stop some threads in the middle of their task
         *
-        * changing number of workers do not affect tasks to be executed and tasks currently being executed
+        * Changing number of workers do not affect tasks to be executed and tasks currently being executed
         *
         * \param nb_threads number of threads
         */

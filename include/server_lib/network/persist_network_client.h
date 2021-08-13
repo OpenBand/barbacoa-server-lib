@@ -18,7 +18,9 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief extended TCP client with application connection,
+     * \ingroup network
+     *
+     * \brief Extended TCP client with application connection,
      * request-response interface, connection restoring options
      * and sync operations
      */
@@ -26,12 +28,13 @@ namespace network {
     {
     public:
         /**
-        * Class uses internal (tacopie) TCP client implementation
+        * Use default (tacopie) implementation for tcp_client_i
         */
         persist_network_client();
 
         /**
-        * Class can use external TCP client implementation with tcp_client_i interface
+        * Use external TCP client implementation
+        * with tcp_client_i interface
         */
         persist_network_client(const std::shared_ptr<tcp_client_i>& transport_layer);
 
@@ -52,21 +55,25 @@ namespace network {
         using connect_callback_type = std::function<void(const connect_state status)>;
 
         /**
-         * start the TCP client
+         * Start the TCP client
          *
-         * @param addr host to be connected to
-         * @param port port to be connected to
-         * @param protocol to create or parse data units
-         * @param callback_thread for callbacks:
-         *        For 'nullptr' callbacks run in internal transport thread.
+         * \param host - Host to be connected to
+         * \param port - Port to be connected to
+         * \param protocol - To create or parse data units
+         * \param callback_thread - For callbacks:
+         *        For 'nullptr' callbacks run in internal transport thread
+         *        (that were spawned by set_nb_workers option).
          *        And connection objects could be created and destroyed in
          *        different threads. Using of not 'nullptr' callback thread
-         *        would be more accurate and recommended
-         * @param connect_callback callback to monit all connections events
-         * @param receive_callback callback for server responses
-         * @param timeout_ms max time to connect in ms
-         * @param max_reconnects maximum attempts of reconnection if connection dropped
-           @param reconnect_interval_ms time between two attempts of reconnection
+         *        make multithreading control more simple. But it could be
+         *        harmful desision for nb_threads > 1
+         * \param connect_callback - Callback to monit all connections events
+         * \param receive_callback - Callback for server responses
+         * \param timeout_ms - Timeout to wait connection
+         * \param max_reconnects - Maximum attempts of reconnection
+         *                         if connection dropped
+           \param reconnect_interval_ms - Time between two attempts
+                                          of reconnection
          *
          */
         bool connect(

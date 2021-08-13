@@ -7,6 +7,11 @@
 namespace server_lib {
 namespace network {
 
+    /**
+     * \ingroup network
+     *
+     * \brief Class for network interface investigation.
+     */
     class ifconfig
     {
     public:
@@ -31,6 +36,7 @@ namespace network {
         std::vector<std::string> get_nearest_public_host(region region = region::usa_central, size_t limit = 1);
 
         std::vector<std::string> get_list(preferable_ipv preferable = preferable_ipv::ipv4);
+
         std::string get_public_interface(const std::string& public_host,
                                          preferable_ipv preferable = preferable_ipv::ipv4);
 

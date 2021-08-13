@@ -97,6 +97,10 @@ void event_loop::start(std::function<void(void)> start_notify, std::function<voi
 
     _is_main.store(is_main_loop());
 
+    // The 'work' object guarantees that 'run()' function
+    // will not exit while work is underway, and that it does exit
+    // when there is no unfinished work remaining.
+    // It is quite like infinite loop (in CCU safe manner of course)
     _loop_maintainer = boost::in_place(std::ref(*_pservice));
 
     post([this, start_notify]() {
@@ -148,7 +152,7 @@ void event_loop::stop()
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
-    _loop_maintainer = boost::none; //finishing loop
+    _loop_maintainer = boost::none; //finishing 'infinite loop'
     _pservice->stop();
 
     if (_thread && _thread->joinable())

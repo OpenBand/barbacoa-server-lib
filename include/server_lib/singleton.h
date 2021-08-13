@@ -2,6 +2,11 @@
 
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * \brief Design patterns: Singleton
+ */
 template <class Singleton>
 class singleton
 {

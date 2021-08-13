@@ -12,7 +12,7 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief wrapper for TCP connetion (used by both server and client) for app_unit
+     * Wrapper for TCP connetion (used by both server and client) for app_unit
      */
     class app_connection_impl : public app_connection_i,
                                 public std::enable_shared_from_this<app_connection_impl>

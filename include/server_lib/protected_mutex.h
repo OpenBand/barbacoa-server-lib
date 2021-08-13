@@ -7,8 +7,18 @@
 #include <functional>
 
 namespace server_lib {
-//The type meet the BasicLockable requirements:
-//  https://en.cppreference.com/w/cpp/named_req/BasicLockable
+
+/**
+ * \ingroup common
+ *
+ * This class protects from undefined behavior if mutex lock/unlock functions are called improperly.
+ * It throws exceptions instead undefined behavior.
+ * Don't abuse with this class! It whould be better to fix application architecture.
+ * Class could be helpful for hotfix only
+ *
+ * The type meet the BasicLockable requirements to wrap C++ mutex:
+ *  https://en.cppreference.com/w/cpp/named_req/BasicLockable
+ */
 template <class Mutex>
 class protected_mutex
 {

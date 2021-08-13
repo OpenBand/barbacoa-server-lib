@@ -22,7 +22,7 @@ struct Config_i
 };
 
 class Config : public Config_i,
-               protected server_lib::server_options
+               protected server_lib::options
 {
     void set_program_options(bpo::options_description& cli)
     {

@@ -11,7 +11,16 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief represents application logical unit (data brick or container for nested bricks)
+     * \ingroup network
+     * \defgroup network_unit Application Unit
+     * Protocol spelling classes
+     */
+
+    /**
+     * \ingroup network_unit
+     *
+     * \brief Represents application logical unit or 'message'
+     * (data brick or container for nested bricks)
      * in TCP byte stream
      */
     class app_unit
@@ -85,7 +94,6 @@ namespace network {
 
         integer_type as_integer() const;
 
-        // print any type of data
         std::string to_printable_string() const;
 
         std::string to_network_string() const;
@@ -100,10 +108,10 @@ namespace network {
         void set(const std::vector<app_unit>& nested, const bool success = true);
 
         /**
-         * for array unit, add a new unit to the root
+         * For array unit, add a new unit to the root
          *
-         * @param unit new unit to be appended
-         * @return current instance
+         * \param unit - New unit to be appended
+         * \return Current instance
          *
          */
         app_unit& operator<<(const app_unit& unit);

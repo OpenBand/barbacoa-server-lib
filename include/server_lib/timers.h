@@ -7,6 +7,11 @@
 
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * Thread safe single shot timer
+ */
 template <typename EventLoop>
 class timer
 {
@@ -52,7 +57,11 @@ private:
     id_ptr _current_timer_id;
 };
 
-
+/**
+ * \ingroup common
+ *
+ * Thread safe periodical timer
+ */
 template <typename EventLoop>
 class periodical_timer
 {

@@ -6,7 +6,9 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief Represents 32-integer (uint32_t)
+     * \ingroup network_unit
+     *
+     * \brief Represents 32-integer (uint32_t)
      */
     class integer_builder : public app_unit_builder_i
     {

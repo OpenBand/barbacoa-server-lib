@@ -27,7 +27,9 @@ Use CMake
 * Logging with disk space control
 * Configuration from INI or command line
 * Event loop
+* Timers
 * Client/server connections
+* Crash handling
 * ...and etc.
 
 # Dependences

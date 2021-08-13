@@ -48,8 +48,8 @@ namespace network {
      * add data to unit builder
      * data is used to build replies that can be retrieved with get_front later on if receive_available returns true
      *
-     * @param data data to be used for building replies
-     * @return current instance
+     * \param data data to be used for building replies
+     * \return current instance
      *
      */
         app_units_builder& operator<<(const std::string& data);
@@ -57,13 +57,13 @@ namespace network {
         /**
      * similar as get_front, store unit in the passed parameter
      *
-     * @param unit reference to the unit object where to store the first available unit
+     * \param unit reference to the unit object where to store the first available unit
      *
      */
         void operator>>(app_unit& unit);
 
         /**
-     * @return the first available unit
+     * \return the first available unit
      *
      */
         const app_unit& get_front() const;
@@ -75,7 +75,7 @@ namespace network {
         void pop_front();
 
         /**
-     * @return whether a unit is available
+     * \return whether a unit is available
      *
      */
         bool receive_available() const;
@@ -90,7 +90,7 @@ namespace network {
         /**
      * build unit using _buffer content
      *
-     * @return whether the unit has been fully built or not
+     * \return whether the unit has been fully built or not
      *
      */
         bool build_unit();

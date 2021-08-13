@@ -1,0 +1,20 @@
+#include <server_lib/revision.h>
+
+// clang-format off
+
+#define VERSION "@SERVER_LIB_VERSION@"
+#define GIT_REVISION_SHA "@SERVER_LIB_GIT_REVISION_SHA@"
+#define GIT_REVISION_UNIX_TIMESTAMP @SERVER_LIB_GIT_REVISION_UNIX_TIMESTAMP@
+#define GIT_REVISION_DESCRIPTION "@SERVER_LIB_GIT_REVISION_DESCRIPTION@"
+
+// clang-format on
+
+namespace server_lib {
+
+const char* const ver = VERSION;
+
+const char* const git_revision_sha = GIT_REVISION_SHA;
+const uint32_t git_revision_unix_timestamp = GIT_REVISION_UNIX_TIMESTAMP;
+const char* const git_revision_description = GIT_REVISION_DESCRIPTION;
+
+} // namespace server_lib

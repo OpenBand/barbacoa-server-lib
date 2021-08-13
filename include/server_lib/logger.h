@@ -12,8 +12,42 @@
 
 namespace server_lib {
 
-/* logger with different destinations (standard output, files, syslog)
- * with extension ability. It is used with helpers macros.
+/**
+ * \ingroup common
+ *
+ * \brief This is the Logger with different destinations
+ * (standard output, files, syslog)
+ * with extension ability.
+ *
+ * It is used with helpers macros:
+ * \li \c LOG_TRACE
+ * \li \c LOG_DEBUG
+ * \li \c LOG_INFO
+ * \li \c LOG_WARN
+ * \li \c LOG_ERROR
+ * \li \c LOG_FATAL
+ * \n
+ * \n
+ * \li \c LOGC_TRACE (with log context locally defined by SRV_LOG_CONTEXT_)
+ * \li \c LOGC_DEBUG
+ * \li \c LOGC_INFO
+ * \li \c LOGC_WARN
+ * \li \c LOGC_ERROR
+ * \li \c LOGC_FATAL
+ *
+ * \code{.c}
+ *
+ * LOG_TRACE("Foo");
+ * LOG_WARN("Foo " << 42 << '!');
+ *
+ * \endcode
+ *
+ * \code{.c}
+ * #define SRV_LOG_CONTEXT_ "payments> " << SRV_FUNCTION_NAME_ << ": "
+ *
+ * LOGC_ERROR("Invalid ticket. Id = " << id);
+ *
+ * \endcode
 */
 class logger : public singleton<logger>
 {
@@ -88,4 +122,5 @@ private:
     std::vector<log_handler_type> _appenders;
     int _filter = 0;
 };
+
 } // namespace server_lib

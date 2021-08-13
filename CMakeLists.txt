@@ -33,7 +33,7 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/options_helper.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/log_files_watchdog.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/signal_helper.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/fs_helper.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/change_current_dir.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/version.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/thread_local_storage.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/app_unit.cpp"
@@ -53,6 +53,8 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/ifconfig.cpp"
 )
 
+list(APPEND SERVER_LIB_SOURCES "${CMAKE_CURRENT_BINARY_DIR}/server_lib_revision.cpp")
+
 if (NOT UNIX)
     if (WIN32)
         file(GLOB_RECURSE WIN_SPECIFIC_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/win/*.cpp")
@@ -71,6 +73,7 @@ list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake/GitVersionGen"
 include( GetGitRevisionDescription )
 get_git_head_revision(GIT_REFSPEC SERVER_LIB_GIT_REVISION_SHA)
 get_git_unix_timestamp(SERVER_LIB_GIT_REVISION_UNIX_TIMESTAMP)
+git_describe(SERVER_LIB_GIT_REVISION_DESCRIPTION)
 
 file(GLOB_RECURSE SERVER_LIB_HEADERS
     "${CMAKE_CURRENT_SOURCE_DIR}/include/server_lib/*.h")
@@ -83,6 +86,18 @@ add_dependencies( server_lib
                   server_lib_tacopie
                   ssl-helpers
                   moonlight-web)
+
+file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/version SERVER_LIB_VERSION_CONTENT)
+list(GET SERVER_LIB_VERSION_CONTENT 0 SERVER_LIB_VERSION)
+
+add_custom_target( server_lib_docs SOURCES
+                   ${CMAKE_CURRENT_SOURCE_DIR}/version
+                   ${CMAKE_CURRENT_SOURCE_DIR}/README.md
+                   ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.ini
+                   ${CMAKE_CURRENT_SOURCE_DIR}/src/server_lib_revision.cpp.in)
+
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.ini" "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile" @ONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/server_lib_revision.cpp.in" "${CMAKE_CURRENT_BINARY_DIR}/server_lib_revision.cpp" @ONLY)
 
 set(SERVER_LIB_USE_LIBS)
 list(APPEND SERVER_LIB_USE_LIBS

@@ -7,16 +7,22 @@
 
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * This class manages log files (if logs are been writing to files)
+ */
 struct log_files_watchdog_config
 {
-    /*
+    /**
      * Accepted variable pattern for logs:
-     *
+     *  \code
      *  file_%N.log
      *  file_%3N.log
      *  file_%Y%m%d.log
      *  file_(%N)_%Y-%m-%d_%H-%M-%S.log
      *  file_%Y-%m-%d_%H-%M-%S=%10N.log
+     *  \endcode
     */
     log_files_watchdog_config(const boost::filesystem::path& dir_path,
                               const std::string& log_name,
@@ -74,8 +80,11 @@ public:
         strategy(*this);
     }
 
-    //Listen OS filesystem events (inotify)
-    //effective if the output of the observed files is carried out in a separate folder
+    /**
+     * Listen OS filesystem events (inotify)
+     * effective if the output of the observed files
+     * is carried out in a separate folder
+     */
     void auto_watch(Strategy strategy);
 };
 } // namespace server_lib

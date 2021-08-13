@@ -5,23 +5,6 @@
 
 namespace server_lib {
 
-/* Quick conversion utilities from http://joelverhagen.com/blog/2010/11/convert-an-int-to-a-string-and-vice-versa-in-c/
- */
-inline int string_to_int(std::string input)
-{
-    std::stringstream s(input);
-    int i;
-    s >> i;
-    return i;
-}
-
-inline std::string int_to_string(int input)
-{
-    std::stringstream s;
-    s << input;
-    return s.str();
-}
-
 version::version(uint8_t major, uint8_t minor, uint16_t patch)
 {
     v_num = (0 | major) << 8;

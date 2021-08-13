@@ -1,4 +1,4 @@
-#include <server_lib/fs_helper.h>
+#include <server_lib/change_current_dir.h>
 #include <server_lib/asserts.h>
 
 #include <boost/filesystem.hpp>

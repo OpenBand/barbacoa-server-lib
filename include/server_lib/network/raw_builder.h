@@ -6,9 +6,12 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief Only to create app_unit interface for char buffer.
+     * \ingroup network_unit
+     *
+     * \brief Only to create app_unit interface for char buffer.
      *        Every invoke of 'call' or '<<' will be create new unit.
-     *        It is used if message bounders are controlled by external code
+     *        It is used if message bounders are controlled
+     *        by external code
      */
     class raw_builder : public app_unit_builder_i
     {

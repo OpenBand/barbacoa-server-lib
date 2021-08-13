@@ -7,7 +7,10 @@ namespace server_lib {
 
 class mt_server_impl;
 
-/* Server model root class for application lifetime control,
+/**
+ * \ingroup common
+ *
+ * This is the multythread server model class for application lifetime control,
  * careful signal processing and main event_loop management
 */
 class mt_server : public singleton<mt_server>
@@ -30,23 +33,41 @@ public:
     using fail_callback_type = std::function<void(const char*)>;
     using control_callback_type = std::function<void(const user_signal)>;
 
-    // Call before all thread created
+    /**
+     * Call before all thread created
+     */
     void init(bool daemon = false);
-    //Should be set to see crash info
+
+    /**
+     * Should be set to see crash info
+     */
     void set_crash_dump_file_name(const char*);
 
-    // It invokes all callback_type(s) in main thread where main_loop was runned
-    void start(main_loop& e,
-               exit_callback_type exit_callback = nullptr,
-               fail_callback_type fail_callback = nullptr,
-               control_callback_type control_callback = nullptr);
+    /**
+     * \brief Start server and stuck in main loop
+     *
+     * It invokes all callbacks in main thread where main_loop was runned
+     */
     int run(main_loop& e,
             exit_callback_type exit_callback = nullptr,
             fail_callback_type fail_callback = nullptr,
             control_callback_type control_callback = nullptr);
+
+    /**
+     * \brief Stop server
+     *
+     * This leads to the exit from 'run'
+     */
     void stop(main_loop& e);
 
-    void wait_started(main_loop& e, std::function<void(void)>&&);
+    /**
+     * \brief Wait for server starting or immediately
+     * (if server has already started) invoke callback
+     *
+     * \param callback
+     *
+     */
+    void wait_started(main_loop& e, std::function<void(void)>&& callback);
 
 private:
     std::unique_ptr<mt_server_impl> _impl;

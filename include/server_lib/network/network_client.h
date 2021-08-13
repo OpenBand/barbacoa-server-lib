@@ -12,18 +12,22 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief simple async TCP client with application connection
+     * \ingroup network
+     *
+     * \brief Simple async TCP client
+     * with application connection
      */
     class network_client
     {
     public:
         /**
-        * Class uses internal (tacopie) TCP client implementation
+        * Use default (tacopie) implementation for tcp_client_i
         */
         network_client();
 
         /**
-        * Class can use external TCP client implementation with tcp_client_i interface
+        * Use external TCP client implementation
+        * with tcp_client_i interface
         */
         network_client(const std::shared_ptr<tcp_client_i>& transport_layer);
 
@@ -35,19 +39,23 @@ namespace network {
         using receive_callback_type = std::function<void(app_unit&)>;
 
         /**
-         * start the TCP client
+         * Start the TCP client
          *
-         * @param addr host to be connected to
-         * @param port port to be connected to
-         * @param protocol to create or parse data units
-         * @param callback_thread for callbacks:
-         *        For 'nullptr' callbacks run in internal transport thread.
+         * \param host - Host to be connected to
+         * \param port - Port to be connected to
+         * \param protocol - To create or parse data units
+         * \param callback_thread - For callbacks:
+         *        For 'nullptr' callbacks run in internal transport thread
+         *        (that were spawned by set_nb_workers option).
          *        And connection objects could be created and destroyed in
          *        different threads. Using of not 'nullptr' callback thread
-         *        would be more accurate and recommended
-         * @param disconnection_handler callback to monit connection lost
-         * @param receive_callback callback for server responses
-         * @param timeout_ms max time to connect in ms
+         *        make multithreading control more simple. But it could be
+         *        harmful desision for nb_threads > 1
+         * \param disconnection_handler - Callback to monit connection lost
+         * \param receive_callback callback - For server responses
+         * \param timeout_ms max - Timeout to wait connection
+         * \param nb_threads - Number of threads in TCP implementation
+         * (tcp_client_i::set_nb_workers)
          *
          */
         bool connect(

@@ -8,6 +8,16 @@
 
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * \brief Design patterns: Observer
+ *
+ *  For observer:
+ * 'sink' and 'event_loop' objects are required
+ *  until they will be unsubscribed.
+ *  See 'subscribe' and 'notify'
+ */
 template <class Observer>
 class observable
 {
@@ -16,27 +26,38 @@ class observable
     using mutex_type = protected_mutex<std::mutex>;
 
 public:
-    //for observer:
-    //  'sink' and 'loop' objects are required
-    //  until they will be unsubscribed!
-    //
-    void subscribe(observer_i& sink_impl)
+    /**
+     * @brief Subscribe
+     *
+     * @param sink
+     */
+    void subscribe(observer_i& sink)
     {
-        subscribe_impl(sink_impl, true, nullptr);
-    }
-    void subscribe(observer_i& sink_impl, event_loop& loop)
-    {
-        subscribe_impl(sink_impl, true, &loop);
-    }
-    void unsubscribe(observer_i& sink_impl)
-    {
-        subscribe_impl(sink_impl, false, nullptr);
+        subscribe_impl(sink, true, nullptr);
     }
 
-    //for observable to signal with any arguments. Exp:
-    //  notify(&observer_i::on_event1)
-    //  notify(&observer_i::on_event2, val1, val2)
-    //
+    /**
+     * @brief Subscribe and it will post events to event_loop
+     *
+     * @param sink
+     */
+    void subscribe(observer_i& sink, event_loop& loop)
+    {
+        subscribe_impl(sink, true, &loop);
+    }
+    void unsubscribe(observer_i& sink)
+    {
+        subscribe_impl(sink, false, nullptr);
+    }
+
+    /**
+     * @brief Notify
+     *
+     * For observable to signal without arguments:
+     * \code{.c}
+     * o.notify(&observer_i::on_foo_event);
+     * \endcode
+     */
     template <typename F, typename... Arg>
     void notify(F&& f)
     {
@@ -47,6 +68,14 @@ public:
         notify_impl(memf);
     }
 
+    /**
+     * @brief Notify
+     *
+     * For observable to signal with any arguments:
+     * \code{.c}
+     * o.notify(&observer_i::on_foo_event, val1, val2);
+     * \endcode
+     */
     template <typename F, typename... Arg>
     void notify(F&& f, const Arg&... args)
     {

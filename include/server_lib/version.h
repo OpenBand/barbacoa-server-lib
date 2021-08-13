@@ -4,8 +4,10 @@
 
 namespace server_lib {
 
-/*
- * This class represents the basic versioning scheme of the server.
+/**
+ * \ingroup common
+ *
+ * This class represents the basic versioning scheme of the application.
  * All versions are a triple consisting of
  * a major version, minor/hardfork version, and patch/release/revision version.
  * It allows easy comparison between versions. A version is a read only object.
@@ -67,6 +69,11 @@ protected:
     uint32_t v_num = 0;
 };
 
+/**
+ * \ingroup common
+ *
+ * Extends version class with meta information
+ */
 struct version_ext
 {
     version_ext() = default;

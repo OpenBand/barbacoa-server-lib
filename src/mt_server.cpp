@@ -106,11 +106,6 @@ public:
             fail_callback_type fail_callback,
             control_callback_type control_callback);
 
-    void start(main_loop& e,
-               exit_callback_type exit_callback,
-               fail_callback_type fail_callback,
-               control_callback_type control_callback);
-
     void stop(main_loop& e)
     {
         SRV_ASSERT(e.is_main(), "Only main loop accepted");
@@ -266,17 +261,6 @@ int mt_server_impl::run(main_loop& e,
     return exit_code_ok;
 }
 
-void mt_server_impl::start(main_loop& e,
-                           exit_callback_type exit_callback,
-                           fail_callback_type fail_callback,
-                           control_callback_type control_callback)
-{
-    SRV_ASSERT(event_loop::is_main_thread(), "Only for main thread allowed");
-    SRV_ASSERT(e.is_main(), "Only main loop accepted");
-
-    run_impl(e, exit_callback, fail_callback, control_callback);
-}
-
 void mt_server_impl::run_impl(main_loop& e,
                               exit_callback_type exit_callback,
                               fail_callback_type fail_callback,
@@ -372,14 +356,6 @@ void mt_server::init(bool daemon)
 void mt_server::set_crash_dump_file_name(const char* crash_dump_file_path)
 {
     std::strncpy(mt_server_impl::crash_dump_file_path, crash_dump_file_path, PATH_MAX - 1);
-}
-
-void mt_server::start(main_loop& e,
-                      exit_callback_type exit_callback,
-                      fail_callback_type fail_callback,
-                      control_callback_type control_callback)
-{
-    _impl->start(e, exit_callback, fail_callback, control_callback);
 }
 
 int mt_server::run(main_loop& e,

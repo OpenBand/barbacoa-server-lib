@@ -16,10 +16,12 @@ namespace server_lib {
 
 DECLARE_PTR(event_loop);
 
-/* To hold transport events (etc. from epool)
- * wrapped by boost::asio and a little bit more
- * that supposed by message queue
-*/
+/**
+ * \ingroup common
+ *
+ * \brief This class provides minimal thread management with message queue
+ * It is crucial class for multythread applications based on server_lib!
+ */
 class event_loop
 {
 public:
@@ -28,25 +30,6 @@ public:
 
     event_loop(bool in_separate_thread = true);
     virtual ~event_loop();
-
-    static bool is_main_thread();
-
-    template <typename Handler>
-    void post(Handler&& handler)
-    {
-        SRV_ASSERT(_pservice);
-        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
-            handler();
-            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
-        };
-        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
-        _pservice->post(_strand.wrap(std::move(handler_)));
-    }
-
-    auto queue_size() const
-    {
-        return _queue_size.load();
-    }
 
     operator boost::asio::io_service&()
     {
@@ -61,11 +44,29 @@ public:
 
     void change_thread_name(const std::string&);
 
-    virtual void start(std::function<void(void)> start_notify = nullptr, std::function<void(void)> stop_notify = nullptr);
+    /**
+     * Start loop
+     *
+     * \param start_notify - Callback that is invoked in thread owned by
+     * this event_loop when thread has started
+     * \param stop_notify - Callback that is invoked in thread owned by
+     * this event_loop when thread has stopped
+     *
+     */
+    virtual void start(std::function<void(void)> start_notify = nullptr,
+                       std::function<void(void)> stop_notify = nullptr);
     virtual void stop();
+
     bool is_running() const
     {
         return _is_running;
+    }
+
+    static bool is_main_thread();
+
+    auto queue_size() const
+    {
+        return _queue_size.load();
     }
 
     bool is_main() const
@@ -78,6 +79,39 @@ public:
         return _id.load() == std::this_thread::get_id();
     }
 
+    /**
+     * Callback that is invoked in thread owned by this event_loop
+     * Multiple invokes are executed in queue
+     *
+     * \param handler
+     *
+     */
+    template <typename Handler>
+    void post(Handler&& handler)
+    {
+        SRV_ASSERT(_pservice);
+        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
+            handler();
+            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
+        };
+        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+
+        //-------------POST(WRAP(...)) - design explanation:
+        //
+        //* The 'post' guarantees that the handler will only be called in a thread
+        //  in which the 'run()'
+        //* The 'strand' object guarantees that all 'post's are executed in queue
+        //
+        _pservice->post(_strand.wrap(std::move(handler_)));
+    }
+
+    /**
+     * Waiting for callback with result endlessly
+     *
+     * \param initial_result - Result for case when callback can't be invoked
+     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     *
+     */
     template <typename Result, typename AsynchFunc>
     Result wait_async(Result&& initial_result, AsynchFunc&& asynch_func)
     {
@@ -87,6 +121,14 @@ public:
         return wait_async_call(std::forward<Result>(initial_result), call, asynch_func);
     }
 
+    /**
+     * Waiting for callback with result
+     *
+     * \param initial_result - Result for case when callback can't be invoked
+     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param duration - Timeout (std::chrono::duration type)
+     *
+     */
     template <typename Result, typename AsynchFunc, typename DurationType>
     Result wait_async(Result&& initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
     {
@@ -100,6 +142,13 @@ public:
         return wait_async_call(std::forward<Result>(initial_result), call, asynch_func, ms.count());
     }
 
+    /**
+     * Callback that is invoked after certain timeout
+     *
+     * \param duration - Timeout (std::chrono::duration type)
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     */
     template <typename DurationType, typename Handler>
     void start_timer(DurationType&& duration, Handler&& callback)
     {
@@ -141,6 +190,11 @@ private:
     void apply_thread_name();
 };
 
+/**
+ * \ingroup common
+ *
+ * \brief This class wrap main thread to provide event_loop features
+ */
 class main_loop : public event_loop
 {
 public:
@@ -149,7 +203,8 @@ public:
     void set_exit_callback(std::function<void(void)>);
     void exit(const int = 0);
 
-    void start(std::function<void(void)> start_notify = nullptr, std::function<void(void)> stop_notify = nullptr) override;
+    void start(std::function<void(void)> start_notify = nullptr,
+               std::function<void(void)> stop_notify = nullptr) override;
     void stop() override;
 
 private:

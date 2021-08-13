@@ -6,11 +6,16 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief Data stream separated with delimiter.
+     * \ingroup network_unit
+     *
+     * \brief Data stream separated with delimiter.
      */
     class dstream_builder : public app_unit_builder_i
     {
     public:
+        /**
+         * @param delimeter - Like for HTML by default
+         */
         dstream_builder(const char* delimeter = "\r\n\r\n")
             : _delimeter(delimeter)
         {

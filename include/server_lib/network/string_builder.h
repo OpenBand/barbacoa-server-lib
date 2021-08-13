@@ -6,7 +6,9 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief Represents N-bytes string (N >= 0)
+     * \ingroup network_unit
+     *
+     * \brief Represents N-bytes string (N >= 0)
      */
     class string_builder : public app_unit_builder_i
     {
@@ -43,7 +45,7 @@ namespace network {
         std::string _buffer;
 
         bool _ready = false;
-        app_unit _unit; //it can represent valid empty string
+        app_unit _unit; /// it can represent valid empty string
     };
 
 } // namespace network

@@ -1,5 +1,20 @@
 #pragma once
 
+/**
+ * \mainpage
+ *
+ * - \subpage common
+ * - \subpage network
+ *
+ */
+
+/**
+ * \defgroup common Common
+ * Common application classes (\link mainpage)
+ * \defgroup network Network
+ * Set for TCP/IP tasks (\link mainpage)
+ */
+
 // Workaround for varying preprocessing behavior between MSVC and gcc
 #define SRV_EXPAND_MACRO(x) x
 

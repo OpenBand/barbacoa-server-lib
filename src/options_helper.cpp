@@ -36,7 +36,7 @@ namespace impl {
         const boost::shared_ptr<bpo::option_description> (*modifier)(const boost::shared_ptr<bpo::option_description>&);
     };
 
-    void create_new_config_file(const server_options::path& config_ini_path,
+    void create_new_config_file(const options::path& config_ini_path,
                                 const bpo::options_description& cfg_options)
     {
         deduplicator dedup;
@@ -96,7 +96,7 @@ namespace impl {
     }
 } // namespace impl
 
-std::string server_options::get_approximate_relative_time_string(const int64_t& event_time,
+std::string options::get_approximate_relative_time_string(const int64_t& event_time,
                                                                  const int64_t& relative_to_time,
                                                                  const std::string& default_ago /*= " ago"*/)
 {
@@ -157,22 +157,22 @@ std::string server_options::get_approximate_relative_time_string(const int64_t& 
     return result.str();
 }
 
-const char* server_options::get_application_name() const
+const char* options::get_application_name() const
 {
     return "Server";
 }
 
-const char* server_options::get_application_version() const
+const char* options::get_application_version() const
 {
     return "";
 }
 
-const char* server_options::get_config_file_name() const
+const char* options::get_config_file_name() const
 {
     return "config.ini";
 }
 
-void server_options::print_version(std::ostream& stream) const
+void options::print_version(std::ostream& stream) const
 {
     auto capitalized_header = get_application_capitalized_name();
     if (capitalized_header && std::strlen(capitalized_header))
@@ -197,7 +197,7 @@ void server_options::print_version(std::ostream& stream) const
     stream << "Boost: " << boost::replace_all_copy(std::string(BOOST_LIB_VERSION), "_", ".") << "\n";
 }
 
-void server_options::print_options(std::ostream& stream, const bpo::options_description& options) const
+void options::print_options(std::ostream& stream, const bpo::options_description& options) const
 {
     for (const boost::shared_ptr<bpo::option_description> od : options.options())
     {
@@ -230,7 +230,7 @@ void server_options::print_options(std::ostream& stream, const bpo::options_desc
     }
 }
 
-server_options::path server_options::get_config_file_path(const bpo::variables_map& options, const char* opt_name) const
+options::path options::get_config_file_path(const bpo::variables_map& options, const char* opt_name) const
 {
     namespace bfs = boost::filesystem;
 
@@ -244,7 +244,7 @@ server_options::path server_options::get_config_file_path(const bpo::variables_m
     return config_ini_path;
 }
 
-void server_options::create_config_file_if_not_exist(std::ostream& stream,
+void options::create_config_file_if_not_exist(std::ostream& stream,
                                                      const path& config_ini_path,
                                                      const bpo::options_description& cfg_options)
 {
@@ -265,7 +265,7 @@ void server_options::create_config_file_if_not_exist(std::ostream& stream,
     }
 }
 
-void server_options::load_config_file(std::ostream& stream,
+void options::load_config_file(std::ostream& stream,
                                       const path& config_ini_path,
                                       const bpo::options_description& cfg_options,
                                       bpo::variables_map& options)
@@ -308,12 +308,12 @@ S remove_quotes_impl(const S& with_quotes)
     return result;
 }
 
-std::string server_options::remove_quotes(const std::string& with_quotes)
+std::string options::remove_quotes(const std::string& with_quotes)
 {
     return remove_quotes_impl(with_quotes);
 }
 
-std::wstring server_options::remove_quotes(const std::wstring& with_quotes)
+std::wstring options::remove_quotes(const std::wstring& with_quotes)
 {
     return remove_quotes_impl(with_quotes);
 }

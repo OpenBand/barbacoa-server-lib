@@ -8,6 +8,11 @@
 
 namespace server_lib {
 
+/**
+* Helper to convert 'event_loop' based asynchronous handlers to synchronized.
+* It is useful if application logic demands the certain invocation sequence
+* for features were implemented in separate threads ('event_loop)
+ */
 template <typename Result, typename CallerFunc, typename AsynchFunc>
 Result wait_async_call(Result&& initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {

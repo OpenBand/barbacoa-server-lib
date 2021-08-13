@@ -8,7 +8,9 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief wrapper for async TCP connetion (used for both server and client)
+     * \ingroup network_i
+     *
+     * Interface for async TCP connetion (used for both server and client)
      */
     class tcp_connection_i
     {
@@ -16,45 +18,45 @@ namespace network {
         virtual ~tcp_connection_i() = default;
 
         /**
-         * @return whether the client is currently connected or not
+         * \return Whether the client is currently connected or not
          *
          */
         virtual bool is_connected() const = 0;
 
     public:
         /**
-         * structure to store read requests result
+         * Structure to store read requests result
          *
          */
         struct read_result
         {
             /**
-             * whether the operation succeeded or not
+             * Whether the operation succeeded or not
              *
              */
             bool success;
 
             /**
-             * read bytes
+             * Read bytes
              *
              */
             std::vector<char> buffer;
         };
 
         /**
-     * structure to store write requests result
-     *
-     */
+        * Structure to store write requests result
+        *
+        */
         struct write_result
         {
             /**
-             * whether the operation succeeded or not
+             * Whether the operation succeeded or not
              *
              */
             bool success;
 
             /**
-             * number of bytes written
+             * Number of bytes written
              *
              */
             std::size_t size;
@@ -62,53 +64,53 @@ namespace network {
 
     public:
         /**
-         * async read completion callbacks
-         * function taking read_result as a parameter
+         * Async read completion callbacks
+         * Function takes read_result as a parameter
          *
          */
         using async_read_callback_type = std::function<void(read_result&)>;
 
         /**
-         * async write completion callbacks
-         * function taking write_result as a parameter
+         * Async write completion callbacks
+         * Function takes write_result as a parameter
          *
          */
         using async_write_callback_type = std::function<void(write_result&)>;
 
     public:
         /**
-         * structure to store read requests information
+         * Structure to store read requests information
          *
          */
         struct read_request
         {
             /**
-             * number of bytes to read
+             * Number of bytes to read
              *
              */
             std::size_t size;
 
             /**
-             * callback to be called on operation completion
+             * Callback to be called on operation completion
              *
              */
             async_read_callback_type async_read_callback;
         };
 
         /**
-         * structure to store write requests information
+         * Structure to store write requests information
          *
          */
         struct write_request
         {
             /**
-             * bytes to write
+             * Bytes to write
              *
              */
             std::vector<char> buffer;
 
             /**
-             * callback to be called on operation completion
+             * Callback to be called on operation completion
              *
              */
             async_write_callback_type async_write_callback;
@@ -116,17 +118,19 @@ namespace network {
 
     public:
         /**
-         * async read operation
+         * Async read operation
          *
-         * @param request information about what should be read and what should be done after completion
+         * \param request - Information about what should be read
+         * and what should be done after completion
          *
          */
         virtual void async_read(read_request& request) = 0;
 
         /**
-         * async write operation
+         * Async write operation
          *
-         * @param request information about what should be written and what should be done after completion
+         * \param request - Information about what should be written
+         * and what should be done after completion
          *
          */
         virtual void async_write(write_request& request) = 0;

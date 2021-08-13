@@ -12,7 +12,10 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief wrapper for TCP connetion (used by both server and client) for app_unit
+     * \ingroup network_i
+     *
+     * \brief Service interface for logical connection
+     * to transfer data via 'app_unit' message
      */
     class app_connection_i
     {
@@ -20,7 +23,7 @@ namespace network {
         virtual ~app_connection_i() = default;
 
         /**
-         * @return whether the client is currently connected or not
+         * \return Whether the client is currently connected or not
          *
          */
         virtual bool is_connected() const = 0;

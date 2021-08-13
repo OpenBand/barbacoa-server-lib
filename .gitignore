@@ -18,7 +18,10 @@ libs/server-clib.*
 
 lcov
 
+#Doxygen
 doxygen
+docs/
+Doxyfile
 
 build
 

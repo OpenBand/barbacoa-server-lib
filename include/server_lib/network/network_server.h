@@ -12,18 +12,21 @@ namespace server_lib {
 namespace network {
 
     /**
-     * @brief simple async TCP server with application connection
+     * \ingroup network
+     *
+     * \brief Simple async TCP server with application connection
      */
     class network_server
     {
     public:
         /**
-        * Class uses internal (tacopie) TCP server implementation
+        * Use default (tacopie) implementation for tcp_server_i
         */
         network_server();
 
         /**
-        * Class can use external TCP server implementation with tcp_server_i interface
+        * Use external TCP server implementation
+        * with tcp_server_i interface
         */
         network_server(const std::shared_ptr<tcp_server_i>& transport_layer);
 
@@ -34,18 +37,21 @@ namespace network {
         using on_new_connection_callback_type = std::function<void(const std::shared_ptr<app_connection_i>&)>;
 
         /**
-         * start the TCP server
+         * Start the TCP server
          *
-         * @param addr host to be connected to
-         * @param port port to be connected to
-         * @param protocol to create or parse data units
-         * @param callback_thread for callbacks:
-         *        For 'nullptr' callbacks run in internal transport thread.
+         * \param host - Host to be connected to
+         * \param port - Port to be connected to
+         * \param protocol - To create or parse data units
+         * \param callback_thread - For callbacks:
+         *        For 'nullptr' callbacks run in internal transport thread
+         *        (that were spawned by set_nb_workers option).
          *        And connection objects could be created and destroyed in
          *        different threads. Using of not 'nullptr' callback thread
-         *        would be more accurate and recommended
-         * @param callback callback to process new client connections
-         *
+         *        make multithreading control more simple. But it could be
+         *        harmful desision for nb_threads > 1
+         * \param callback - Callback to process new client connections
+         * \param nb_threads - Number of threads in TCP implementation
+         * (tcp_server_i::set_nb_workers)
          */
         bool start(const std::string& host,
                    uint16_t port,
