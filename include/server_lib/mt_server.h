@@ -46,7 +46,9 @@ public:
     /**
      * \brief Start server and stuck in main loop
      *
-     * It invokes all callbacks in main thread where main_loop was runned
+     * Stuck into main thread untill apropriate callback will be called.
+     * It invokes all callbacks in main thread where main_loop was runned.
+     * It use default exit callback if one was not set.
      */
     int run(main_loop& e,
             exit_callback_type exit_callback = nullptr,
