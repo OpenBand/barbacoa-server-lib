@@ -9,6 +9,10 @@
 
 namespace server_lib {
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Warray-bounds"
+
 void try_libassert(uint n)
 {
     std::cerr << __FUNCTION__ << std::endl;
@@ -252,8 +256,7 @@ bool try_fail(const fail f)
     case fail::try_inf_recursive:
         try_inf_recursive();
         break;
-    case fail::try_fail_in_lambda:
-    {
+    case fail::try_fail_in_lambda: {
         auto lmb_try = []() {
             try_fail();
         };
@@ -277,6 +280,8 @@ bool try_fail(const fail f)
     }
     return true;
 };
+
+#pragma GCC diagnostic pop
 
 #define PRINT_FAIL_ID(fail_id) #fail_id
 
