@@ -160,6 +160,9 @@ protected:
         }
     }
 
+    /////////////////////////////////////////////////////////////////////
+    //TODO: There is three problems while SIGSEG, SIGABT are been handled
+    /////////////////////////////////////////////////////////////////////
     void process_signal(int signal)
     {
 #ifndef NDEBUG
@@ -177,13 +180,17 @@ protected:
 
             if (crash_dump_file_path_[0])
             {
+                //TODO (1): can not be safely called here for current implementation.
+                //(it uses 'fprintf')
                 emergency_helper::save_dump(crash_dump_file_path_);
 
-                // it maybe fail here but dump has been saved already
+                //TODO (2): It must be removed from here. Use 'sigwait'
                 this->process_fail(crash_dump_file_path_);
             }
             else
 #endif //!STACKTRACE_DISABLED
+
+                //TODO (2): It must be removed from here. Use 'sigwait'
                 this->process_fail(nullptr);
         }
         else
@@ -194,6 +201,8 @@ protected:
             switch (signal)
             {
             case SIGUSR1:
+                //TODO (3): It can be corrupted because it is from wrong memory!
+                //Try to get this info from 'sigwait' function
                 _callback_data = impl::callback_data::make_config_data(user_signal::USR1);
                 break;
             case SIGUSR2:
