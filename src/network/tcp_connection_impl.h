@@ -1,5 +1,7 @@
 #include <server_lib/network/tcp_connection_i.h>
 
+#include <tacopie/tacopie>
+
 namespace tacopie {
 class tcp_client;
 }

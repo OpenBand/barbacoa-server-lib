@@ -35,6 +35,11 @@ public:
         return *p_instance;
     }
 
+    static bool check_instance()
+    {
+        return p_instance() != nullptr;
+    }
+
     /**
      * Destroy current instance
      */

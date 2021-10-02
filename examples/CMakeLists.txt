@@ -1,5 +1,14 @@
 set(EXAMPLE_ "ex_")
 
+add_executable( pretty_simple
+                "${CMAKE_CURRENT_SOURCE_DIR}/pretty_simple.cpp")
+set_target_properties(pretty_simple PROPERTIES OUTPUT_NAME "${EXAMPLE_}pretty_simple")
+
+add_dependencies( pretty_simple server_lib )
+target_link_libraries( pretty_simple
+                       server_lib
+                       ${PLATFORM_SPECIFIC_LIBS})
+
 add_executable( sample
                 "${CMAKE_CURRENT_SOURCE_DIR}/sample.cpp"
                 "${CMAKE_CURRENT_SOURCE_DIR}/err_emulator.cpp" )

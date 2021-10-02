@@ -90,22 +90,22 @@ int ConsoleContext::IsLaunchedInSeparateConsole(void)
 
 } // namespace server_lib
 
-void server_init_default_signals_should_register(void)
+void srv_c_app_init_default_signals_should_register(void)
 {
     // NOTHING TODO
 }
 
-BOOL server_is_fail_signal(int signal)
+BOOL srv_c_is_fail_signal(int signal)
 {
     return signal != SIGINT;
 }
 
-size_t server_get_alter_stack_size()
+size_t srv_c_app_get_alter_stack_size()
 {
     return 0;
 }
 
-void server_mt_init(server_exit_callback_ft exit_callback, server_sig_callback_ft sig_callback)
+void srv_c_app_mt_init(srv_c_app_exit_callback_ft exit_callback, srv_c_app_sig_callback_ft sig_callback, srv_c_app_fail_callback_ft, BOOL)
 {
     using namespace server_lib;
     HWND consoleWnd = ::GetConsoleWindow();
@@ -123,14 +123,14 @@ void server_mt_init(server_exit_callback_ft exit_callback, server_sig_callback_f
     }
 }
 
-void server_mt_init_daemon(server_exit_callback_ft exit_callback, server_sig_callback_ft sig_callback)
+void srv_c_app_mt_init_daemon(srv_c_app_exit_callback_ft exit_callback, srv_c_app_sig_callback_ft sig_callback, srv_c_app_fail_callback_ft)
 {
     using namespace server_lib;
     sig_callback(1);
     SRV_C_ERROR("Not implemented");
 }
 
-void server_mt_wait_sig_callback(server_sig_callback_ft sig_callback)
+void srv_c_app_mt_wait_sig_callback(srv_c_app_sig_callback_ft sig_callback)
 {
     using namespace server_lib;
     SIGNAL_CTX.wait_signal();

@@ -1,4 +1,4 @@
-#include <server_lib/mt_server.h>
+#include <server_lib/application.h>
 #include <server_lib/asserts.h>
 
 #include <server_lib/options_helper.h>
@@ -17,8 +17,9 @@ namespace bpo = server_lib::bpo;
 
 struct Config_i
 {
-    std::string test_case = "libassert";
+    std::string test_case = "double_delete";
     bool show_crash_dump = false;
+    bool in_separate_thread = false;
 };
 
 class Config : public Config_i,
@@ -31,6 +32,7 @@ class Config : public Config_i,
                 ("try,t", bpo::value<std::string>()->default_value(test_case),
                          (std::string{"Case from list ["} + server_lib::get_fail_cases() + "]").c_str())
                 ("show,s", "Print crash dump and clear")
+                ("async,a", "Emulate crash in separate thread")
                 ("help,h", "Display help message")
                 ("version,v", "Print version number and exit");
         // clang-format on
@@ -66,6 +68,7 @@ public:
 
             test_case = options["try"].as<std::string>();
             show_crash_dump = options.count("show");
+            in_separate_thread = options.count("async");
         }
         catch (const std::exception& e)
         {
@@ -99,20 +102,13 @@ int main(int argc, char* argv[])
     if (!config.load(argc, argv))
         return 1;
 
-    auto&& server = mt_server::instance();
-    server.init();
+    boost::filesystem::path app_path { argv[0] };
+    app_path = app_path.parent_path() / emergency_helper::create_dump_filename();
+    auto dump_file = app_path.generic_string();
 
-    boost::filesystem::path p_bin { argv[0] };
-    auto bin_name = p_bin.filename().generic_string();
-    bin_name.append(".dump");
-    p_bin = p_bin.parent_path() / bin_name;
-    auto dump_file = p_bin.generic_string();
+    auto&& app = application::init(dump_file.c_str());
 
-    server.set_crash_dump_file_name(dump_file.c_str());
-
-    main_loop ml;
-
-    auto payload = [&config, &dump_file, &ml]() {
+    auto payload = [&]() {
         if (config.show_crash_dump)
         {
             auto cr = emergency_helper::load_dump(dump_file.c_str());
@@ -122,39 +118,51 @@ int main(int argc, char* argv[])
             }
             else
             {
-                std::cerr << "There is not crash dump at '" << dump_file << "'" << std::endl;
+                std::cerr << "There is no crash dump in '" << dump_file << "'" << std::endl;
             }
         }
         else
         {
-            if (!try_fail(config.test_case))
+            bool result = false;
+            if (!config.in_separate_thread)
+            {
+                result = try_fail(config.test_case);
+            }
+            else
+            {
+            }
+            if (!result)
             {
                 config.print_help();
                 exit(1);
             }
-            std::cerr << "Uops:(. Test case was vanished by compiler optiomization" << std::endl;
+            std::cerr << "Uops:(. Test case was vanished by compiler optimization" << std::endl;
         }
-        ml.exit(0);
+
+        if (app.is_running())
+            app.stop();
+        else
+            exit(0);
     };
 
-    ml.post(payload);
-
-    auto exit_callback = [&server, &ml]() {
+    auto exit_callback = []() {
         std::cout << "Normal exit" << std::endl;
-        assert(event_loop::is_main_thread());
-        server.stop(ml);
     };
 
     auto fail_callback = [](const char* dump_file_path) {
-        std::cerr << "Fail" << std::endl;
+        std::cerr << "Fail exit" << std::endl;
         if (dump_file_path)
         {
-            fprintf(stderr, "emergency_helper dump saved to '%s'. Preview:\n", dump_file_path);
+            std::cerr << "Dump saved to '" << dump_file_path
+                      << "'. Preview:\n";
 
-            auto dump = emergency_helper::load_dump(dump_file_path, false);
-            fprintf(stderr, "%s", dump.c_str());
+            if (emergency_helper::save_demangled_dump(dump_file_path, dump_file_path))
+            {
+                auto dump = emergency_helper::load_dump(dump_file_path, false);
+                std::cerr << dump.c_str();
+            }
         }
     };
 
-    return server.run(ml, exit_callback, fail_callback);
+    return app.on_start(payload).on_exit(exit_callback).on_fail(fail_callback).run();
 }

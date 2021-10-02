@@ -1,4 +1,4 @@
-#include <server_lib/mt_server.h>
+#include <server_lib/application.h>
 #include <server_lib/asserts.h>
 
 #include <iostream>
@@ -9,31 +9,30 @@ int main(void)
 {
     using namespace server_lib;
 
-    auto&& server = mt_server::instance();
+    auto&& app = application::init();
+    auto&& ml = app.loop();
 
-    server.init();
+    auto payload = [&ml, loop_timer = std::make_shared<event_loop::periodical_timer>(ml)]() {
+        auto write_iostream = []() {
+            std::cout << "Make payload in main loop (COUT)" << std::endl;
+            std::cerr << "Make payload in main loop (CERR)" << std::endl;
+        };
 
-    main_loop ml;
-    std::shared_ptr<event_loop::periodical_timer> loop_timer = std::make_shared<event_loop::periodical_timer>(ml);
-
-    auto write_iostream = []() {
-        std::cout << "Make payload in main loop (COUT)" << std::endl;
-        std::cerr << "Make payload in main loop (CERR)" << std::endl;
+        ml.post(write_iostream); //alternative method to run smth. in main loop
+        loop_timer->start(std::chrono::seconds(2), write_iostream);
     };
 
-    ml.post(write_iostream);
-    loop_timer->start(std::chrono::seconds(2), write_iostream);
+    using control_signal = application::control_signal;
 
-    using user_signal = mt_server::user_signal;
-
-    auto control_callback = [&ml](const user_signal sig) {
+    auto control_callback = [&](const control_signal sig) {
         SRV_ASSERT(event_loop::is_main_thread(), "Wrong thread");
-        if (user_signal::USR1 == sig)
+        if (control_signal::USR1 == sig)
         {
             std::cout << "Emulate normal exit" << std::endl;
-            ml.exit();
+
+            app.stop();
         }
-        else if (user_signal::USR2 == sig)
+        else if (control_signal::USR2 == sig)
         {
             std::cerr << "Emulate memory fail" << std::endl;
 
@@ -41,5 +40,5 @@ int main(void)
         }
     };
 
-    return server.run(ml, nullptr, nullptr, control_callback);
+    return app.on_start(payload).on_control(control_callback).run();
 }

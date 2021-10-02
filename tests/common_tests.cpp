@@ -16,7 +16,7 @@ namespace tests {
     namespace {
         void test_stack_anonymous_namespace(const bf::path& p)
         {
-            BOOST_REQUIRE_NO_THROW(emergency_helper::save_dump(p.generic_string().c_str()));
+            BOOST_REQUIRE_NO_THROW(emergency_helper::save_raw_dump_s(p.generic_string().c_str()));
         }
     } // namespace
 #endif

@@ -5,9 +5,9 @@ namespace server_lib {
 /**
  * \ingroup common
  *
- * This class intended for daemonized applications
- * for scopes with input/output operations. Otherwise it could get signal
- * and aborted imidiatly
+ * This class intended for daemonized applications whithout
+ * lock_io mode for scopes with input/output operations.
+ * Otherwise it could get signal and will aborted immediately
  *
  * External daemonizer may switch off standard output,
  * then server, in turn, could receive signal SIGPIPE

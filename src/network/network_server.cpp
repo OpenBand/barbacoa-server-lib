@@ -3,16 +3,10 @@
 #include "tcp_server_impl.h"
 #include "app_connection_impl.h"
 
-#include <tacopie/tacopie>
-
 #include <server_lib/asserts.h>
 #include <server_lib/logging_helper.h>
 
-#ifdef SRV_LOG_CONTEXT_
-#undef SRV_LOG_CONTEXT_
-#endif // #ifdef SRV_LOG_CONTEXT_
-
-#define SRV_LOG_CONTEXT_ "tcp-srv> " << SRV_FUNCTION_NAME_ << ": "
+#include "../logger_set_internal_group.h"
 
 namespace server_lib {
 namespace network {

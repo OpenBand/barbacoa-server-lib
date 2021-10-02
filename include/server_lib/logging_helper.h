@@ -209,11 +209,9 @@ std::string to_json(const std::array<T, S>& value)
 #undef SERVER_LIB_LOGS
 #endif
 #else // SERVER_LIB_SUPPRESS_LOGS
-#ifndef NDEBUG
 #if !defined(SERVER_LIB_LOGS)
 #define SERVER_LIB_LOGS
 #endif
-#endif //DEBUG
 #endif // !SERVER_LIB_SUPPRESS_LOGS
 
 #ifdef SERVER_LIB_LOGS

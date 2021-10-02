@@ -12,6 +12,7 @@ namespace server_lib {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat"
 #pragma GCC diagnostic ignored "-Warray-bounds"
+#pragma GCC diagnostic ignored "-Wunused-result"
 
 void try_libassert(uint n)
 {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "thread_sync_helpers.h"
+
 #include <server_lib/asserts.h>
 
 #include <thread>
@@ -13,7 +15,7 @@ namespace server_lib {
  *
  * This class protects from undefined behavior if mutex lock/unlock functions are called improperly.
  * It throws exceptions instead undefined behavior.
- * Don't abuse with this class! It whould be better to fix application architecture.
+ * Don't abuse with this class. It whould be better to fix application architecture.
  * Class could be helpful for hotfix only
  *
  * The type meet the BasicLockable requirements to wrap C++ mutex:
@@ -36,7 +38,7 @@ public:
         SRV_ASSERT(!_ows.compare_exchange_strong(et_, et), "Owner try to relock");
         _mutex.lock();
         while (!_ows.compare_exchange_weak(et_, et))
-            ;
+            spin_loop_pause();
     }
     void unlock()
     {
@@ -45,7 +47,7 @@ public:
         SRV_ASSERT(_ows.compare_exchange_strong(et_, et), "Not owner try to reunlock");
         _mutex.unlock();
         while (!_ows.compare_exchange_weak(et_, 0))
-            ;
+            spin_loop_pause();
     }
 
 private:

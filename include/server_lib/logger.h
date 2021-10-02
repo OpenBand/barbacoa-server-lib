@@ -87,7 +87,7 @@ public:
     using log_handler_type = std::function<void(const log_message&)>;
 
 protected:
-    logger() = default;
+    logger();
 
     friend class singleton<logger>;
 
@@ -97,6 +97,8 @@ public:
     void init_sys_log();
     void init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
     void init_debug_log(bool async = false, bool cerr = false, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
+    void lock();
+    void unlock();
 
     //suppress trace logs by default
     void set_level_filter(int filter = 0x10);
@@ -121,6 +123,7 @@ private:
 private:
     std::vector<log_handler_type> _appenders;
     int _filter = 0;
+    std::atomic_bool _logs_on;
 };
 
 } // namespace server_lib

@@ -1,41 +1,78 @@
 #include <server_lib/emergency_helper.h>
+#include <server_lib/platform_config.h>
+#include <server_lib/asserts.h>
 
-#if !defined(STACKTRACE_DISABLED)
+#include <server_clib/macro.h>
 
 #include <boost/version.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/stacktrace.hpp>
 
 #include <iostream>
 #include <sstream>
 #include <fstream>
 
-#if !defined(CUSTOM_STACKTRACE_IMPL) && BOOST_VERSION >= 106500
+namespace {
+//There is no pretty formatting functions (xprintf) that are async-signal-safe
+static void __print_trace_s_(char* buff, size_t sz, const char* text, int out_fd)
+{
+    memset(buff, 0, sz);
+    int ln = SRV_C_MIN(sz - 1, strnlen(text, sz));
+    strncpy(buff, text, ln);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-result"
+    write(out_fd, buff, strnlen(buff, sz));
+#pragma GCC diagnostic pop
+}
 
-#include <boost/stacktrace.hpp>
+static char MAGIC_FOR_DUMP_FMT[] = "~stack trace:\n\n";
+} // namespace
+
+#define __write_s(file, buff, text) \
+    __print_trace_s_(buff, sizeof(buff), text, file)
 
 namespace server_lib {
 
-void emergency_helper::save_dump(const char* dump_file_path)
+bool emergency_helper::test_file_for_write(const char* file_path)
 {
-    try
+    if (boost::filesystem::exists(file_path))
+        return false;
+
     {
-        boost::stacktrace::safe_dump_to(dump_file_path);
+        std::ofstream ofs(file_path);
+
+        if (!ofs)
+            return false;
     }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Can't save dump: " << e.what() << std::endl;
-    }
+
+    boost::filesystem::remove(file_path);
+    return true;
 }
 
-std::string emergency_helper::load_dump(const char* dump_file_path, bool remove)
+void emergency_helper::__print_trace_s(const char* text, int out_fd)
+{
+    char buff[1024];
+
+    __print_trace_s_(buff, sizeof(buff), text, out_fd);
+}
+
+bool emergency_helper::save_raw_dump_s(const char* raw_dump_file_path)
+{
+    //Dumps are binary serialized arrays of void*, so you could read them by using
+    //'od -tx8 -An stacktrace_dump_failename' Linux command
+    //or using boost::stacktrace::stacktrace::from_dump functions.
+    return boost::stacktrace::safe_dump_to(raw_dump_file_path) > 0;
+}
+
+std::string emergency_helper::load_raw_dump(const char* raw_dump_file_path, bool remove)
 {
     std::stringstream ss;
 
-    if (boost::filesystem::exists(dump_file_path))
+    if (boost::filesystem::exists(raw_dump_file_path))
     {
         try
         {
-            std::ifstream ifs(dump_file_path);
+            std::ifstream ifs(raw_dump_file_path);
 
             boost::stacktrace::stacktrace st = boost::stacktrace::stacktrace::from_dump(ifs);
             ss << st;
@@ -52,7 +89,7 @@ std::string emergency_helper::load_dump(const char* dump_file_path, bool remove)
         try
         {
             if (remove)
-                boost::filesystem::remove(dump_file_path);
+                boost::filesystem::remove(raw_dump_file_path);
         }
         catch (const std::exception&)
         {
@@ -62,178 +99,107 @@ std::string emergency_helper::load_dump(const char* dump_file_path, bool remove)
 
     return ss.str();
 }
-} // namespace server_lib
 
-#else
-
-#include <stdlib.h>
-#include <execinfo.h>
-#include <cxxabi.h>
-
-namespace server_lib {
-
-void emergency_helper::save_dump(const char* dump_file_path)
+bool emergency_helper::save_demangled_dump(const char* raw_dump_file_path, const char* demangled_file_path)
 {
-    FILE* out = fopen(dump_file_path, "w");
+    if (!boost::filesystem::exists(raw_dump_file_path))
+        return false;
+
+    auto demangled = load_raw_dump(raw_dump_file_path, false);
+    if (demangled.empty())
+        return false;
+
+    std::ofstream out(demangled_file_path, std::ifstream::binary);
 
     if (!out)
-    {
-        perror("Can't save dump");
-        return;
-    }
+        return false;
 
-    /** Print a demangled stack backtrace of the caller function to FILE* out. */
+    out.write(MAGIC_FOR_DUMP_FMT, sizeof(MAGIC_FOR_DUMP_FMT));
+    out.write(demangled.c_str(), demangled.size());
 
-    const size_t max_frames = 100;
-
-    fprintf(out, "stack trace:\n");
-
-    // storage array for stack trace address data
-    void* addrlist[max_frames + 1] = {};
-
-    // retrieve current stack addresses:
-    //                                                  https://linux.die.net/man/3/backtrace_symbols:
-    //"The symbol names may be unavailable without the use of special linker options.
-    // For systems using the GNU linker, it is necessary to use the -rdynamic linker option.
-    // Note that names of "static" functions are not exposed, and won't be available in the backtrace."
-    //
-    int addrlen = backtrace(addrlist, sizeof(addrlist) / sizeof(void*));
-
-    if (addrlen == 0)
-    {
-        fprintf(out, "  <empty, possibly corrupt>\n");
-        return;
-    }
-
-    // resolve addresses into strings containing "filename(function+address)",
-    // this array must be free()-ed
-    char** symbollist = backtrace_symbols(addrlist, addrlen);
-
-    // allocate string which will be filled with the demangled function name
-    size_t funcnamesize = 256;
-    char* funcname = reinterpret_cast<char*>(alloca(funcnamesize));
-
-    // iterate over the returned symbol lines. skip the first, it is the
-    // address of this function.
-    for (int i = 1; i < addrlen; i++)
-    {
-        char *begin_name = nullptr, *begin_offset = nullptr, *end_offset = nullptr;
-
-        // find parentheses and +address offset surrounding the mangled name:
-        // ./module(function+0x15c) [0x8048a6d]
-        for (char* p = symbollist[i]; *p; ++p)
-        {
-            if (*p == '(')
-                begin_name = p;
-            else if (*p == '+')
-                begin_offset = p;
-            else if (*p == ')' && begin_offset)
-            {
-                end_offset = p;
-                break;
-            }
-        }
-
-        if (begin_name && begin_offset && end_offset
-            && begin_name < begin_offset)
-        {
-            *begin_name++ = '\0';
-            *begin_offset++ = '\0';
-            *end_offset = '\0';
-
-            // mangled name is now in [begin_name, begin_offset) and caller
-            // offset in [begin_offset, end_offset). now apply
-            // __cxa_demangle():
-
-            int status;
-            char* ret = abi::__cxa_demangle(begin_name,
-                                            funcname, &funcnamesize, &status);
-            if (status == 0)
-            {
-                funcname = ret; // use possibly realloc()-ed string
-                fprintf(out, "  %s : %s+%s\n",
-                        symbollist[i], funcname, begin_offset);
-            }
-            else
-            {
-                // demangling failed. Output function name as a C function with
-                // no arguments.
-                fprintf(out, "  %s : %s()+%s\n",
-                        symbollist[i], begin_name, begin_offset);
-            }
-        }
-        else
-        {
-            // couldn't parse the line? print the whole line.
-            fprintf(out, "  %s\n", symbollist[i]);
-        }
-    }
-
-    fclose(out);
-
-    free(symbollist);
+    return true;
 }
 
 std::string emergency_helper::load_dump(const char* dump_file_path, bool remove)
 {
-    if (dump_file_path && boost::filesystem::exists(dump_file_path))
+    std::ifstream input(dump_file_path, std::ifstream::binary);
+
+    if (!input)
+        return {};
+
+    char buff[sizeof(MAGIC_FOR_DUMP_FMT)];
+    if (!input.read(buff, sizeof(buff)))
+        return {};
+
+    std::string dump;
+
+    std::streamsize bytes_read = input.gcount();
+    if (bytes_read == sizeof(MAGIC_FOR_DUMP_FMT) && 0 == memcmp(buff, MAGIC_FOR_DUMP_FMT, bytes_read))
     {
         std::stringstream ss;
 
-        try
+        for (; input.read(buff, sizeof(buff)) || bytes_read > 0;)
         {
-            std::ifstream ifs(dump_file_path);
-
-            std::string line;
-            while (std::getline(ifs, line))
+            bytes_read = input.gcount();
+            if (bytes_read > 0)
             {
-                ss << line << '\n';
+                ss.write(buff, static_cast<uint32_t>(bytes_read));
             }
-
-            // cleaning up
-            ifs.close();
-        }
-        catch (const std::exception& e)
-        {
-            ss << e.what();
-        }
-        ss << '\n';
-
-        try
-        {
-            if (remove)
-                boost::filesystem::remove(dump_file_path);
-        }
-        catch (const std::exception&)
-        {
-            // ignore
         }
 
-        return ss.str();
+        input.close();
+
+        dump = ss.str();
     }
     else
-        return {};
-}
-} // namespace server_lib
-#endif
-namespace server_lib {
-bool emergency_helper::test_for_write(const char* dump_file_path)
-{
-    if (boost::filesystem::exists(dump_file_path))
-        return false;
-
     {
-        std::ofstream ofs(dump_file_path);
+        input.close();
 
-        if (!ofs)
-            return false;
+        dump = load_raw_dump(dump_file_path, false);
     }
 
-    boost::filesystem::remove(dump_file_path);
-    return true;
-}
-} // namespace server_lib
-#else //!STACKTRACE_DISABLED
+    try
+    {
+        if (remove)
+            boost::filesystem::remove(dump_file_path);
+    }
+    catch (const std::exception&)
+    {
+        // ignore
+    }
 
-// raise linker error for save_dump, load_dump
+    return dump;
+}
+
+std::string emergency_helper::get_executable_name()
+{
+    std::string name;
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
+    std::ifstream("/proc/self/comm") >> name;
+
+#elif defined(SERVER_LIB_PLATFORM_WINDOWS)
+
+    char buf[MAX_PATH];
+    GetModuleFileNameA(nullptr, buf, MAX_PATH);
+    name = buf;
+
 #endif
+    return name;
+}
+
+std::string emergency_helper::create_dump_filename(const std::string& extension)
+{
+    SRV_ASSERT(!extension.empty(), "Extension required");
+
+    std::string name = get_executable_name();
+    if (name.empty())
+        name = "core";
+
+    name.push_back('.');
+    name.append(extension);
+
+    return name;
+}
+
+} // namespace server_lib

@@ -143,6 +143,49 @@ public:
     }
 
     /**
+     * Waiting for callback without result (void) endlessly
+     *
+     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     *
+     */
+    template <typename AsynchFunc>
+    void wait_async_no_result(AsynchFunc&& asynch_func)
+    {
+        std::promise<bool> wait_ctx;
+
+        this->post([&]() {
+            asynch_func();
+            wait_ctx.set_value(true);
+        });
+
+        wait_ctx.get_future().wait();
+    }
+
+    /**
+     * Waiting for callback without result (void)
+     *
+     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param duration - Timeout (std::chrono::duration type)
+     *
+     */
+    template <typename AsynchFunc, typename DurationType>
+    void wait_async_no_result(AsynchFunc&& asynch_func, DurationType&& duration)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+        std::promise<bool> wait_ctx;
+
+        this->post([&]() {
+            asynch_func();
+            wait_ctx.set_value(true);
+        });
+
+        wait_ctx.get_future().wait_for(ms);
+    }
+
+    /**
      * Callback that is invoked after certain timeout
      *
      * \param duration - Timeout (std::chrono::duration type)
@@ -169,6 +212,11 @@ public:
         }));
     }
 
+    long native_thread_id() const
+    {
+        return _native_thread_id.load();
+    }
+
 protected:
     void run();
 
@@ -176,7 +224,7 @@ protected:
     const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
     std::atomic_bool _is_main;
-    long _tid = 0;
+    std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;
     boost::asio::io_service::strand _strand;
     boost::optional<boost::asio::io_service::work> _loop_maintainer;
@@ -193,22 +241,21 @@ private:
 /**
  * \ingroup common
  *
- * \brief This class wrap main thread to provide event_loop features
+ * \brief This class wrap main thread to provide event_loop features.
+ * It is only allowed to use with application class
  */
 class main_loop : public event_loop
 {
-public:
-    main_loop(const std::string& name = {});
+    friend class __application_impl;
 
-    void set_exit_callback(std::function<void(void)>);
-    void exit(const int = 0);
+protected:
+    main_loop(const std::string& name = {});
 
     void start(std::function<void(void)> start_notify = nullptr,
                std::function<void(void)> stop_notify = nullptr) override;
-    void stop() override;
 
-private:
-    std::function<void(void)> _exit_callback = nullptr;
+public:
+    void stop() override;
 };
 
 } // namespace server_lib

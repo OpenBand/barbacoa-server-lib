@@ -2,6 +2,8 @@
 #include <server_lib/platform_config.h>
 #include <server_lib/asserts.h>
 
+#include "logging_trace.h"
+
 #if defined(PLATFORM_IOS)
 //logger not used
 #define USE_NO_LOG
@@ -207,6 +209,10 @@ void logger::add_syslog_destination()
 }
 // clang-format on
 
+logger::logger()
+{
+    _logs_on = false;
+}
 
 void logger::init_sys_log()
 {
@@ -219,6 +225,7 @@ void logger::init_sys_log()
 #if defined(DUPLICATE_LOGS_TO_COUT)
     add_stdout_destination();
 #endif
+    unlock();
 }
 
 void logger::init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush, const char* dtf)
@@ -246,6 +253,8 @@ void logger::init_file_log(const char* file_path, const size_t rotation_size_kb,
     add_stdout_destination();
 #endif
 #endif
+
+    unlock();
 }
 
 void logger::init_debug_log(bool async, bool cerr, const char* dtf)
@@ -287,6 +296,18 @@ void logger::init_debug_log(bool async, bool cerr, const char* dtf)
 
     add_boost_log_destination(sink, (dtf && strlen(dtf) > 1) ? std::string { dtf } : std::string { DEFAULT_DATE_TIME_FORMAT });
 #endif
+
+    unlock();
+}
+
+void logger::lock()
+{
+    _logs_on = false;
+}
+
+void logger::unlock()
+{
+    _logs_on = true;
 }
 
 void logger::set_level_filter(int filter)
@@ -304,18 +325,31 @@ void logger::add_destination(log_handler_type&& handler)
 
 void logger::write(log_message& msg)
 {
-    auto _lv = static_cast<int>(msg.context.lv);
-    if (!_lv || ~_filter & _lv)
+    if (!_logs_on.load())
+        return;
+
+    try
     {
-        for (const auto& appender : _appenders)
+        auto _lv = static_cast<int>(msg.context.lv);
+        if (!_lv || ~_filter & _lv)
         {
-            appender(msg);
+            for (const auto& appender : _appenders)
+            {
+                appender(msg); //can throw exception
+            }
         }
+    }
+    catch (std::exception& e)
+    {
+        SRV_TRACE(e.what());
     }
 }
 
 void logger::flush()
 {
+    if (!_logs_on.load())
+        return;
+
     if (!_appenders.empty())
     {
         using namespace boost::log;

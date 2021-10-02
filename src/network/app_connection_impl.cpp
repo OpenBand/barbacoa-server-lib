@@ -3,14 +3,10 @@
 #include <server_lib/asserts.h>
 #include <server_lib/logging_helper.h>
 
-#ifdef SRV_LOG_CONTEXT_
-#undef SRV_LOG_CONTEXT_
-#endif // #ifdef SRV_LOG_CONTEXT_
-
-#define SRV_LOG_CONTEXT_ "tcp-app-con (" << reinterpret_cast<uint64_t>(this) << ")> " << SRV_FUNCTION_NAME_ << ": "
+#include "../logger_set_internal_group.h"
 
 #ifndef SERVER_LIB_TCP_CLIENT_READ_SIZE
-#define SERVER_LIB_TCP_CLIENT_READ_SIZE 4096
+#define SERVER_LIB_TCP_CLIENT_READ_SIZE 4096 //TODO: create common buffer controller
 #endif /* SERVER_LIB_TCP_CLIENT_READ_SIZE */
 
 namespace server_lib {
