@@ -208,8 +208,8 @@ int main(void)
     }
 #endif
 
-    auto exit_callback = [&]() {
-        LOGC_INFO("Application stopped normally");
+    auto exit_callback = [&](const int signo) {
+        LOGC_INFO("Application stopped by reason " << signo);
 
         stop_all_thread_jobs = true;
 
@@ -231,8 +231,8 @@ int main(void)
 #endif
     };
 
-    auto fail_callback = [&](const char* dump_file_path) {
-        LOGC_INFO("Application failed");
+    auto fail_callback = [&](const int signo, const char* dump_file_path) {
+        LOGC_INFO("Application failed by signal " << signo);
 
         LOGC_TRACE("Crash dump '" << dump_file_path << "':\n"
                                   << emergency_helper::load_dump(dump_file_path));

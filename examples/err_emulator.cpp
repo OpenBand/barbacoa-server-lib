@@ -72,12 +72,13 @@ void try_deleted_pointer(uint64_t n)
 {
     std::cerr << __FUNCTION__ << std::endl;
     auto* p = new uint64_t { n };
-    delete p;
-    auto* p2 = new uint64_t { *p };
-    *p2 = n + 1;
-    assertm(*p != n, "?");
     *p = n;
-    assertm(*p == n, "?");
+    delete p;
+    for (size_t ci = 0; ci < n; ++ci)
+    {
+        auto* p2 = new uint64_t { ++*p };
+        *p2 = n + 1;
+    }
 }
 
 void try_uninitialized_pointer(int limit)
@@ -243,7 +244,7 @@ bool try_fail(const fail f)
         try_wrong_pointer(2);
         break;
     case fail::try_deleted_pointer:
-        try_deleted_pointer(2);
+        try_deleted_pointer(20);
         break;
     case fail::try_uninitialized_pointer:
         try_uninitialized_pointer(0xffff);

@@ -25,8 +25,8 @@ public:
     };
 
     using start_callback_type = std::function<void(void)>;
-    using exit_callback_type = std::function<void(void)>;
-    using fail_callback_type = std::function<void(const char* /*path_to_dump_file*/)>;
+    using exit_callback_type = std::function<void(const int signo)>;
+    using fail_callback_type = std::function<void(const int signo, const char* /*path_to_dump_file*/)>;
     using control_callback_type = std::function<void(const control_signal)>;
 
     /**

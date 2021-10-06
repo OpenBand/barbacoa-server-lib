@@ -25,6 +25,16 @@
 
 #include "logger_set_internal_group.h"
 
+#ifndef NDEBUG
+#define TRACE_SIG_NUMBER(signo)                      \
+    int32_t s__                                      \
+        = 0x3030 | (signo / 10) | (signo % 10) << 8; \
+    SRV_TRACE_SIGNAL_((char*)&s__);                  \
+    SRV_TRACE_SIGNAL_("\n")
+#else
+#define TRACE_SIG_NUMBER(signo)
+#endif
+
 namespace server_lib {
 
 namespace impl {
@@ -36,7 +46,6 @@ namespace impl {
         union {
             int signo = 0;
             control_signal signal;
-            char path_data[PATH_MAX];
         } data;
 
         enum class data_type
@@ -48,27 +57,28 @@ namespace impl {
         };
         data_type type = data_type::null;
 
+        char path_data[PATH_MAX] = { 0 };
+
         static signal_data make_empty_data();
-        static signal_data make_fail_data(const char*);
+        static signal_data make_fail_data(const int signo, const char* = nullptr);
         static signal_data make_exit_data(const int signo);
         static signal_data make_control_data(const control_signal);
     };
 
     signal_data signal_data::make_empty_data()
     {
-        signal_data r;
-        memset(r.data.path_data, 0, PATH_MAX);
-        return r;
+        return {};
     }
 
-    signal_data signal_data::make_fail_data(const char* crash_dump_file_path)
+    signal_data signal_data::make_fail_data(const int signo, const char* crash_dump_file_path)
     {
         signal_data r;
         r.type = data_type::fail;
-        memset(r.data.path_data, 0, PATH_MAX);
+        r.data.signo = signo;
+        memset(r.path_data, 0, PATH_MAX);
         if (crash_dump_file_path)
         {
-            std::strncpy(r.data.path_data, crash_dump_file_path, PATH_MAX - 1);
+            std::strncpy(r.path_data, crash_dump_file_path, PATH_MAX - 1);
         }
         return r;
     }
@@ -77,7 +87,6 @@ namespace impl {
     {
         signal_data r;
         r.type = data_type::exit;
-        memset(r.data.path_data, 0, PATH_MAX);
         r.data.signo = signo;
         return r;
     }
@@ -86,7 +95,6 @@ namespace impl {
     {
         signal_data r;
         r.type = data_type::usersignal;
-        memset(r.data.path_data, 0, PATH_MAX);
         r.data.signal = sig;
         return r;
     }
@@ -241,18 +249,18 @@ public:
 private:
     void run_impl();
 
-    void process_fail(const char* dump_file_path)
+    void process_fail(const int signo, const char* dump_file_path)
     {
         if (_fail_callback)
         {
             SRV_LOGC_TRACE(__FUNCTION__ << "(" << dump_file_path << ")");
 
             auto fail_callback = _fail_callback;
-            fail_callback(dump_file_path);
+            fail_callback(signo, dump_file_path);
         }
     }
 
-    void process_exit()
+    void process_exit(const int signo)
     {
         if (_main_el.is_running())
         {
@@ -261,8 +269,8 @@ private:
             if (_exit_callback)
             {
                 auto exit_callback = _exit_callback;
-                _main_el.wait_async_no_result([exit_callback]() {
-                    exit_callback();
+                _main_el.wait_async_no_result([exit_callback, signo]() {
+                    exit_callback(signo);
                 });
             }
 
@@ -339,7 +347,8 @@ void __application_impl::process_signal(int signal)
 {
     if (srv_c_is_fail_signal(signal))
     {
-        SRV_TRACE_SIGNAL("Got fail signal");
+        SRV_TRACE_SIGNAL_HEADER_("Got fail signal ");
+        TRACE_SIG_NUMBER(signal);
 
         bool raw_dump_saved = false;
         if (get_crash_dump_file_name())
@@ -349,11 +358,11 @@ void __application_impl::process_signal(int signal)
 
         if (raw_dump_saved && get_crash_dump_file_name())
         {
-            set_signal_data(impl::signal_data::make_fail_data(get_crash_dump_file_name()));
+            set_signal_data(impl::signal_data::make_fail_data(signal, get_crash_dump_file_name()));
         }
         else
         {
-            set_signal_data(impl::signal_data::make_fail_data(nullptr));
+            set_signal_data(impl::signal_data::make_fail_data(signal));
         }
 
 #if !defined(SERVER_LIB_PLATFORM_LINUX)
@@ -417,7 +426,7 @@ void __application_impl::process_fail()
         auto last_signal_data = get_signal_data();
         if (last_signal_data.type == Callbackdata_type::fail)
         {
-            app.process_fail(last_signal_data.data.path_data);
+            app.process_fail(last_signal_data.data.signo, last_signal_data.path_data);
         }
     }
 }
@@ -453,7 +462,7 @@ void __application_impl::run_impl()
             {
             case Callbackdata_type::exit:
                 this->_signal_thread_terminating = true;
-                this->process_exit();
+                this->process_exit(last_signal_data.data.signo);
                 break;
             case Callbackdata_type::usersignal:
                 this->process_control(last_signal_data.data.signal);
@@ -526,7 +535,7 @@ void __application_impl::run_impl()
 
         // It was not called from signal thread because main loop has not run
         if (_exit_callback)
-            _exit_callback();
+            _exit_callback(0);
     }
 
     SRV_LOGC_INFO("Application has stopped");

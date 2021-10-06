@@ -13,6 +13,16 @@
 
 #include <boost/filesystem.hpp>
 
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+#include <unistd.h>
+#include <sys/resource.h>
+#include <sys/syscall.h>
+#endif
+
+#include <ctime>
+#include <iomanip> // std::put_time, std::get_time
+#include <sstream>
+
 namespace bpo = server_lib::bpo;
 
 struct Config_i
@@ -93,6 +103,17 @@ public:
     }
 };
 
+static const char* SSL_HELPERS_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S";
+
+std::string to_iso_string(const time_t t)
+{
+    std::stringstream ss;
+
+    ss << std::put_time(std::localtime(&t), SSL_HELPERS_TIME_FORMAT);
+
+    return ss.str();
+}
+
 int main(int argc, char* argv[])
 {
     using namespace server_lib;
@@ -102,11 +123,15 @@ int main(int argc, char* argv[])
     if (!config.load(argc, argv))
         return 1;
 
-    boost::filesystem::path app_path { argv[0] };
+    namespace fs = boost::filesystem;
+
+    fs::path app_path { argv[0] };
     app_path = app_path.parent_path() / emergency_helper::create_dump_filename();
     auto dump_file = app_path.generic_string();
 
     auto&& app = application::init(dump_file.c_str());
+
+    event_loop separated_loop;
 
     auto payload = [&]() {
         if (config.show_crash_dump)
@@ -123,20 +148,51 @@ int main(int argc, char* argv[])
         }
         else
         {
-            bool result = false;
-            if (!config.in_separate_thread)
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+            // Core dump creation is OS responsibility and OS specific
+            try
             {
-                result = try_fail(config.test_case);
+
+                struct rlimit old_r, new_r;
+
+                new_r.rlim_cur = RLIM_INFINITY;
+                new_r.rlim_max = RLIM_INFINITY;
+
+                SRV_ASSERT(prlimit(getpid(), RLIMIT_CORE, &new_r, &old_r) != -1);
+
+                auto prev_core = app_path.parent_path() / "core";
+                if (fs::exists(prev_core))
+                {
+                    auto tm = to_iso_string(fs::last_write_time(prev_core));
+                    auto renamed = prev_core;
+                    renamed = renamed.parent_path() / (std::string("core.") + tm);
+                    fs::rename(prev_core, renamed);
+                }
             }
+            catch (const std::exception& e)
+            {
+                std::cerr << e.what() << std::endl;
+            }
+#endif
+            auto fail_emit = [&]() {
+                if (try_fail(config.test_case))
+                {
+                    std::cerr << "Uops:(. Test case was vanished by compiler optimization" << std::endl;
+                }
+                else
+                {
+                    config.print_help();
+                }
+            };
+
+            if (!config.in_separate_thread)
+                fail_emit();
             else
             {
+                separated_loop.start([&]() {
+                    fail_emit();
+                });
             }
-            if (!result)
-            {
-                config.print_help();
-                exit(1);
-            }
-            std::cerr << "Uops:(. Test case was vanished by compiler optimization" << std::endl;
         }
 
         if (app.is_running())
@@ -145,12 +201,12 @@ int main(int argc, char* argv[])
             exit(0);
     };
 
-    auto exit_callback = []() {
+    auto exit_callback = [](const int) {
         std::cout << "Normal exit" << std::endl;
     };
 
-    auto fail_callback = [](const char* dump_file_path) {
-        std::cerr << "Fail exit" << std::endl;
+    auto fail_callback = [](const int signo, const char* dump_file_path) {
+        std::cerr << "Fail exit by singal " << signo << std::endl;
         if (dump_file_path)
         {
             std::cerr << "Dump saved to '" << dump_file_path
