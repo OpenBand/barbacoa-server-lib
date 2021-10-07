@@ -29,7 +29,7 @@ Use CMake
 * Event loop
 * Timers
 * Client/server connections
-* Crash handling (coredump, corefile)
+* Crash handling (stacktrace, corefile)
 
 # Notes
 

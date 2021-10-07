@@ -2,10 +2,10 @@
 
 namespace server_lib {
 
-application_config& application::config::enable_coredump(const std::string& path_to_dump_file)
+application_config& application::config::enable_stdump(const std::string& path_to_dump_file)
 {
     SRV_ASSERT(!path_to_dump_file.empty(), "Path required");
-    _path_to_dump_file = path_to_dump_file;
+    _path_to_stdump_file = path_to_dump_file;
     return *this;
 }
 

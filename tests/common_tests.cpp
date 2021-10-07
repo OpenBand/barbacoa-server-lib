@@ -16,7 +16,7 @@ namespace tests {
     namespace {
         void test_stack_anonymous_namespace(const bf::path& p)
         {
-            BOOST_REQUIRE_NO_THROW(emergency::save_raw_dump_s(p.generic_string().c_str()));
+            BOOST_REQUIRE_NO_THROW(emergency::save_raw_stdump_s(p.generic_string().c_str()));
         }
     } // namespace
 #endif
@@ -59,7 +59,7 @@ namespace tests {
         test_stack_anonymous_namespace(dump_path);
         BOOST_REQUIRE(bf::exists(dump_path));
 
-        auto stack = emergency::load_dump(dump_path.generic_string().c_str(), true);
+        auto stack = emergency::load_stdump(dump_path.generic_string().c_str(), true);
 
         DUMP_STR(stack);
 

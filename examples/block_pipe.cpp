@@ -22,25 +22,23 @@ int main(void)
     };
 
     auto write_logstream = []() {
-        LOG_INFO("Make payload in main loop");
-        LOG_ERROR("Make payload in main loop");
+        LOG_INFO("Make payload in main loop (SIGPIPE will make exit)");
+        LOG_ERROR("Make payload in main loop (SIGPIPE will make exit)");
     };
 
     block_pipe_signal lock;
 
     ml.post([&]() {
         write_iostream();
-        std::cout << "Waiting for SIGPIPE" << std::endl;
+        std::cout << "Ignore SIGPIPE" << std::endl;
     });
-    inital_timer.start(std::chrono::seconds(10 /*wait SIGPIPE*/),
+    inital_timer.start(std::chrono::minutes(1 /*wait SIGPIPE*/),
                        [&logger, &loop_timer, write_iostream, write_logstream]() {
                            write_iostream();
                            logger.init_debug_log();
                            loop_timer.start(std::chrono::seconds(2), write_logstream);
+                           block_pipe_signal::unlock();
                        });
-
-    event_loop::timer unlock_timer { ml };
-    unlock_timer.start(std::chrono::minutes(2), []() { block_pipe_signal::unlock(); });
 
     return app.run();
 }

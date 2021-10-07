@@ -76,15 +76,15 @@ namespace {
         return {};
     }
 
-    __signal_data __signal_data::make_fail_data(const int signo, const char* crash_dump_file_path)
+    __signal_data __signal_data::make_fail_data(const int signo, const char* stdump_file_path)
     {
         __signal_data r;
         r.type = data_type::fail;
         r.data.signo = signo;
         memset(r.path_data, 0, PATH_MAX);
-        if (crash_dump_file_path)
+        if (stdump_file_path)
         {
-            std::strncpy(r.path_data, crash_dump_file_path, PATH_MAX - 1);
+            std::strncpy(r.path_data, stdump_file_path, PATH_MAX - 1);
         }
         return r;
     }
@@ -106,7 +106,7 @@ namespace {
     }
 
     static __signal_data last_signal_data = __signal_data::make_empty_data();
-    static char crash_dump_file_path[PATH_MAX] = { 0 };
+    static char stdump_file_path[PATH_MAX] = { 0 };
 
     static std::function<void(int)> sig_callback = nullptr;
     static std::function<void(void)> atexit_callback = nullptr;
@@ -140,20 +140,20 @@ namespace {
         return last_signal_data;
     }
 
-    void __init_crash_dump_generation(const std::string& path_to_dump_file)
+    void __init_stdump_generation(const std::string& path_to_dump_file)
     {
-        std::strncpy(crash_dump_file_path, path_to_dump_file.c_str(), PATH_MAX - 1);
+        std::strncpy(stdump_file_path, path_to_dump_file.c_str(), PATH_MAX - 1);
     }
 
-    const char* __get_crash_dump_file_name()
+    const char* __get_stdump_file_name()
     {
-        if (crash_dump_file_path[0])
-            return crash_dump_file_path;
+        if (stdump_file_path[0])
+            return stdump_file_path;
         else
             return nullptr;
     }
 
-    bool __enable_core_file(bool disable_excl_policy)
+    bool __enable_corefile(bool disable_excl_policy)
     {
         // Core dump creation is OS responsibility and OS specific
 #if defined(SERVER_LIB_PLATFORM_LINUX)
@@ -265,11 +265,11 @@ void application_impl::init()
 
     if (config()._enable_corefile)
     {
-        SRV_ASSERT(__enable_core_file(config()._corefile_disable_excl_policy), "Incompatible with current corefile creation system");
+        SRV_ASSERT(__enable_corefile(config()._corefile_disable_excl_policy), "Incompatible with current corefile creation system");
     }
 
-    if (!config()._path_to_dump_file.empty())
-        __init_crash_dump_generation(config()._path_to_dump_file);
+    if (!config()._path_to_stdump_file.empty())
+        __init_stdump_generation(config()._path_to_stdump_file);
 
     sig_callback = [this](int signo) { application_impl::process_signal(signo); };
     atexit_callback = [this]() { application_impl::process_atexit(); };
@@ -359,14 +359,14 @@ void application_impl::process_signal(int signal)
         TRACE_SIG_NUMBER(signal);
 
         bool raw_dump_saved = false;
-        if (__get_crash_dump_file_name())
+        if (__get_stdump_file_name())
         {
-            raw_dump_saved = emergency::save_raw_dump_s(__get_crash_dump_file_name()) > 0;
+            raw_dump_saved = emergency::save_raw_stdump_s(__get_stdump_file_name()) > 0;
         }
 
-        if (raw_dump_saved && __get_crash_dump_file_name())
+        if (raw_dump_saved && __get_stdump_file_name())
         {
-            __set_signal_data(__signal_data::make_fail_data(signal, __get_crash_dump_file_name()));
+            __set_signal_data(__signal_data::make_fail_data(signal, __get_stdump_file_name()));
         }
         else
         {

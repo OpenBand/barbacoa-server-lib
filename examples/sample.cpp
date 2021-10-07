@@ -30,7 +30,7 @@ int main(void)
     // This instance initiates with mode to see crash dump but only in logs
     boost::filesystem::path temp = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
     auto app_config = application::configurate();
-    app_config.enable_coredump(temp.generic_string());
+    app_config.enable_stdump(temp.generic_string());
     app_config.enable_corefile();
     app_config.corefile_fail_thread_only();
 
@@ -240,7 +240,7 @@ int main(void)
         LOGC_INFO("Application failed by signal " << signo);
 
         LOGC_TRACE("Crash dump '" << dump_file_path << "':\n"
-                                  << emergency::load_dump(dump_file_path));
+                                  << emergency::load_stdump(dump_file_path));
 
         boost::filesystem::remove(dump_file_path);
     };

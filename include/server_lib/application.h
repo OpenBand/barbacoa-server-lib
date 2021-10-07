@@ -50,23 +50,33 @@ public:
         ~config() = default;
 
         /**
+         * Generate dump file contains stacktrace info for crush incident.
+         * Stacktrace dump (stdump here) is only complementation for core dump
+         * but useful for monitoring. For instance, print it to log by using
+         * emergency functions
+         *
          * \param path_to_dump_file - Full path to dump file to create.
-         * Dump file contains brief crash info or in other words 'crush dump'.
-         * Crush dump is only complementation for core dump (in core file)
-         * but useful for monitoring
          *
          */
-        config& enable_coredump(const std::string& path_to_dump_file);
+        config& enable_stdump(const std::string& path_to_dump_file);
 
         /**
-         * \param disable_excl_policy - Allow multiple corefile creation
+         * Insurance that corefile will be created when system makes core dump
+         * for crush incident
+         *
+         * \param disable_excl_policy - Allow multiple corefile creation.
+         * As a rule corefile created by system with O_CREAT | O_EXCL flags
+         * and old file can't be overrided. This option backup previos corefile
+         * to allow creation for new one
          *
          */
         config& enable_corefile(bool disable_excl_policy = true);
 
         /**
-         * Add more facilities for fail_callback
-         * but limit corefile with only one crushed thread and common memory
+         * System core dump and following core file will be limited
+         * by incident thread only.
+         * This adds more facilities for fail callback and
+         * reduces corefile size (if it is enough information)
          *
          */
         config& corefile_fail_thread_only();
@@ -87,7 +97,7 @@ public:
 
     private:
         //default configuration
-        std::string _path_to_dump_file;
+        std::string _path_to_stdump_file;
         bool _enable_corefile = false;
         bool _corefile_fail_thread_only = false;
         bool _corefile_disable_excl_policy = false;
@@ -125,7 +135,7 @@ public:
 
     /**
      * Initialize with default configuration:
-     * none coredump, system defined corefile settings,
+     * none stacktrace dump, system defined coredump settings,
      * unlocked SIGPIPE, none daemonizing
      *
      */

@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
     auto dump_file = app_path.generic_string();
 
     auto app_config = application::configurate();
-    app_config.enable_coredump(dump_file);
+    app_config.enable_stdump(dump_file);
     app_config.enable_corefile();
 
     auto&& app = application::init(app_config);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[])
     auto payload = [&]() {
         if (config.show_crash_dump)
         {
-            auto cr = emergency::load_dump(dump_file.c_str());
+            auto cr = emergency::load_stdump(dump_file.c_str());
             if (!cr.empty())
             {
                 std::cerr << cr << std::endl;
@@ -170,9 +170,9 @@ int main(int argc, char* argv[])
             std::cerr << "Dump saved to '" << dump_file_path
                       << "'. Preview:\n";
 
-            if (emergency::save_demangled_dump(dump_file_path, dump_file_path))
+            if (emergency::save_demangled_stdump(dump_file_path, dump_file_path))
             {
-                auto dump = emergency::load_dump(dump_file_path, false);
+                auto dump = emergency::load_stdump(dump_file_path, false);
                 std::cerr << dump.c_str();
             }
         }

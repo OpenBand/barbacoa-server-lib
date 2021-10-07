@@ -35,7 +35,7 @@ namespace emergency {
         return true;
     }
 
-    bool save_raw_dump_s(const char* raw_dump_file_path)
+    bool save_raw_stdump_s(const char* raw_dump_file_path)
     {
         //Dumps are binary serialized arrays of void*, so you could read them by using
         //'od -tx8 -An stacktrace_dump_failename' Linux command
@@ -43,7 +43,7 @@ namespace emergency {
         return boost::stacktrace::safe_dump_to(raw_dump_file_path) > 0;
     }
 
-    std::string load_raw_dump(const char* raw_dump_file_path, bool remove)
+    std::string load_raw_stdump(const char* raw_dump_file_path, bool remove)
     {
         std::stringstream ss;
 
@@ -79,12 +79,12 @@ namespace emergency {
         return ss.str();
     }
 
-    bool save_demangled_dump(const char* raw_dump_file_path, const char* demangled_file_path)
+    bool save_demangled_stdump(const char* raw_dump_file_path, const char* demangled_file_path)
     {
         if (!boost::filesystem::exists(raw_dump_file_path))
             return false;
 
-        auto demangled = load_raw_dump(raw_dump_file_path, false);
+        auto demangled = load_raw_stdump(raw_dump_file_path, false);
         if (demangled.empty())
             return false;
 
@@ -99,7 +99,7 @@ namespace emergency {
         return true;
     }
 
-    std::string load_dump(const char* dump_file_path, bool remove)
+    std::string load_stdump(const char* dump_file_path, bool remove)
     {
         std::ifstream input(dump_file_path, std::ifstream::binary);
 
@@ -134,7 +134,7 @@ namespace emergency {
         {
             input.close();
 
-            dump = load_raw_dump(dump_file_path, false);
+            dump = load_raw_stdump(dump_file_path, false);
         }
 
         try
