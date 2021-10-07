@@ -12,6 +12,7 @@
 
 #include <server_clib/app.h>
 #include <ssl_helpers/utils.h>
+#include <ssl_helpers/encoding.h>
 
 #if defined(SERVER_LIB_PLATFORM_LINUX)
 #include <pthread.h>
@@ -172,6 +173,16 @@ namespace {
                 auto prev_core = fs::current_path() / "core";
                 if (fs::exists(prev_core))
                 {
+                    std::ifstream core(prev_core.generic_string(), std::ifstream::binary);
+
+                    char elf_header[4];
+                    SRV_ASSERT(core && core.read(elf_header, sizeof(elf_header)), "File is not readable");
+
+                    auto elf_hex = ssl_helpers::to_hex(std::string(elf_header, sizeof(elf_header)));
+                    SRV_ASSERT(elf_hex == "7f454c46", "Wrong file type");
+
+                    core.close();
+
                     auto tm = ssl_helpers::to_iso_string(fs::last_write_time(prev_core));
                     auto renamed = prev_core;
                     renamed = renamed.parent_path() / (std::string("core.") + tm);
@@ -253,7 +264,9 @@ void application_impl::init()
     _main_el.change_thread_name(executable_name);
 
     if (config()._enable_corefile)
-        __enable_core_file(config()._corefile_disable_excl_policy);
+    {
+        SRV_ASSERT(__enable_core_file(config()._corefile_disable_excl_policy), "Incompatible with current corefile creation system");
+    }
 
     if (!config()._path_to_dump_file.empty())
         __init_crash_dump_generation(config()._path_to_dump_file);

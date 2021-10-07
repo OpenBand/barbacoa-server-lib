@@ -31,6 +31,10 @@ Use CMake
 * Client/server connections
 * Crash handling (coredump, corefile)
 
+# Notes
+
+* [How to prepare binaries for corefile investigation](docs.md/how_to_prepare_binaries_for_corefile_investigation.md)
+
 # Dependences
 
 * Boost, OpenSSL
