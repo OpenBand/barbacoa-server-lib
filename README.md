@@ -11,7 +11,7 @@ Let's free a developer for specific business tasks.
 # Requirements
 
 C++14, Boost from version 1.58. 
-Now it was tested on 1.71.
+Now it was tested on 1.74.
 
 # Platforms
 
@@ -29,8 +29,7 @@ Use CMake
 * Event loop
 * Timers
 * Client/server connections
-* Crash handling
-* ...and etc.
+* Crash handling (coredump, corefile)
 
 # Dependences
 
