@@ -38,6 +38,11 @@ public:
         void stop() override;
     };
 
+    /**
+     * \ingroup common
+     *
+     * \brief This class configurate application.
+     */
     class config
     {
         friend class application_impl;
@@ -66,7 +71,7 @@ public:
          *
          * \param disable_excl_policy - Allow multiple corefile creation.
          * As a rule corefile created by system with O_CREAT | O_EXCL flags
-         * and old file can't be overrided. This option backup previos corefile
+         * and old file can't be overwritten. This option backup previos corefile
          * to allow creation for new one
          *
          */
