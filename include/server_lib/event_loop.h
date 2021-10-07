@@ -54,7 +54,8 @@ public:
      *
      */
     virtual void start(std::function<void(void)> start_notify = nullptr,
-                       std::function<void(void)> stop_notify = nullptr);
+                       std::function<void(void)> stop_notify = nullptr,
+                       bool waiting_for_start = false);
     virtual void stop();
 
     bool is_running() const
@@ -234,28 +235,8 @@ protected:
     std::atomic<std::thread::id> _id;
 
 private:
-    bool is_main_loop();
+    bool in_main_thread();
     void apply_thread_name();
-};
-
-/**
- * \ingroup common
- *
- * \brief This class wrap main thread to provide event_loop features.
- * It is only allowed to use with application class
- */
-class main_loop : public event_loop
-{
-    friend class __application_impl;
-
-protected:
-    main_loop(const std::string& name = {});
-
-    void start(std::function<void(void)> start_notify = nullptr,
-               std::function<void(void)> stop_notify = nullptr) override;
-
-public:
-    void stop() override;
 };
 
 } // namespace server_lib

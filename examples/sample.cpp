@@ -29,7 +29,12 @@ int main(void)
 
     // This instance initiates with mode to see crash dump but only in logs
     boost::filesystem::path temp = boost::filesystem::temp_directory_path() / boost::filesystem::unique_path();
-    auto&& app = application::init(temp.generic_string().c_str());
+    auto app_config = application::configurate();
+    app_config.enable_coredump(temp.generic_string());
+    app_config.enable_corefile();
+    app_config.corefile_fail_thread_only();
+
+    auto&& app = application::init(app_config);
     auto&& ml = app.loop();
 
     // Randomize job selection to emit memory error
@@ -48,7 +53,7 @@ int main(void)
         {
             LOGC_INFO("Emulate memory fail in separated loop (job #0)");
 
-            try_fail(fail::try_wrong_delete);
+            try_fail(fail::try_uninitialized_pointer);
         }
     };
     auto payload_in_separated_loop = [&]() {
@@ -60,7 +65,7 @@ int main(void)
         {
             LOGC_INFO("Emulate memory fail in separated loop (job #1)");
 
-            try_fail(fail::try_wrong_delete);
+            try_fail(fail::try_uninitialized_pointer);
         }
     };
     auto payload_in_separted_thread_joinable = [&]() {
@@ -72,7 +77,7 @@ int main(void)
         {
             LOGC_INFO("Emulate memory fail in separted thread (joinable) (job #2)");
 
-            try_fail(fail::try_wrong_delete);
+            try_fail(fail::try_uninitialized_pointer);
         }
     };
     auto payload_in_separted_thread_detached = [&]() {
@@ -84,7 +89,7 @@ int main(void)
         {
             LOGC_INFO("Emulate memory fail in separted thread (detached) (job #3)");
 
-            try_fail(fail::try_wrong_delete);
+            try_fail(fail::try_uninitialized_pointer);
         }
     };
 
@@ -235,7 +240,7 @@ int main(void)
         LOGC_INFO("Application failed by signal " << signo);
 
         LOGC_TRACE("Crash dump '" << dump_file_path << "':\n"
-                                  << emergency_helper::load_dump(dump_file_path));
+                                  << emergency::load_dump(dump_file_path));
 
         boost::filesystem::remove(dump_file_path);
     };

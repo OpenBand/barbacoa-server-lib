@@ -10,7 +10,7 @@ int main(void)
     using namespace server_lib;
 
     auto&& logger = logger::instance();
-    auto&& app = application::init(nullptr, false, false /*switch off lock_io mode*/);
+    auto&& app = application::init();
     auto&& ml = app.loop();
 
     event_loop::timer inital_timer { ml };

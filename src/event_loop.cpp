@@ -34,7 +34,7 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
     }
 
     _is_running = false;
-    _is_main = is_main_loop();
+    _is_main = in_main_thread();
     _native_thread_id = 0l;
 }
 event_loop::~event_loop()
@@ -60,7 +60,7 @@ bool event_loop::is_main_thread()
 #endif
 }
 
-bool event_loop::is_main_loop()
+bool event_loop::in_main_thread()
 {
     return !_run_in_separate_thread && is_main_thread();
 }
@@ -85,14 +85,16 @@ void event_loop::change_thread_name(const std::string& name)
     }
 }
 
-void event_loop::start(std::function<void(void)> start_notify, std::function<void(void)> stop_notify)
+void event_loop::start(std::function<void(void)> start_notify,
+                       std::function<void(void)> stop_notify,
+                       bool waiting_for_start)
 {
     if (is_running())
         return;
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
-    _is_main.store(is_main_loop());
+    _is_main.store(in_main_thread());
 
     // The 'work' object guarantees that 'run()' function
     // will not exit while work is underway, and that it does exit
@@ -128,6 +130,11 @@ void event_loop::start(std::function<void(void)> start_notify, std::function<voi
             if (stop_notify)
                 stop_notify();
         }));
+
+        if (waiting_for_start)
+        {
+            wait_async_no_result([]() {});
+        }
     }
     else
     {
@@ -176,44 +183,6 @@ void event_loop::run()
     {
         SRV_LOGC_ERROR("Unknown exception catched");
         throw;
-    }
-}
-
-main_loop::main_loop(const std::string& name)
-    : event_loop(false)
-{
-    SRV_ASSERT(is_main(), "Invalid MAIN loop creation");
-
-    if (!name.empty())
-        change_thread_name(name);
-}
-
-void main_loop::start(std::function<void(void)> start_notify, std::function<void(void)> stop_notify)
-{
-    SRV_ASSERT(is_main_thread(), "Only for MAIN thread allowed");
-
-    if (!is_running())
-    {
-        SRV_LOGC_TRACE("MAIN loop is starting");
-    }
-
-    event_loop::start(start_notify, stop_notify);
-}
-
-void main_loop::stop()
-{
-    if (is_running())
-    {
-        SRV_LOGC_TRACE("MAIN loop is stopping");
-    }
-
-    if (is_main_thread())
-        event_loop::stop();
-    else
-    {
-        post([this]() {
-            stop();
-        });
     }
 }
 

@@ -341,7 +341,7 @@ void logger::write(log_message& msg)
     }
     catch (std::exception& e)
     {
-        SRV_TRACE(e.what());
+        SRV_TRACE_SIGNAL(e.what());
     }
 }
 

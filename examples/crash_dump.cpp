@@ -8,26 +8,13 @@
 
 #include <iostream>
 
-#include <cstdio>
-#include <cassert>
-
 #include <boost/filesystem.hpp>
-
-#if defined(SERVER_LIB_PLATFORM_LINUX)
-#include <unistd.h>
-#include <sys/resource.h>
-#include <sys/syscall.h>
-#endif
-
-#include <ctime>
-#include <iomanip> // std::put_time, std::get_time
-#include <sstream>
 
 namespace bpo = server_lib::bpo;
 
 struct Config_i
 {
-    std::string test_case = "double_delete";
+    std::string test_case = "uninitialized_pointer";
     bool show_crash_dump = false;
     bool in_separate_thread = false;
 };
@@ -103,17 +90,6 @@ public:
     }
 };
 
-static const char* SSL_HELPERS_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S";
-
-std::string to_iso_string(const time_t t)
-{
-    std::stringstream ss;
-
-    ss << std::put_time(std::localtime(&t), SSL_HELPERS_TIME_FORMAT);
-
-    return ss.str();
-}
-
 int main(int argc, char* argv[])
 {
     using namespace server_lib;
@@ -126,17 +102,21 @@ int main(int argc, char* argv[])
     namespace fs = boost::filesystem;
 
     fs::path app_path { argv[0] };
-    app_path = app_path.parent_path() / emergency_helper::create_dump_filename();
+    app_path = app_path.parent_path() / emergency::create_dump_filename();
     auto dump_file = app_path.generic_string();
 
-    auto&& app = application::init(dump_file.c_str());
+    auto app_config = application::configurate();
+    app_config.enable_coredump(dump_file);
+    app_config.enable_corefile();
+
+    auto&& app = application::init(app_config);
 
     event_loop separated_loop;
 
     auto payload = [&]() {
         if (config.show_crash_dump)
         {
-            auto cr = emergency_helper::load_dump(dump_file.c_str());
+            auto cr = emergency::load_dump(dump_file.c_str());
             if (!cr.empty())
             {
                 std::cerr << cr << std::endl;
@@ -148,32 +128,6 @@ int main(int argc, char* argv[])
         }
         else
         {
-#if defined(SERVER_LIB_PLATFORM_LINUX)
-            // Core dump creation is OS responsibility and OS specific
-            try
-            {
-
-                struct rlimit old_r, new_r;
-
-                new_r.rlim_cur = RLIM_INFINITY;
-                new_r.rlim_max = RLIM_INFINITY;
-
-                SRV_ASSERT(prlimit(getpid(), RLIMIT_CORE, &new_r, &old_r) != -1);
-
-                auto prev_core = app_path.parent_path() / "core";
-                if (fs::exists(prev_core))
-                {
-                    auto tm = to_iso_string(fs::last_write_time(prev_core));
-                    auto renamed = prev_core;
-                    renamed = renamed.parent_path() / (std::string("core.") + tm);
-                    fs::rename(prev_core, renamed);
-                }
-            }
-            catch (const std::exception& e)
-            {
-                std::cerr << e.what() << std::endl;
-            }
-#endif
             auto fail_emit = [&]() {
                 if (try_fail(config.test_case))
                 {
@@ -183,26 +137,30 @@ int main(int argc, char* argv[])
                 {
                     config.print_help();
                 }
+                app.stop(1);
             };
 
             if (!config.in_separate_thread)
                 fail_emit();
             else
             {
+                separated_loop.change_thread_name("separated");
                 separated_loop.start([&]() {
                     fail_emit();
                 });
             }
         }
-
-        if (app.is_running())
-            app.stop();
-        else
-            exit(0);
     };
 
-    auto exit_callback = [](const int) {
-        std::cout << "Normal exit" << std::endl;
+    auto exit_callback = [](const int signo) {
+        if (signo)
+        {
+            std::cout << "Application exit by singal " << signo << std::endl;
+        }
+        else
+        {
+            std::cout << "Application exit" << std::endl;
+        }
     };
 
     auto fail_callback = [](const int signo, const char* dump_file_path) {
@@ -212,9 +170,9 @@ int main(int argc, char* argv[])
             std::cerr << "Dump saved to '" << dump_file_path
                       << "'. Preview:\n";
 
-            if (emergency_helper::save_demangled_dump(dump_file_path, dump_file_path))
+            if (emergency::save_demangled_dump(dump_file_path, dump_file_path))
             {
-                auto dump = emergency_helper::load_dump(dump_file_path, false);
+                auto dump = emergency::load_dump(dump_file_path, false);
                 std::cerr << dump.c_str();
             }
         }
