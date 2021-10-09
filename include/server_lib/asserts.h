@@ -37,3 +37,10 @@
 
 #define SRV_ERROR(...) \
     SRV_ASSERT(false, __VA_ARGS__)
+
+#define SRV_THROW()                                    \
+    SRV_LOGC_ERROR(e.what());                          \
+    _Pragma("GCC diagnostic push");                    \
+    _Pragma("GCC diagnostic ignored \"-Wterminate\""); \
+    throw;                                             \
+    _Pragma("GCC diagnostic pop")

@@ -1,7 +1,6 @@
 #include <server_lib/network/ifconfig.h>
-#include <server_lib/asserts.h>
 
-#include <server_lib/logging_helper.h>
+#include <server_lib/asserts.h>
 
 #include "../logger_set_internal_group.h"
 

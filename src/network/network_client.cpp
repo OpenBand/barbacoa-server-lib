@@ -4,7 +4,6 @@
 #include "app_connection_impl.h"
 
 #include <server_lib/asserts.h>
-#include <server_lib/logging_helper.h>
 
 #include "../logger_set_internal_group.h"
 

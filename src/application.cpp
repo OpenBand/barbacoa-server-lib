@@ -65,7 +65,7 @@ int application::run()
     return application_impl::instance().run();
 }
 
-bool application::is_running()
+bool application::is_running() const
 {
     return application_impl::instance().is_running();
 }

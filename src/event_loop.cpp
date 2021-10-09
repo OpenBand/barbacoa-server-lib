@@ -1,5 +1,4 @@
 #include <server_lib/event_loop.h>
-#include <server_lib/logging_helper.h>
 #include <server_lib/asserts.h>
 
 #include <boost/utility/in_place_factory.hpp>
@@ -19,10 +18,10 @@ static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
 
 event_loop::event_loop(bool in_separate_thread /*= true*/)
     : _run_in_separate_thread(in_separate_thread)
+    , _id(std::this_thread::get_id())
     , _pservice(std::make_shared<boost::asio::io_service>())
     , _strand(*_pservice)
     , _queue_size(0)
-    , _id(std::this_thread::get_id())
 {
     if (_run_in_separate_thread)
     {
@@ -34,21 +33,28 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
     }
 
     _is_running = false;
-    _is_main = in_main_thread();
+    _is_run = false;
     _native_thread_id = 0l;
 }
 event_loop::~event_loop()
 {
-    if (_run_in_separate_thread)
+    try
     {
-        SRV_LOGC_TRACE(SRV_FUNCTION_NAME_ << " in separate thread");
-    }
-    else
-    {
-        SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
-    }
+        if (_run_in_separate_thread)
+        {
+            SRV_LOGC_TRACE(SRV_FUNCTION_NAME_ << " in separate thread");
+        }
+        else
+        {
+            SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
+        }
 
-    stop();
+        stop();
+    }
+    catch (const std::exception& e)
+    {
+        SRV_LOGC_ERROR(e.what());
+    }
 }
 
 bool event_loop::is_main_thread()
@@ -58,11 +64,6 @@ bool event_loop::is_main_thread()
 #else
     return std::this_thread::get_id() == MAIN_THREAD_ID;
 #endif
-}
-
-bool event_loop::in_main_thread()
-{
-    return !_run_in_separate_thread && is_main_thread();
 }
 
 void event_loop::apply_thread_name()
@@ -79,71 +80,81 @@ void event_loop::change_thread_name(const std::string& name)
         _thread_name = name.substr(0, MAX_THREAD_NAME_SZ);
     else
         _thread_name = name;
-    if (!_run_in_separate_thread || _is_running.load())
+    if (!_run_in_separate_thread)
     {
         apply_thread_name();
+    }
+    else
+    {
+        post([this]() {
+            apply_thread_name();
+        });
     }
 }
 
 void event_loop::start(std::function<void(void)> start_notify,
-                       std::function<void(void)> stop_notify,
-                       bool waiting_for_start)
+                       std::function<void(void)> stop_notify)
 {
     if (is_running())
         return;
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
-    _is_main.store(in_main_thread());
-
-    // The 'work' object guarantees that 'run()' function
-    // will not exit while work is underway, and that it does exit
-    // when there is no unfinished work remaining.
-    // It is quite like infinite loop (in CCU safe manner of course)
-    _loop_maintainer = boost::in_place(std::ref(*_pservice));
-
-    post([this, start_notify]() {
-        SRV_LOGC_TRACE("Event loop has started");
-
-        _is_running = true;
-        if (start_notify)
-            start_notify();
-    });
-
-    if (_run_in_separate_thread)
+    try
     {
-        _thread.reset(new std::thread([this, stop_notify]() {
+        _is_running = true;
+
+        // The 'work' object guarantees that 'run()' function
+        // will not exit while work is underway, and that it does exit
+        // when there is no unfinished work remaining.
+        // It is quite like infinite loop (in CCU safe manner of course)
+        _loop_maintainer = boost::in_place(std::ref(*_pservice));
+
+        post([this, start_notify]() {
+            SRV_LOGC_TRACE("Event loop has started");
+
+            _is_run = true;
+
+            if (start_notify)
+                start_notify();
+        });
+
+        if (_run_in_separate_thread)
+        {
+            _thread.reset(new std::thread([this, stop_notify]() {
 #if defined(SERVER_LIB_PLATFORM_LINUX)
-            _native_thread_id = syscall(SYS_gettid);
+                _native_thread_id = syscall(SYS_gettid);
 #elif defined(SERVER_LIB_PLATFORM_WINDOWS)
-            _native_thread_id = ::GetCurrentThreadId();
+                _native_thread_id = ::GetCurrentThreadId();
 #else
-            _native_thread_id = static_cast<long>(std::this_thread::get_id().native_handle());
+                _native_thread_id = static_cast<long>(std::this_thread::get_id().native_handle());
 #endif
 
-            SRV_LOGC_TRACE("Event loop is starting");
+                SRV_LOGC_TRACE("Event loop is starting");
 
+                run();
+
+                SRV_LOGC_TRACE("Event loop has stopped");
+
+                if (stop_notify)
+                    stop_notify();
+            }));
+        }
+        else
+        {
             run();
 
             SRV_LOGC_TRACE("Event loop has stopped");
 
             if (stop_notify)
                 stop_notify();
-        }));
-
-        if (waiting_for_start)
-        {
-            wait_async_no_result([]() {});
         }
     }
-    else
+    catch (const std::exception& e)
     {
-        run();
-
-        SRV_LOGC_TRACE("Event loop has stopped");
-
-        if (stop_notify)
-            stop_notify();
+        SRV_LOGC_ERROR(e.what());
+        stop();
+        throw;
     }
 }
 
@@ -154,35 +165,45 @@ void event_loop::stop()
 
     SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
 
-    _loop_maintainer = boost::none; //finishing 'infinite loop'
-    _pservice->stop();
+    try
+    {
+        _loop_maintainer = boost::none; //finishing 'infinite loop'
+        _pservice->stop();
 
-    if (_thread && _thread->joinable())
-        _thread->join();
+        if (_thread && _thread->joinable())
+        {
+            _thread->join();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        SRV_THROW();
+    }
+
     _thread.reset();
 
+    _is_run = false;
     _is_running = false;
+}
+
+void event_loop::wait()
+{
+    if (!is_running())
+    {
+        wait([]() {});
+    }
 }
 
 void event_loop::run()
 {
     _id = std::this_thread::get_id();
-    apply_thread_name();
-
     try
     {
         _pservice->run();
     }
     catch (const std::exception& e)
     {
-        // Deal with exception as appropriate.
-        SRV_LOGC_ERROR("Catched unexpected exception: " << e.what());
-        throw;
-    }
-    catch (...)
-    {
-        SRV_LOGC_ERROR("Unknown exception catched");
-        throw;
+        SRV_THROW();
     }
 }
 

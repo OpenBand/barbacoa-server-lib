@@ -1,6 +1,5 @@
 #include "application_impl.h"
 
-#include <server_lib/logging_helper.h>
 #include <server_lib/asserts.h>
 #include <server_lib/emergency_helper.h>
 #include <server_lib/platform_config.h>
@@ -25,8 +24,6 @@
 #endif
 
 #include <signal.h>
-
-#include "logging_trace.h"
 
 #include "logger_set_internal_group.h"
 
@@ -333,10 +330,10 @@ void application_impl::on_control(control_callback_type&& callback)
 
 void application_impl::wait()
 {
-    if (!_main_el.is_running())
+    if (!_main_el.is_run())
     {
         std::unique_lock<std::mutex> lck(_wait_started_condition_lock);
-        _wait_started_condition.wait(lck, [& el = _main_el] { return el.is_running(); });
+        _wait_started_condition.wait(lck, [& el = _main_el] { return el.is_run(); });
     }
 }
 
@@ -417,7 +414,7 @@ void application_impl::process_atexit()
     auto& app = instance();
     if (app.is_running())
     {
-        SRV_ASSERT(false, "std::exit is not allowed to stop application. Use application.stop instead");
+        SRV_ERROR("std::exit is not allowed to stop application. Use application.stop instead");
     }
 }
 
@@ -432,15 +429,12 @@ void application_impl::process_fail()
             logger::instance().lock(); //some logger configurations can make application suspended in forked thread
     }
 
-    if (app.is_running())
-    {
-        using Callbackdata_type = __signal_data::data_type;
+    using Callbackdata_type = __signal_data::data_type;
 
-        auto last_signal_data = __get_signal_data();
-        if (last_signal_data.type == Callbackdata_type::fail)
-        {
-            app.process_fail(last_signal_data.data.signo, last_signal_data.path_data);
-        }
+    auto last_signal_data = __get_signal_data();
+    if (last_signal_data.type == Callbackdata_type::fail)
+    {
+        app.process_fail(last_signal_data.data.signo, last_signal_data.path_data);
     }
 }
 
@@ -573,7 +567,7 @@ void application_impl::process_exit(const int signo)
         if (_exit_callback)
         {
             auto exit_callback = _exit_callback;
-            _main_el.wait_async_no_result([exit_callback, signo]() {
+            _main_el.wait([exit_callback, signo]() {
                 exit_callback(signo);
             });
         }

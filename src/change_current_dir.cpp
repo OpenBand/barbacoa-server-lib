@@ -3,6 +3,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include "logger_set_internal_group.h"
+
 namespace server_lib {
 
 namespace bfs = boost::filesystem;
@@ -17,7 +19,7 @@ change_current_dir::change_current_dir(const boost::filesystem::path& dir)
     }
     catch (const std::exception& e)
     {
-        SRV_ERROR(e.what());
+        SRV_THROW();
     }
 }
 
@@ -27,8 +29,9 @@ change_current_dir::~change_current_dir()
     {
         bfs::current_path(prev_dir);
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        SRV_THROW();
     }
 }
 

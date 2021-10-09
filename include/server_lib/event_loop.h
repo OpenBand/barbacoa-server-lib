@@ -54,13 +54,23 @@ public:
      *
      */
     virtual void start(std::function<void(void)> start_notify = nullptr,
-                       std::function<void(void)> stop_notify = nullptr,
-                       bool waiting_for_start = false);
+                       std::function<void(void)> stop_notify = nullptr);
     virtual void stop();
 
+    /**
+     * Start has just called but loop probably couldn't run yet
+     */
     bool is_running() const
     {
         return _is_running;
+    }
+
+    /**
+     * Loop has run
+     */
+    bool is_run() const
+    {
+        return _is_run;
     }
 
     static bool is_main_thread();
@@ -70,11 +80,6 @@ public:
         return _queue_size.load();
     }
 
-    bool is_main() const
-    {
-        return _is_main;
-    }
-
     bool is_this_loop() const
     {
         return _id.load() == std::this_thread::get_id();
@@ -82,7 +87,9 @@ public:
 
     /**
      * Callback that is invoked in thread owned by this event_loop
-     * Multiple invokes are executed in queue
+     * Multiple invokes are executed in queue. Post can be called
+     * before or after starting. Callback wiil be invoked in 'run'
+     * state
      *
      * \param handler
      *
@@ -114,12 +121,12 @@ public:
      *
      */
     template <typename Result, typename AsynchFunc>
-    Result wait_async(Result&& initial_result, AsynchFunc&& asynch_func)
+    Result wait_result(Result&& initial_result, AsynchFunc&& asynch_func)
     {
         auto call = [this](auto asynch_func) {
             this->post(asynch_func);
         };
-        return wait_async_call(std::forward<Result>(initial_result), call, asynch_func);
+        return wait_async_result(std::forward<Result>(initial_result), call, asynch_func);
     }
 
     /**
@@ -131,7 +138,7 @@ public:
      *
      */
     template <typename Result, typename AsynchFunc, typename DurationType>
-    Result wait_async(Result&& initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
+    Result wait_result(Result&& initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
     {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
@@ -140,7 +147,7 @@ public:
         auto call = [this](auto asynch_func) {
             this->post(asynch_func);
         };
-        return wait_async_call(std::forward<Result>(initial_result), call, asynch_func, ms.count());
+        return wait_async_result(std::forward<Result>(initial_result), call, asynch_func, ms.count());
     }
 
     /**
@@ -150,41 +157,44 @@ public:
      *
      */
     template <typename AsynchFunc>
-    void wait_async_no_result(AsynchFunc&& asynch_func)
+    void wait(AsynchFunc&& asynch_func)
     {
-        std::promise<bool> wait_ctx;
-
-        this->post([&]() {
-            asynch_func();
-            wait_ctx.set_value(true);
-        });
-
-        wait_ctx.get_future().wait();
+        auto call = [this](auto asynch_func) {
+            this->post(asynch_func);
+        };
+        wait_async(call, asynch_func);
     }
 
     /**
      * Waiting for callback without result (void)
      *
      * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * only before this function return
      * \param duration - Timeout (std::chrono::duration type)
+     *
+     * \return bool - if callback was invoked before duration expiration
      *
      */
     template <typename AsynchFunc, typename DurationType>
-    void wait_async_no_result(AsynchFunc&& asynch_func, DurationType&& duration)
+    bool wait(AsynchFunc&& asynch_func, DurationType&& duration)
     {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
         SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
 
-        std::promise<bool> wait_ctx;
-
-        this->post([&]() {
-            asynch_func();
-            wait_ctx.set_value(true);
-        });
-
-        wait_ctx.get_future().wait_for(ms);
+        auto call = [this](auto asynch_func) {
+            this->post(asynch_func);
+        };
+        return wait_async(call, asynch_func, ms.count());
     }
+
+    /**
+     * \brief Waiting for finish for starting procedure
+     * or immediately (if event loop has already started)
+     * return
+     *
+     */
+    void wait();
 
     /**
      * Callback that is invoked after certain timeout
@@ -224,7 +234,8 @@ protected:
 protected:
     const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
-    std::atomic_bool _is_main;
+    std::atomic_bool _is_run;
+    std::atomic<std::thread::id> _id;
     std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;
     boost::asio::io_service::strand _strand;
@@ -232,10 +243,8 @@ protected:
     std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
     std::atomic_uint64_t _queue_size;
-    std::atomic<std::thread::id> _id;
 
 private:
-    bool in_main_thread();
     void apply_thread_name();
 };
 

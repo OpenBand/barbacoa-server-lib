@@ -31,8 +31,7 @@ public:
         main_loop(const std::string& name = {});
 
         void start(std::function<void(void)> start_notify = nullptr,
-                   std::function<void(void)> stop_notify = nullptr,
-                   bool waiting_for_start = false) override;
+                   std::function<void(void)> stop_notify = nullptr) override;
 
     public:
         void stop() override;
@@ -165,7 +164,7 @@ public:
      * \return true - if application was run
      *
      */
-    bool is_running();
+    bool is_running() const;
 
     /**
      * \brief Invoke callback when application will start

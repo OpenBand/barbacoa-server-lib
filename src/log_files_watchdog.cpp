@@ -9,7 +9,6 @@
 #include <boost/date_time/time_facet.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-#include <server_lib/logging_helper.h>
 #include <server_lib/asserts.h>
 
 #include <iostream>

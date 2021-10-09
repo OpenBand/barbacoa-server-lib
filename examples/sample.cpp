@@ -21,6 +21,8 @@
 #include <windows.h>
 #endif
 
+//#define APP_WAIT_CASE
+
 int main(void)
 {
     using namespace server_lib;
@@ -58,6 +60,9 @@ int main(void)
     };
     auto payload_in_separated_loop = [&]() {
         LOGC_INFO("Make payload in separated loop (job #1)");
+#if defined(APP_WAIT_CASE)
+        app.wait();
+#endif
 
         // As a rule bug's places are application logic job run
         //in separate thread
@@ -70,6 +75,9 @@ int main(void)
     };
     auto payload_in_separted_thread_joinable = [&]() {
         LOGC_INFO("Make payload in separted thread (joinable) (job #2)");
+#if defined(APP_WAIT_CASE)
+        app.wait();
+#endif
 
         // As a rule bug's places are application logic job run
         //in separate thread
@@ -82,6 +90,9 @@ int main(void)
     };
     auto payload_in_separted_thread_detached = [&]() {
         LOGC_INFO("Make payload in separted thread (detached) (job #3)");
+#if defined(APP_WAIT_CASE)
+        app.wait();
+#endif
 
         // As a rule bug's places are application logic job run
         //in separate thread
@@ -118,8 +129,6 @@ int main(void)
         separated_loop_timer = std::make_shared<event_loop::periodical_timer>(separated_loop);
 
         separated_loop.post([&]() {
-            app.wait();
-
             std::this_thread::sleep_for(std::chrono::milliseconds(100 * dist(rd)));
 
             payload_in_separated_loop();
@@ -141,8 +150,6 @@ int main(void)
 #if defined(SERVER_LIB_PLATFORM_LINUX)
             pthread_setname_np(pthread_self(), "th-joinable");
 #endif
-            app.wait();
-
             std::this_thread::sleep_for(std::chrono::milliseconds(100 * dist(rd)));
 
             payload_in_separted_thread_joinable();
@@ -175,8 +182,6 @@ int main(void)
 #if defined(SERVER_LIB_PLATFORM_LINUX)
             pthread_setname_np(pthread_self(), "th-detached");
 #endif
-            app.wait();
-
             std::this_thread::sleep_for(std::chrono::milliseconds(100 * dist(rd)));
 
             payload_in_separted_thread_detached();
@@ -264,11 +269,19 @@ int main(void)
         }
     };
 
+#if defined(APP_WAIT_CASE)
+    separated_loop_job();
+    separted_thread_joinable_job();
+    separted_thread_detached_job();
+    auto all_jobs = [&]() {
+        mail_loop_job();
+#else
     auto all_jobs = [&]() {
         mail_loop_job(); //it should be a little job (or empty) to prevent suspending at exit!
         separated_loop_job();
         separted_thread_joinable_job();
         separted_thread_detached_job();
+#endif
     };
     auto result = app.on_start(all_jobs).on_exit(exit_callback).on_fail(fail_callback).on_control(control_callback).run();
 

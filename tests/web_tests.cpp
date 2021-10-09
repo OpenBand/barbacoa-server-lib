@@ -110,7 +110,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -144,7 +144,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -214,7 +214,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -286,7 +286,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -357,7 +357,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -429,7 +429,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -500,7 +500,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -577,7 +577,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -648,7 +648,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -711,7 +711,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -782,7 +782,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
         std::string address { server.config.address };
@@ -862,7 +862,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
     }
 
@@ -1076,7 +1076,7 @@ namespace tests {
             return false;
         };
         server_th.start();
-        BOOST_REQUIRE(server_th.wait_async(false, server_run));
+        BOOST_REQUIRE(server_th.wait_result(false, server_run));
         server_th_for_postponed.start();
 
         using WebClient = web::Client<SimpleWeb::HTTP>;
@@ -1157,7 +1157,7 @@ namespace tests {
             }
             return false;
         };
-        server_th.wait_async(false, server_stop);
+        server_th.wait_result(false, server_stop);
         server_th.stop();
         server_th_for_postponed.stop();
     }
