@@ -13,9 +13,9 @@ namespace server_lib {
 /**
  * \ingroup common
  *
- * Waiting for asynch_func callback result by means of
- * caller_func. There is timeout if timeout_ms  > 0
+ * Waiting for asynch_func callback result by means of caller_func.
  *--------------------------------------------------------------
+ * There is timeout if timeout_ms  > 0.
  * For example if there is function or class method looks like:
  *
  * caller_func(asynch_func -> Result) -> void (ignored)
@@ -124,9 +124,9 @@ Result wait_async_result(Result&& initial_result, CallerFunc&& caller_func, Asyn
 /**
  * \ingroup common
  *
- * Waiting for asynch_func callback by means of
- * caller_func. There is timeout if timeout_ms  > 0
+ * Waiting for asynch_func callback by means of caller_func.
  *--------------------------------------------------------------
+ * There is timeout if timeout_ms  > 0.
  * For example if there is function or class method looks like:
  *
  * caller_func(asynch_func -> void) -> void (ignored)
