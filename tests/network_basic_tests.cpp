@@ -101,11 +101,12 @@ namespace tests {
             BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_disconnect_callback, client_recieve_callback));
         };
 
-        server_th.start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
-            BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+        server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
+                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
 
-            client_th.start([&]() { client_run(); });
-        });
+                     client_th.on_start([&]() { client_run(); }).start();
+                 })
+            .start();
 
         BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
     }
@@ -193,11 +194,12 @@ namespace tests {
             BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_disconnect_callback, client_recieve_callback));
         };
 
-        server_th.start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
-            BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+        server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
+                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
 
-            client_th.start([&]() { client_run(); });
-        });
+                     client_th.on_start([&]() { client_run(); }).start();
+                 })
+            .start();
 
         BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
     }

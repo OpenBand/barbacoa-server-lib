@@ -348,18 +348,19 @@ namespace tests {
         std::mutex done_cond_guard;
         std::condition_variable done_cond;
 
-        loop0.start([&done, &done_cond_guard, &done_cond,
-                     &testing_observable, test_int_value, test_str_value]() {
-            testing_observable.notify(&test_sink_i::on_test1);
-            testing_observable.notify(&test_sink_i::on_test2, test_int_value);
-            testing_observable.notify(&test_sink_i::on_test3, test_str_value);
-            testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
+        loop0.on_start([&done, &done_cond_guard, &done_cond,
+                        &testing_observable, test_int_value, test_str_value]() {
+                 testing_observable.notify(&test_sink_i::on_test1);
+                 testing_observable.notify(&test_sink_i::on_test2, test_int_value);
+                 testing_observable.notify(&test_sink_i::on_test3, test_str_value);
+                 testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
 
-            //done test
-            std::unique_lock<std::mutex> lck(done_cond_guard);
-            done = true;
-            done_cond.notify_one();
-        });
+                 //done test
+                 std::unique_lock<std::mutex> lck(done_cond_guard);
+                 done = true;
+                 done_cond.notify_one();
+             })
+            .start();
 
         std::unique_lock<std::mutex> lck(done_cond_guard);
         if (!done)
@@ -472,6 +473,107 @@ namespace tests {
         loop2.stop();
     }
 
+    class AnyResult
+    {
+    public:
+        AnyResult(int val1 = 0, const std::string& val2 = {})
+        {
+            _val1 = val1;
+            _val2 = val2;
+        }
+        AnyResult(const AnyResult& other)
+        {
+            *this = other;
+        }
+        AnyResult(AnyResult&& other)
+        {
+            _val1 = std::move(other._val1);
+            _val2 = std::move(other._val2);
+        }
+
+        AnyResult& operator=(const AnyResult& other)
+        {
+            _val1 = other._val1;
+            _val2 = other._val2;
+            return *this;
+        }
+
+        friend bool operator==(const AnyResult& a, const AnyResult& b)
+        {
+            return a._val1 == b._val1 && a._val2 == b._val2;
+        }
+
+        int _val1 = 0;
+        std::string _val2 = {};
+    };
+
+    BOOST_AUTO_TEST_CASE(wait_async_obj_result_check)
+    {
+        const int VAL1_FAIL = -1;
+        const int VAL1_PAYLOAD_DONE = 12;
+        const std::string VAL2_PAYLOAD_DONE = "Payload done";
+
+        server_lib::event_loop loop1;
+
+        loop1.change_thread_name("!L1");
+        loop1.start();
+
+        auto payload = [val1 = VAL1_PAYLOAD_DONE, val2 = VAL2_PAYLOAD_DONE]() -> AnyResult {
+            LOG_INFO("Payload start");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            LOG_INFO("Payload end");
+            return AnyResult(val1, val2);
+        };
+        BOOST_REQUIRE(loop1.wait_result(AnyResult(VAL1_FAIL), payload) == AnyResult(VAL1_PAYLOAD_DONE, VAL2_PAYLOAD_DONE));
+
+        BOOST_REQUIRE(loop1.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(1500)) == AnyResult(VAL1_PAYLOAD_DONE, VAL2_PAYLOAD_DONE));
+
+        //timeout check
+        BOOST_REQUIRE(loop1.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(500)) == AnyResult(VAL1_FAIL));
+
+        server_lib::event_loop loop2;
+
+        loop2.change_thread_name("!L2");
+        loop2.start();
+
+        //timeout check
+        BOOST_REQUIRE(loop2.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(500)) == AnyResult(VAL1_FAIL));
+
+        loop2.stop();
+    }
+
+    BOOST_AUTO_TEST_CASE(wait_async_result_exception_check)
+    {
+        auto payload = [] {
+            LOG_INFO("Payload start");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            throw std::logic_error("Async exception");
+            return true;
+        };
+
+        server_lib::event_loop loop1;
+
+        loop1.change_thread_name("!L1");
+        loop1.start();
+
+        BOOST_REQUIRE_THROW(loop1.wait_result(false, payload), std::logic_error);
+
+        BOOST_REQUIRE_THROW(loop1.wait_result(false, payload, std::chrono::milliseconds(1500)), std::logic_error);
+
+        //timeout check
+        BOOST_REQUIRE_NO_THROW(loop1.wait_result(false, payload, std::chrono::milliseconds(500)));
+
+        server_lib::event_loop loop2;
+
+        loop2.change_thread_name("!L2");
+        loop2.start();
+
+        //timeout check
+        BOOST_REQUIRE_NO_THROW(loop2.wait_result(false, payload, std::chrono::milliseconds(500)));
+
+        loop2.stop();
+    }
+
     BOOST_AUTO_TEST_CASE(wait_async_check)
     {
         server_lib::event_loop loop1;
@@ -498,6 +600,37 @@ namespace tests {
 
         //timeout check
         BOOST_REQUIRE(!loop2.wait(payload, std::chrono::milliseconds(500)));
+
+        loop2.stop();
+    }
+
+    BOOST_AUTO_TEST_CASE(wait_async_exception_check)
+    {
+        auto payload = []() -> void {
+            LOG_INFO("Payload start");
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            throw std::logic_error("Async exception");
+        };
+
+        server_lib::event_loop loop1;
+
+        loop1.change_thread_name("!L1");
+        loop1.start();
+
+        BOOST_REQUIRE_THROW(loop1.wait(payload), std::logic_error);
+
+        BOOST_REQUIRE_THROW(loop1.wait(payload, std::chrono::milliseconds(1500)), std::logic_error);
+
+        //timeout check
+        BOOST_REQUIRE_NO_THROW(loop1.wait(payload, std::chrono::milliseconds(500)));
+
+        server_lib::event_loop loop2;
+
+        loop2.change_thread_name("!L2");
+        loop2.start();
+
+        //timeout check
+        BOOST_REQUIRE_NO_THROW(loop2.wait(payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
     }

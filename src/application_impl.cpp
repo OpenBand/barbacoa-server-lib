@@ -503,12 +503,13 @@ void application_impl::run_impl()
     // Here signal thread has started, signal_thread_id has intialized
 
     // Stuck into main loop
-    _main_el.start([this]() {
-        SRV_LOGC_TRACE("Application has started");
-        if (_start_callback)
-            _start_callback();
-        _wait_started_condition.notify_all();
-    });
+    _main_el.on_start([this]() {
+                SRV_LOGC_TRACE("Application has started");
+                if (_start_callback)
+                    _start_callback();
+                _wait_started_condition.notify_all();
+            })
+        .start();
 
     // Here smth. has stopped main loop
     SRV_LOGC_TRACE("Application is stopping");

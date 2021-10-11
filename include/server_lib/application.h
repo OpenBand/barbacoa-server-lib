@@ -30,8 +30,7 @@ public:
     protected:
         main_loop(const std::string& name = {});
 
-        void start(std::function<void(void)> start_notify = nullptr,
-                   std::function<void(void)> stop_notify = nullptr) override;
+        void start() override;
 
     public:
         void stop() override;

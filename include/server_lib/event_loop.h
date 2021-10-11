@@ -42,20 +42,41 @@ public:
         return _pservice;
     }
 
-    void change_thread_name(const std::string&);
+    event_loop& change_thread_name(const std::string&);
 
     /**
      * Start loop
      *
-     * \param start_notify - Callback that is invoked in thread owned by
-     * this event_loop when thread has started
-     * \param stop_notify - Callback that is invoked in thread owned by
-     * this event_loop when thread has stopped
+     */
+    virtual void start();
+
+    /**
+     * Stop loop
      *
      */
-    virtual void start(std::function<void(void)> start_notify = nullptr,
-                       std::function<void(void)> stop_notify = nullptr);
     virtual void stop();
+
+    using callback_type = std::function<void(void)>;
+
+    /**
+     * \brief Invoke callback when loop will start
+     *
+     * \param callback
+     *
+     * \return loop object
+     *
+     */
+    event_loop& on_start(callback_type&& callback);
+
+    /**
+     * \brief Invoke callback when loop will stop
+     *
+     * \param callback
+     *
+     * \return loop object
+     *
+     */
+    event_loop& on_stop(callback_type&& callback);
 
     /**
      * Start has just called but loop probably couldn't run yet
@@ -85,6 +106,11 @@ public:
         return _id.load() == std::this_thread::get_id();
     }
 
+    long native_thread_id() const
+    {
+        return _native_thread_id.load();
+    }
+
     /**
      * Callback that is invoked in thread owned by this event_loop
      * Multiple invokes are executed in queue. Post can be called
@@ -93,9 +119,11 @@ public:
      *
      * \param handler
      *
+     * \return loop object
+     *
      */
     template <typename Handler>
-    void post(Handler&& handler)
+    event_loop& post(Handler&& handler)
     {
         SRV_ASSERT(_pservice);
         auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
@@ -111,6 +139,8 @@ public:
         //* The 'strand' object guarantees that all 'post's are executed in queue
         //
         _pservice->post(_strand.wrap(std::move(handler_)));
+
+        return *this;
     }
 
     /**
@@ -202,9 +232,11 @@ public:
      * \param duration - Timeout (std::chrono::duration type)
      * \param callback - Callback that is invoked in thread owned by this event_loop
      *
+     * \return loop object
+     *
      */
     template <typename DurationType, typename Handler>
-    void start_timer(DurationType&& duration, Handler&& callback)
+    event_loop& start_timer(DurationType&& duration, Handler&& callback)
     {
         SRV_ASSERT(_pservice);
 
@@ -221,11 +253,7 @@ public:
                 callback();
             }
         }));
-    }
-
-    long native_thread_id() const
-    {
-        return _native_thread_id.load();
+        return *this;
     }
 
 protected:
@@ -235,6 +263,8 @@ protected:
     const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
     std::atomic_bool _is_run;
+    callback_type _start_callback = nullptr;
+    callback_type _stop_callback = nullptr;
     std::atomic<std::thread::id> _id;
     std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;

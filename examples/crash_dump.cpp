@@ -144,10 +144,10 @@ int main(int argc, char* argv[])
                 fail_emit();
             else
             {
-                separated_loop.change_thread_name("separated");
-                separated_loop.start([&]() {
-                    fail_emit();
-                });
+                separated_loop.change_thread_name("separated").on_start([&]() {
+                                                                  fail_emit();
+                                                              })
+                    .start();
             }
         }
     };

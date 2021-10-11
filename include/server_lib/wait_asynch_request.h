@@ -49,19 +49,40 @@ Result wait_async_result(Result&& initial_result, CallerFunc&& caller_func, Asyn
                 auto pguard = pguard_.lock();
                 if (pguard)
                 {
-                    auto result_ = asynch_func();
-                    std::lock_guard<std::mutex> lck(*pguard);
-                    if (pguard.use_count() > 1)
+                    try
                     {
-                        result = std::move(result_);
-                        wait_ctx.set_value(true);
-                    } //else timeout was arisen
+                        auto result_ = asynch_func();
+                        std::lock_guard<std::mutex> lck(*pguard);
+                        if (pguard.use_count() > 1)
+                        {
+                            result = std::move(result_);
+                            wait_ctx.set_value(true);
+                        } //else timeout was arisen
+                    }
+                    catch (...)
+                    {
+                        try
+                        {
+                            std::lock_guard<std::mutex> lck(*pguard);
+                            if (pguard.use_count() > 1)
+                            {
+                                wait_ctx.set_exception(std::current_exception());
+                            } //else:
+                            //        timeout was arisen
+                            //        and caller doesn't wait any exception too
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
                 } //else event queue was overloaded
             };
 
             caller_func(asynch_func_wrapper);
 
-            wait_ctx.get_future().wait_for(std::chrono::milliseconds(timeout_ms));
+            auto f = wait_ctx.get_future();
+            if (std::future_status::ready == f.wait_for(std::chrono::milliseconds(timeout_ms)))
+                f.get();
             std::unique_lock<std::mutex> lck(*pguard);
             return result;
         }
@@ -70,13 +91,26 @@ Result wait_async_result(Result&& initial_result, CallerFunc&& caller_func, Asyn
             auto asynch_func_wrapper = [&asynch_func,
                                         &result,
                                         &wait_ctx]() {
-                result = asynch_func();
-                wait_ctx.set_value(true);
+                try
+                {
+                    result = asynch_func();
+                    wait_ctx.set_value(true);
+                }
+                catch (...)
+                {
+                    try
+                    {
+                        wait_ctx.set_exception(std::current_exception());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
             };
 
             caller_func(asynch_func_wrapper);
 
-            wait_ctx.get_future().wait();
+            wait_ctx.get_future().get();
         }
     }
     catch (const std::exception& e)
@@ -127,19 +161,40 @@ bool wait_async(CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t time
                 auto pguard = pguard_.lock();
                 if (pguard)
                 {
-                    asynch_func();
-                    std::lock_guard<std::mutex> lck(*pguard);
-                    if (pguard.use_count() > 1)
+                    try
                     {
-                        complete = true;
-                        wait_ctx.set_value(true);
-                    } //else timeout was arisen
+                        asynch_func();
+                        std::lock_guard<std::mutex> lck(*pguard);
+                        if (pguard.use_count() > 1)
+                        {
+                            complete = true;
+                            wait_ctx.set_value(true);
+                        } //else timeout was arisen
+                    }
+                    catch (...)
+                    {
+                        try
+                        {
+                            std::lock_guard<std::mutex> lck(*pguard);
+                            if (pguard.use_count() > 1)
+                            {
+                                wait_ctx.set_exception(std::current_exception());
+                            } //else:
+                            //        timeout was arisen
+                            //        and caller doesn't wait any exception too
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
                 } //else event queue was overloaded
             };
 
             caller_func(asynch_func_wrapper);
 
-            wait_ctx.get_future().wait_for(std::chrono::milliseconds(timeout_ms));
+            auto f = wait_ctx.get_future();
+            if (std::future_status::ready == f.wait_for(std::chrono::milliseconds(timeout_ms)))
+                f.get();
             std::unique_lock<std::mutex> lck(*pguard);
             return complete.load();
         }
@@ -147,13 +202,26 @@ bool wait_async(CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t time
         {
             auto asynch_func_wrapper = [&asynch_func,
                                         &wait_ctx]() {
-                asynch_func();
-                wait_ctx.set_value(true);
+                try
+                {
+                    asynch_func();
+                    wait_ctx.set_value(true);
+                }
+                catch (...)
+                {
+                    try
+                    {
+                        wait_ctx.set_exception(std::current_exception());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
             };
 
             caller_func(asynch_func_wrapper);
 
-            wait_ctx.get_future().wait();
+            wait_ctx.get_future().get();
         }
     }
     catch (const std::exception& e)

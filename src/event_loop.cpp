@@ -73,7 +73,7 @@ void event_loop::apply_thread_name()
 #endif
 }
 
-void event_loop::change_thread_name(const std::string& name)
+event_loop& event_loop::change_thread_name(const std::string& name)
 {
     static int MAX_THREAD_NAME_SZ = 15;
     if (name.length() > MAX_THREAD_NAME_SZ)
@@ -90,10 +90,10 @@ void event_loop::change_thread_name(const std::string& name)
             apply_thread_name();
         });
     }
+    return *this;
 }
 
-void event_loop::start(std::function<void(void)> start_notify,
-                       std::function<void(void)> stop_notify)
+void event_loop::start()
 {
     if (is_running())
         return;
@@ -110,18 +110,18 @@ void event_loop::start(std::function<void(void)> start_notify,
         // It is quite like infinite loop (in CCU safe manner of course)
         _loop_maintainer = boost::in_place(std::ref(*_pservice));
 
-        post([this, start_notify]() {
+        post([this]() {
             SRV_LOGC_TRACE("Event loop has started");
 
             _is_run = true;
 
-            if (start_notify)
-                start_notify();
+            if (_start_callback)
+                _start_callback();
         });
 
         if (_run_in_separate_thread)
         {
-            _thread.reset(new std::thread([this, stop_notify]() {
+            _thread.reset(new std::thread([this]() {
 #if defined(SERVER_LIB_PLATFORM_LINUX)
                 _native_thread_id = syscall(SYS_gettid);
 #elif defined(SERVER_LIB_PLATFORM_WINDOWS)
@@ -136,8 +136,8 @@ void event_loop::start(std::function<void(void)> start_notify,
 
                 SRV_LOGC_TRACE("Event loop has stopped");
 
-                if (stop_notify)
-                    stop_notify();
+                if (_stop_callback)
+                    _stop_callback();
             }));
         }
         else
@@ -146,8 +146,8 @@ void event_loop::start(std::function<void(void)> start_notify,
 
             SRV_LOGC_TRACE("Event loop has stopped");
 
-            if (stop_notify)
-                stop_notify();
+            if (_stop_callback)
+                _stop_callback();
         }
     }
     catch (const std::exception& e)
@@ -184,6 +184,18 @@ void event_loop::stop()
 
     _is_run = false;
     _is_running = false;
+}
+
+event_loop& event_loop::on_start(callback_type&& callback)
+{
+    _start_callback = callback;
+    return *this;
+}
+
+event_loop& event_loop::on_stop(callback_type&& callback)
+{
+    _stop_callback = callback;
+    return *this;
 }
 
 void event_loop::wait()
