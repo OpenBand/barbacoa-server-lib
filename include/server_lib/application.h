@@ -65,7 +65,11 @@ public:
 
         /**
          * Insurance that corefile will be created when system makes core dump
-         * for crush incident
+         * for crush incident. It is not necessary for applications that
+         * configured by external service where one can write bash
+         * instactions for core config. Ex: \code{.sh}
+         * prlimit --pid $$ --core=-1
+         * \endcode
          *
          * \param disable_excl_policy - Allow multiple corefile creation.
          * As a rule corefile created by system with O_CREAT | O_EXCL flags
