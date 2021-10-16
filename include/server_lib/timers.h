@@ -40,7 +40,7 @@ public:
         int timer_id = ++_current_timer_id->value;
         auto id = _current_timer_id;
 
-        _el.start_timer(std::forward<DurationType>(duration), [=]() {
+        _el.post(std::forward<DurationType>(duration), [=]() {
             if (id->value == timer_id)
                 callback();
         });

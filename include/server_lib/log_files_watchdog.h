@@ -53,19 +53,19 @@ public:
 
     void watch(const size_t seconds, Strategy strategy)
     {
-        start_timer(std::chrono::seconds(seconds),
-                    [this, seconds, strategy]() {
-                        strategy(*this);
-                        watch(seconds, strategy);
-                    });
+        post(std::chrono::seconds(seconds),
+             [this, seconds, strategy]() {
+                 strategy(*this);
+                 watch(seconds, strategy);
+             });
     }
 
     void watch_once(const size_t seconds, Strategy strategy)
     {
-        start_timer(std::chrono::seconds(seconds),
-                    [this, strategy]() {
-                        synch_watch(strategy);
-                    });
+        post(std::chrono::seconds(seconds),
+             [this, strategy]() {
+                 synch_watch(strategy);
+             });
     }
 
     void watch(Strategy strategy)

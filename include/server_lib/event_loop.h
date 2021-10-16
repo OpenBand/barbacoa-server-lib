@@ -25,6 +25,22 @@ DECLARE_PTR(event_loop);
 class event_loop
 {
 public:
+    using callback_type = std::function<void(void)>;
+
+private:
+    template <typename Handler>
+    callback_type register_queue(Handler&& callback)
+    {
+        SRV_ASSERT(_pservice);
+        auto callback_ = [this, callback = std::move(callback)]() mutable {
+            callback();
+            std::atomic_fetch_sub<uint64_t>(&this->_queue_size, 1);
+        };
+        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+        return callback_;
+    }
+
+public:
     using timer = server_lib::timer<event_loop>;
     using periodical_timer = server_lib::periodical_timer<event_loop>;
 
@@ -55,8 +71,6 @@ public:
      *
      */
     virtual void stop();
-
-    using callback_type = std::function<void(void)>;
 
     /**
      * \brief Invoke callback when loop will start
@@ -117,29 +131,59 @@ public:
      * before or after starting. Callback wiil be invoked in 'run'
      * state
      *
-     * \param handler
+     * \param callback
      *
      * \return loop object
      *
      */
     template <typename Handler>
-    event_loop& post(Handler&& handler)
+    event_loop& post(Handler&& callback)
     {
         SRV_ASSERT(_pservice);
-        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
-            handler();
-            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
-        };
-        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+
+        auto callback_ = register_queue(callback);
 
         //-------------POST(WRAP(...)) - design explanation:
         //
-        //* The 'post' guarantees that the handler will only be called in a thread
+        //* The 'post' guarantees that the callback will only be called in a thread
         //  in which the 'run()'
         //* The 'strand' object guarantees that all 'post's are executed in queue
         //
-        _pservice->post(_strand.wrap(std::move(handler_)));
+        _pservice->post(_strand.wrap(std::move(callback_)));
 
+        return *this;
+    }
+
+    /**
+     * Callback that is invoked after certain timeout
+     * in thread owned by this event_loop
+     *
+     * \param duration - Timeout (std::chrono::duration type)
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     * \return loop object
+     *
+     */
+    template <typename DurationType, typename Handler>
+    event_loop& post(DurationType&& duration, Handler&& callback)
+    {
+        SRV_ASSERT(_pservice);
+
+        auto callback_ = register_queue(callback);
+
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum timer accuracy");
+
+        auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
+
+        timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
+        timer->async_wait(_strand.wrap([timer /*save timer object*/, callback_](const boost::system::error_code& ec) {
+            if (!ec)
+            {
+                callback_();
+            }
+        }));
         return *this;
     }
 
@@ -147,58 +191,58 @@ public:
      * Waiting for callback with result endlessly
      *
      * \param initial_result - Result for case when callback can't be invoked
-     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param callback - Callback that is invoked in thread owned by this event_loop
      *
      */
     template <typename Result, typename AsynchFunc>
-    Result wait_result(Result&& initial_result, AsynchFunc&& asynch_func)
+    Result wait_result(Result&& initial_result, AsynchFunc&& callback)
     {
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
+        auto call = [this](auto callback) {
+            this->post(callback);
         };
-        return wait_async_result(std::forward<Result>(initial_result), call, asynch_func);
+        return wait_async_result(std::forward<Result>(initial_result), call, callback);
     }
 
     /**
      * Waiting for callback with result
      *
      * \param initial_result - Result for case when callback can't be invoked
-     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param callback - Callback that is invoked in thread owned by this event_loop
      * \param duration - Timeout (std::chrono::duration type)
      *
      */
     template <typename Result, typename AsynchFunc, typename DurationType>
-    Result wait_result(Result&& initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
+    Result wait_result(Result&& initial_result, AsynchFunc&& callback, DurationType&& duration)
     {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
         SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
 
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
+        auto call = [this](auto callback) {
+            this->post(callback);
         };
-        return wait_async_result(std::forward<Result>(initial_result), call, asynch_func, ms.count());
+        return wait_async_result(std::forward<Result>(initial_result), call, callback, ms.count());
     }
 
     /**
      * Waiting for callback without result (void) endlessly
      *
-     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param callback - Callback that is invoked in thread owned by this event_loop
      *
      */
     template <typename AsynchFunc>
-    void wait(AsynchFunc&& asynch_func)
+    void wait(AsynchFunc&& callback)
     {
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
+        auto call = [this](auto callback) {
+            this->post(callback);
         };
-        wait_async(call, asynch_func);
+        wait_async(call, callback);
     }
 
     /**
      * Waiting for callback without result (void)
      *
-     * \param asynch_func - Callback that is invoked in thread owned by this event_loop
+     * \param callback - Callback that is invoked in thread owned by this event_loop
      * only before this function return
      * \param duration - Timeout (std::chrono::duration type)
      *
@@ -206,16 +250,16 @@ public:
      *
      */
     template <typename AsynchFunc, typename DurationType>
-    bool wait(AsynchFunc&& asynch_func, DurationType&& duration)
+    bool wait(AsynchFunc&& callback, DurationType&& duration)
     {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
         SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
 
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
+        auto call = [this](auto callback) {
+            this->post(callback);
         };
-        return wait_async(call, asynch_func, ms.count());
+        return wait_async(call, callback, ms.count());
     }
 
     /**
@@ -225,36 +269,6 @@ public:
      *
      */
     void wait();
-
-    /**
-     * Callback that is invoked after certain timeout
-     *
-     * \param duration - Timeout (std::chrono::duration type)
-     * \param callback - Callback that is invoked in thread owned by this event_loop
-     *
-     * \return loop object
-     *
-     */
-    template <typename DurationType, typename Handler>
-    event_loop& start_timer(DurationType&& duration, Handler&& callback)
-    {
-        SRV_ASSERT(_pservice);
-
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-
-        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum timer accuracy");
-
-        auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
-
-        timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
-        timer->async_wait(_strand.wrap([timer /*save timer object*/, callback](const boost::system::error_code& ec) {
-            if (!ec)
-            {
-                callback();
-            }
-        }));
-        return *this;
-    }
 
 protected:
     void run();
