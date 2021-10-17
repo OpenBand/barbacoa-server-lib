@@ -436,8 +436,39 @@ namespace tests {
     {
         server_lib::event_loop loop;
 
-        BOOST_REQUIRE_NO_THROW(loop.start());
+        BOOST_REQUIRE_NO_THROW(loop.change_thread_name("L").start());
         BOOST_REQUIRE_NO_THROW(loop.stop());
+
+        LOG_INFO("Next case");
+
+        //event loop can't stop itself (stop will emit deadlock)
+        //it will be done by creator or external loop
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        server_lib::event_loop external_stopper;
+        BOOST_REQUIRE_NO_THROW(external_stopper.change_thread_name("LS").start());
+        auto stop_action = [&]() {
+            LOG_INFO("Action is starting");
+            external_stopper.post([&]() {
+                LOG_INFO("Action has started");
+
+                BOOST_REQUIRE_NO_THROW(loop.stop());
+
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+
+                LOG_INFO("Action has finished");
+            });
+        };
+        BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
+        //external_stopper is stopping by destructor
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_CASE(wait_async_result_check)

@@ -56,5 +56,19 @@ namespace tests {
         DUMP_STR(ss.str());
     }
 
+    bool waiting_for_asynch_test(bool& done,
+                                 std::condition_variable& done_cond,
+                                 std::mutex& done_cond_guard,
+                                 size_t sec_timeout)
+    {
+        std::unique_lock<std::mutex> lck(done_cond_guard);
+        if (!done)
+        {
+            done_cond.wait_for(lck, std::chrono::seconds(sec_timeout), [&done]() {
+                return done;
+            });
+        }
+        return done;
+    }
 } // namespace tests
 } // namespace server_lib

@@ -108,7 +108,7 @@ namespace tests {
                  })
             .start();
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_CASE(tcp_connection_close_by_server_check)
@@ -201,7 +201,7 @@ namespace tests {
                  })
             .start();
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_SUITE_END()

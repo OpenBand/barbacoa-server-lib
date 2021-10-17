@@ -18,10 +18,6 @@ static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
 
 event_loop::event_loop(bool in_separate_thread /*= true*/)
     : _run_in_separate_thread(in_separate_thread)
-    , _id(std::this_thread::get_id())
-    , _pservice(std::make_shared<boost::asio::io_service>())
-    , _strand(*_pservice)
-    , _queue_size(0)
 {
     if (_run_in_separate_thread)
     {
@@ -32,10 +28,9 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
         SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
     }
 
-    _is_running = false;
-    _is_run = false;
-    _native_thread_id = 0l;
+    reset();
 }
+
 event_loop::~event_loop()
 {
     try
@@ -57,19 +52,35 @@ event_loop::~event_loop()
     }
 }
 
-bool event_loop::is_main_thread()
+void event_loop::reset()
 {
-#if defined(SERVER_LIB_PLATFORM_LINUX)
-    return getpid() == syscall(SYS_gettid);
-#else
-    return std::this_thread::get_id() == MAIN_THREAD_ID;
-#endif
+    _is_running = false;
+    _is_run = false;
+    _start_callback = nullptr;
+    _stop_callback = nullptr;
+    _id = std::this_thread::get_id();
+    _native_thread_id = 0l;
+
+    _pservice = std::make_shared<boost::asio::io_service>();
+    _pstrand = std::make_unique<boost::asio::io_service::strand>(*_pservice);
+    _queue_size = 0;
+    if (_run_in_separate_thread)
+        _thread.reset();
 }
 
 void event_loop::apply_thread_name()
 {
 #if defined(SERVER_LIB_PLATFORM_LINUX)
     SRV_ASSERT(0 == pthread_setname_np(pthread_self(), _thread_name.c_str()));
+#endif
+}
+
+bool event_loop::is_main_thread()
+{
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+    return getpid() == syscall(SYS_gettid);
+#else
+    return std::this_thread::get_id() == MAIN_THREAD_ID;
 #endif
 }
 
@@ -84,7 +95,7 @@ event_loop& event_loop::change_thread_name(const std::string& name)
     {
         apply_thread_name();
     }
-    else
+    else if (is_running())
     {
         post([this]() {
             apply_thread_name();
@@ -129,25 +140,12 @@ void event_loop::start()
 #else
                 _native_thread_id = static_cast<long>(std::this_thread::get_id().native_handle());
 #endif
-
-                SRV_LOGC_TRACE("Event loop is starting");
-
                 run();
-
-                SRV_LOGC_TRACE("Event loop has stopped");
-
-                if (_stop_callback)
-                    _stop_callback();
             }));
         }
         else
         {
             run();
-
-            SRV_LOGC_TRACE("Event loop has stopped");
-
-            if (_stop_callback)
-                _stop_callback();
         }
     }
     catch (const std::exception& e)
@@ -180,10 +178,7 @@ void event_loop::stop()
         SRV_THROW();
     }
 
-    _thread.reset();
-
-    _is_run = false;
-    _is_running = false;
+    reset();
 }
 
 event_loop& event_loop::on_start(callback_type&& callback)
@@ -211,7 +206,16 @@ void event_loop::run()
     _id = std::this_thread::get_id();
     try
     {
+        apply_thread_name();
+
+        SRV_LOGC_TRACE("Event loop is starting");
+
         _pservice->run();
+
+        SRV_LOGC_TRACE("Event loop has stopped");
+
+        if (_stop_callback)
+            _stop_callback();
     }
     catch (const std::exception& e)
     {

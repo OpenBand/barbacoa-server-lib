@@ -40,6 +40,9 @@ private:
         return callback_;
     }
 
+    void reset();
+    void apply_thread_name();
+
 public:
     using timer = server_lib::timer<event_loop>;
     using periodical_timer = server_lib::periodical_timer<event_loop>;
@@ -140,6 +143,7 @@ public:
     event_loop& post(Handler&& callback)
     {
         SRV_ASSERT(_pservice);
+        SRV_ASSERT(_pstrand);
 
         auto callback_ = register_queue(callback);
 
@@ -149,7 +153,7 @@ public:
         //  in which the 'run()'
         //* The 'strand' object guarantees that all 'post's are executed in queue
         //
-        _pservice->post(_strand.wrap(std::move(callback_)));
+        _pservice->post(_pstrand->wrap(std::move(callback_)));
 
         return *this;
     }
@@ -168,6 +172,7 @@ public:
     event_loop& post(DurationType&& duration, Handler&& callback)
     {
         SRV_ASSERT(_pservice);
+        SRV_ASSERT(_pstrand);
 
         auto callback_ = register_queue(callback);
 
@@ -178,7 +183,7 @@ public:
         auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
 
         timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
-        timer->async_wait(_strand.wrap([timer /*save timer object*/, callback_](const boost::system::error_code& ec) {
+        timer->async_wait(_pstrand->wrap([timer /*save timer object*/, callback_](const boost::system::error_code& ec) {
             if (!ec)
             {
                 callback_();
@@ -282,14 +287,11 @@ protected:
     std::atomic<std::thread::id> _id;
     std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;
-    boost::asio::io_service::strand _strand;
+    std::unique_ptr<boost::asio::io_service::strand> _pstrand;
     boost::optional<boost::asio::io_service::work> _loop_maintainer;
-    std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
     std::atomic_uint64_t _queue_size;
-
-private:
-    void apply_thread_name();
+    std::unique_ptr<std::thread> _thread;
 };
 
 } // namespace server_lib

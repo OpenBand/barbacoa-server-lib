@@ -267,7 +267,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         std::this_thread::sleep_for(500ms);
 
@@ -410,7 +410,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         std::this_thread::sleep_for(500ms);
 
@@ -560,7 +560,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         client_th.stop();
 
@@ -694,7 +694,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         client_th.stop();
 
@@ -843,7 +843,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         std::this_thread::sleep_for(500ms);
 
@@ -982,7 +982,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         client_th.stop();
 
@@ -1138,7 +1138,7 @@ namespace tests {
             LOG_TRACE("Client send request: " << message);
         };
 
-        BOOST_REQUIRE(waiting_for(done_test, done_test_cond, done_test_cond_guard));
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
 
         std::this_thread::sleep_for(500ms);
 

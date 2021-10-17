@@ -42,20 +42,5 @@ namespace tests {
         return static_cast<uint16_t>(result);
     }
 
-    bool basic_network_fixture::waiting_for(bool& done,
-                                            std::condition_variable& done_cond,
-                                            std::mutex& done_cond_guard,
-                                            size_t sec_timeout)
-    {
-        std::unique_lock<std::mutex> lck(done_cond_guard);
-        if (!done)
-        {
-            done_cond.wait_for(lck, std::chrono::seconds(sec_timeout), [&done]() {
-                return done;
-            });
-        }
-        return done;
-    }
-
 } // namespace tests
 } // namespace server_lib
