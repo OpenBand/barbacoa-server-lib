@@ -3,9 +3,9 @@
 #include <server_lib/event_loop.h>
 #include <server_lib/logging_helper.h>
 
-#include <server_lib/network/network_server.h>
-#include <server_lib/network/persist_network_client.h>
-#include <server_lib/network/raw_builder.h>
+#include <server_lib/network/nt_server.h>
+#include <server_lib/network/nt_persist_client.h>
+#include <server_lib/network/protocols.h>
 
 #include <mutex>
 #include <condition_variable>
@@ -18,6 +18,7 @@ namespace tests {
 
     using namespace server_lib::network;
 
+#if 0
     BOOST_FIXTURE_TEST_SUITE(network_tests, basic_network_fixture)
 
     BOOST_AUTO_TEST_CASE(persist_connection_close_by_client_check)
@@ -32,8 +33,8 @@ namespace tests {
 
         raw_builder protocol;
 
-        network_server server;
-        persist_network_client client;
+        nt_server server;
+        nt_persist_client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -41,13 +42,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<app_connection_i> hold_connection;
+        std::shared_ptr<nt_connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](app_connection_i& conn, app_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -56,11 +57,12 @@ namespace tests {
             BOOST_REQUIRE_NO_THROW(hold_connection->send(protocol.create(pong_data)).commit());
         };
 
-        auto server_disconnect_callback = [&hold_connection, &client_th, &done_test, &done_test_cond_guard, &done_test_cond](app_connection_i& conn) {
+        auto server_disconnect_callback = [&hold_connection, &client_th, &done_test, &done_test_cond_guard, &done_test_cond](
+                                              size_t connection_id) {
             LOG_TRACE("********* server_disconnect_callback");
 
-            BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
-
+            BOOST_REQUIRE(hold_connection);
+            BOOST_REQUIRE_EQUAL(connection_id, hold_connection->id());
             hold_connection.reset();
 
             client_th.post([&] {
@@ -72,22 +74,22 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<app_connection_i>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
 
-            connection->set_on_receive_handler(server_recieve_callback);
-            connection->set_on_disconnect_handler(server_disconnect_callback);
+            connection->on_receive(server_recieve_callback);
+            connection->on_disconnect(server_disconnect_callback);
 
             hold_connection = connection;
         };
 
-        auto client_connection_callback = [](const persist_network_client::connect_state state) {
+        auto client_connection_callback = [](const nt_persist_client::connection_state state) {
             LOG_TRACE("********* client_disconnect_callback: " << state);
         };
 
-        auto client_ack_callback = [&pong_data, &client_th, &client](app_unit& unit) {
+        auto client_ack_callback = [&pong_data, &client_th, &client](nt_unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), pong_data);
@@ -101,7 +103,8 @@ namespace tests {
 
         auto client_run = [&client, &host, &port, &protocol, &client_th,
                            &client_connection_callback, &ping_data, &client_ack_callback]() {
-            BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_connection_callback));
+            BOOST_REQUIRE(client.on_connection_state(client_connection_callback)
+                              .connect(client.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
             BOOST_REQUIRE(client.is_connected());
             BOOST_REQUIRE(!client.is_reconnecting());
 
@@ -109,7 +112,10 @@ namespace tests {
         };
 
         server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
-                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+                     BOOST_REQUIRE(server.on_new_connection(
+                                             server_new_connection_callback)
+                                       .start(
+                                           server.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
 
                      client_th.on_start([&]() { client_run(); }).start();
                  })
@@ -130,8 +136,8 @@ namespace tests {
 
         raw_builder protocol;
 
-        network_server server;
-        persist_network_client client;
+        nt_server server;
+        nt_persist_client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -139,13 +145,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<app_connection_i> hold_connection;
+        std::shared_ptr<nt_connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](app_connection_i& conn, app_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -154,31 +160,32 @@ namespace tests {
             BOOST_REQUIRE_NO_THROW(hold_connection->send(protocol.create(pong_data)).commit());
         };
 
-        auto server_disconnect_callback = [&hold_connection](app_connection_i& conn) {
+        auto server_disconnect_callback = [&hold_connection](size_t connection_id) {
             LOG_TRACE("********* server_disconnect_callback");
 
-            BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
+            BOOST_REQUIRE(hold_connection);
+            BOOST_REQUIRE_EQUAL(connection_id, hold_connection->id());
 
             hold_connection.reset();
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<app_connection_i>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
 
-            connection->set_on_receive_handler(server_recieve_callback);
-            connection->set_on_disconnect_handler(server_disconnect_callback);
+            connection->on_receive(server_recieve_callback);
+            connection->on_disconnect(server_disconnect_callback);
 
             hold_connection = connection;
         };
 
         auto client_connection_callback = [&client_th,
-                                           &done_test, &done_test_cond_guard, &done_test_cond](const persist_network_client::connect_state state) {
+                                           &done_test, &done_test_cond_guard, &done_test_cond](const nt_persist_client::connection_state state) {
             LOG_TRACE("********* client_connection_callback: " << state);
 
-            if (persist_network_client::connect_state::stopped == state)
+            if (nt_persist_client::connection_state::stopped == state)
             {
                 client_th.post([&] {
                     //done test
@@ -189,7 +196,7 @@ namespace tests {
             }
         };
 
-        auto client_ack_callback = [&pong_data, &server_th, &server](app_unit& unit) {
+        auto client_ack_callback = [&pong_data, &server_th, &server](nt_unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), pong_data);
@@ -201,7 +208,8 @@ namespace tests {
 
         auto client_run = [&client, &host, &port, &protocol, &client_th,
                            &client_connection_callback, &ping_data, &client_ack_callback]() {
-            BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_connection_callback));
+            BOOST_REQUIRE(client.on_connection_state(client_connection_callback)
+                              .connect(client.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
             BOOST_REQUIRE(client.is_connected());
             BOOST_REQUIRE(!client.is_reconnecting());
 
@@ -209,7 +217,10 @@ namespace tests {
         };
 
         server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
-                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+                     BOOST_REQUIRE(server.on_new_connection(
+                                             server_new_connection_callback)
+                                       .start(
+                                           server.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
 
                      client_th.on_start([&]() { client_run(); }).start();
                  })
@@ -230,19 +241,19 @@ namespace tests {
 
         raw_builder protocol;
 
-        network_server server;
-        persist_network_client client;
+        nt_server server;
+        nt_persist_client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
 
-        std::shared_ptr<app_connection_i> hold_connection;
+        std::shared_ptr<nt_connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection](app_connection_i& conn, app_unit& unit) {
+        auto server_recieve_callback = [&hold_connection](nt_connection& conn, nt_unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << unit.as_string());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -250,10 +261,12 @@ namespace tests {
             BOOST_REQUIRE_NO_THROW(hold_connection->send(unit).commit());
         };
 
-        auto server_disconnect_callback = [&hold_connection, &client_th, &done_test, &done_test_cond_guard, &done_test_cond](app_connection_i& conn) {
+        auto server_disconnect_callback = [&hold_connection, &client_th, &done_test, &done_test_cond_guard, &done_test_cond](
+                                              size_t connection_id) {
             LOG_TRACE("********* server_disconnect_callback");
 
-            BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
+            BOOST_REQUIRE(hold_connection);
+            BOOST_REQUIRE_EQUAL(connection_id, hold_connection->id());
 
             hold_connection.reset();
 
@@ -266,18 +279,18 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<app_connection_i>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
 
-            connection->set_on_receive_handler(server_recieve_callback);
-            connection->set_on_disconnect_handler(server_disconnect_callback);
+            connection->on_receive(server_recieve_callback);
+            connection->on_disconnect(server_disconnect_callback);
 
             hold_connection = connection;
         };
 
-        auto client_connection_callback = [](const persist_network_client::connect_state state) {
+        auto client_connection_callback = [](const nt_persist_client::connection_state state) {
             LOG_TRACE("********* client_connection_callback: " << state);
         };
 
@@ -285,7 +298,7 @@ namespace tests {
         static int message_2 = 2;
         static int message_fin = 3;
 
-        auto client_final_ack_callback = [&client_th, &client](app_unit& unit) {
+        auto client_final_ack_callback = [&client_th, &client](nt_unit& unit) {
             LOG_TRACE("********* client_final_ack_callback: " << unit.as_string());
 
             BOOST_REQUIRE(unit.is_string());
@@ -298,7 +311,7 @@ namespace tests {
             });
         };
 
-        auto client_ack_callback = [&client, &protocol, &client_th, &client_final_ack_callback](app_unit& unit) {
+        auto client_ack_callback = [&client, &protocol, &client_th, &client_final_ack_callback](nt_unit& unit) {
             LOG_TRACE("********* client_ack_callback: " << unit.as_string());
 
             BOOST_REQUIRE(unit.is_string());
@@ -320,7 +333,8 @@ namespace tests {
 
         auto client_run = [&client, &host, &port, &protocol, &client_th,
                            &client_connection_callback, &client_ack_callback]() {
-            BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_connection_callback));
+            BOOST_REQUIRE(client.on_connection_state(client_connection_callback)
+                              .connect(client.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
             BOOST_REQUIRE(client.is_connected());
             BOOST_REQUIRE(!client.is_reconnecting());
 
@@ -328,7 +342,10 @@ namespace tests {
         };
 
         server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
-                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+                     BOOST_REQUIRE(server.on_new_connection(
+                                             server_new_connection_callback)
+                                       .start(
+                                           server.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
 
                      client_th.on_start([&]() { client_run(); }).start();
                  })
@@ -356,8 +373,8 @@ namespace tests {
 
         raw_builder protocol;
 
-        network_server server;
-        persist_network_client client;
+        nt_server server;
+        nt_persist_client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -365,13 +382,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<app_connection_i> hold_connection;
+        std::shared_ptr<nt_connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](app_connection_i& conn, app_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -380,29 +397,30 @@ namespace tests {
             BOOST_REQUIRE_NO_THROW(hold_connection->send(protocol.create(pong_data)).commit());
         };
 
-        auto server_disconnect_callback = [&hold_connection](app_connection_i& conn) {
+        auto server_disconnect_callback = [&hold_connection](size_t connection_id) {
             LOG_TRACE("********* server_disconnect_callback");
 
-            BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
+            BOOST_REQUIRE(hold_connection);
+            BOOST_REQUIRE_EQUAL(connection_id, hold_connection->id());
 
             hold_connection.reset();
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<app_connection_i>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
 
-            connection->set_on_receive_handler(server_recieve_callback);
-            connection->set_on_disconnect_handler(server_disconnect_callback);
+            connection->on_receive(server_recieve_callback);
+            connection->on_disconnect(server_disconnect_callback);
 
             hold_connection = connection;
         };
 
         int32_t reconnects = 2;
 
-        auto client_ack_callback = [&pong_data, &server_th, &server, &reconnects](app_unit& unit) {
+        auto client_ack_callback = [&pong_data, &server_th, &server, &reconnects](nt_unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             if (reconnects > 0)
@@ -425,12 +443,12 @@ namespace tests {
         auto client_connection_callback = [&client_th, &client, &protocol, &ping_data, &client_ack_callback,
                                            &done_test, &done_test_cond_guard, &done_test_cond,
                                            &reconnects, &server_th, &server, &host, &port,
-                                           &server_new_connection_callback](const persist_network_client::connect_state state) {
+                                           &server_new_connection_callback](const nt_persist_client::connection_state state) {
             LOG_TRACE("********* client_connection_callback: " << state);
 
             switch (state)
             {
-            case persist_network_client::connect_state::dropped: {
+            case nt_persist_client::connection_state::dropped: {
                 //add message to queue
                 BOOST_REQUIRE_NO_THROW(client.send(protocol.create(ping_data), client_ack_callback).commit());
 
@@ -442,12 +460,15 @@ namespace tests {
                     server_th.post([&] {
                         LOG_TRACE("********* next server starting");
 
-                        BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+                        BOOST_REQUIRE(server.on_new_connection(
+                                                server_new_connection_callback)
+                                          .start(
+                                              server.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
                     });
                 }
             }
             break;
-            case persist_network_client::connect_state::stopped: {
+            case nt_persist_client::connection_state::stopped: {
                 reconnects = -1;
 
                 client_th.post([&] {
@@ -469,8 +490,8 @@ namespace tests {
             int32_t max_reconnects = reconnects;
             uint32_t reconnect_interval_ms = 200;
 
-            BOOST_REQUIRE(client.connect(host, port, &protocol, &client_th, client_connection_callback,
-                                         timeout_ms, max_reconnects, reconnect_interval_ms));
+            BOOST_REQUIRE(client.on_connection_state(client_connection_callback)
+                              .connect(client.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
             BOOST_REQUIRE(client.is_connected());
             BOOST_REQUIRE(!client.is_reconnecting());
 
@@ -479,8 +500,10 @@ namespace tests {
 
         server_th.on_start([&server, &host, &port, &protocol, &server_th, &server_new_connection_callback, &client_th, &client_run]() {
                      LOG_TRACE("********* server is starting");
-
-                     BOOST_REQUIRE(server.start(host, port, &protocol, &server_th, server_new_connection_callback));
+                     BOOST_REQUIRE(server.on_new_connection(
+                                             server_new_connection_callback)
+                                       .start(
+                                           server.configurate_tcp().set_address(host, port).set_protocol(&protocol)));
 
                      client_th.on_start([&]() { client_run(); }).start();
                  })
@@ -491,5 +514,6 @@ namespace tests {
 
     BOOST_AUTO_TEST_SUITE_END()
 
+#endif
 } // namespace tests
 } // namespace server_lib

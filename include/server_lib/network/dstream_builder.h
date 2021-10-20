@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/app_unit_builder_i.h>
+#include <server_lib/network/nt_unit_builder_i.h>
 
 namespace server_lib {
 namespace network {
@@ -10,7 +10,7 @@ namespace network {
      *
      * \brief Data stream separated with delimiter.
      */
-    class dstream_builder : public app_unit_builder_i
+    class dstream_builder : public nt_unit_builder_i
     {
     public:
         /**
@@ -23,21 +23,21 @@ namespace network {
 
         ~dstream_builder() override = default;
 
-        app_unit_builder_i* clone() const override
+        nt_unit_builder_i* clone() const override
         {
             return new dstream_builder { _delimeter.c_str() };
         }
 
-        app_unit create(const std::string&) const override;
+        nt_unit create(const std::string&) const override;
 
-        app_unit_builder_i& operator<<(std::string& network_data) override;
+        nt_unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override
         {
             return _buffer_unit.ok();
         }
 
-        app_unit get_unit() const override
+        nt_unit get_unit() const override
         {
             return _buffer_unit;
         }
@@ -49,7 +49,7 @@ namespace network {
 
     private:
         const std::string _delimeter;
-        app_unit _buffer_unit;
+        nt_unit _buffer_unit;
     };
 
 } // namespace network

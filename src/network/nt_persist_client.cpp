@@ -1,7 +1,6 @@
-#include <server_lib/network/persist_network_client.h>
+#include <server_lib/network/nt_persist_client.h>
 
-#include "tcp_client_impl.h"
-#include "app_connection_impl.h"
+#include "transport/tcp_client_impl.h"
 
 #include <server_lib/asserts.h>
 
@@ -10,115 +9,130 @@
 namespace server_lib {
 namespace network {
 
-    persist_network_client::persist_network_client(const std::shared_ptr<tcp_client_i>& transport_layer)
-        : _transport_layer(transport_layer)
-        , _reconnecting(false)
+#if 0
+    nt_persist_client::tcp_config& nt_persist_client::tcp_config::set_max_reconnects(size_t max_reconnects)
+    {
+        _max_reconnects = max_reconnects;
+        return *this;
+    }
+
+    nt_persist_client::nt_persist_client()
+        : _reconnecting(false)
         , _cancel(false)
         , _callbacks_running(0u)
     {
-        SRV_ASSERT(_transport_layer);
-        SRV_LOGC_TRACE("created");
     }
 
-    persist_network_client::persist_network_client()
-        : persist_network_client(std::make_shared<tcp_client_impl>())
-    {
-    }
-
-    persist_network_client::~persist_network_client()
+    nt_persist_client::~nt_persist_client()
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
-        if (!_cancel)
+        try
         {
-            cancel_reconnect();
+            if (!_cancel)
+            {
+                cancel_reconnect();
+            }
+
+            if (is_connected())
+            {
+                SRV_ASSERT(_transport_layer);
+
+                _transport_layer->disconnect();
+            }
+        }
+        catch (const std::exception& e)
+        {
+            SRV_LOGC_ERROR(e.what());
         }
 
-        if (_transport_layer->is_connected())
-        {
-            _transport_layer->disconnect(true);
-        }
 
         SRV_LOGC_TRACE("destroyed");
     }
 
-    void persist_network_client::create_connection()
+    nt_persist_client::tcp_config nt_persist_client::configurate_tcp()
+    {
+        return {};
+    }
+
+    void nt_persist_client::create_connection()
     {
         SRV_ASSERT(_protocol);
-        SRV_ASSERT(_transport_layer->is_connected());
+        SRV_ASSERT(is_connected());
+        SRV_ASSERT(_transport_layer);
 
-        auto disconnection_handler = std::bind(&persist_network_client::connection_disconnection_handler, this, std::placeholders::_1);
-        auto receive_handler = std::bind(&persist_network_client::connection_receive_handler, this, std::placeholders::_1,
+        auto disconnection_handler = std::bind(&nt_persist_client::connection_disconnection_handler, this, std::placeholders::_1);
+        auto receive_handler = std::bind(&nt_persist_client::connection_receive_handler, this, std::placeholders::_1,
                                          std::placeholders::_2);
 
         auto raw_connection = _transport_layer->create_connection();
-        auto connection = std::make_shared<app_connection_impl>(raw_connection, _protocol);
-        connection->set_on_disconnect_handler(disconnection_handler);
-        connection->set_on_receive_handler(receive_handler);
-        connection->set_callback_thread(_callback_thread);
+        auto connection = std::make_shared<nt_connection>(raw_connection, _protocol);
+        connection->on_disconnect(disconnection_handler);
+        connection->on_receive(receive_handler);
         _connection = connection;
     }
 
-    bool persist_network_client::connect(
-        const std::string& host, uint16_t port,
-        const app_unit_builder_i* protocol,
-        event_loop* callback_thread,
-        const connect_callback_type& connect_callback,
-        uint32_t timeout_ms,
-        int32_t max_reconnects,
-        uint32_t reconnect_interval_ms,
-        uint8_t nb_threads)
+    bool nt_persist_client::connect(
+        const tcp_config& config)
     {
         try
         {
-            SRV_ASSERT(protocol);
+            SRV_ASSERT(!is_connected() && !is_reconnecting());
+            SRV_ASSERT(config.valid());
 
-            SRV_LOGC_TRACE("attempts to connect");
-
-            _host = host;
-            _port = port;
-            _callback_thread = callback_thread;
-            _connect_callback = connect_callback;
-            _connect_timeout_ms = timeout_ms;
-            _max_reconnects = max_reconnects;
-            _reconnect_interval_ms = reconnect_interval_ms;
-
-            _protocol = std::shared_ptr<app_unit_builder_i> { protocol->clone() };
-            SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-            if (_connect_callback)
-            {
-                _connect_callback(connect_state::start);
-            }
-
-            if (nb_threads > 0)
-            {
-                _nb_threads = nb_threads;
-                _transport_layer->set_nb_workers(nb_threads);
-            }
-            _transport_layer->connect(host, port, timeout_ms);
-            if (!_transport_layer->is_connected())
-            {
-                SRV_LOGC_TRACE("connection failed");
-
-                if (_connect_callback)
+            _connect_configurated = [this, config]() {
+                try
                 {
-                    _connect_callback(connect_state::failed);
+                    SRV_LOGC_TRACE("attempts to connect");
+
+                    if (_connect_callback)
+                    {
+                        _connect_callback(connection_state::start);
+                    }
+
+                    auto transport_impl = std::make_shared<transport_layer::tcp_client_impl>();
+                    transport_impl->config(config._address, config._port, config._worker_threads, config._timeout_connect_ms);
+                    _transport_layer = transport_impl;
+
+                    //TODO: make connect async
+                    _transport_layer->connect(nullptr, nullptr);
+                    if (!_transport_layer->is_connected())
+                    {
+                        SRV_LOGC_TRACE("connection failed");
+
+                        if (_connect_callback)
+                        {
+                            _connect_callback(connection_state::failed);
+                        }
+
+                        return false;
+                    }
+
+                    _max_reconnects = config._max_reconnects;
+                    _reconnect_interval_ms = config._reconnect_interval_ms;
+
+                    _protocol = config._protocol;
+
+                    create_connection();
+
+                    SRV_LOGC_TRACE("connected");
+
+                    if (_connect_callback)
+                    {
+                        _connect_callback(connection_state::ok);
+                    }
+
+                    return true;
+                }
+                catch (const std::exception& e)
+                {
+                    SRV_LOGC_ERROR(e.what());
                 }
 
                 return false;
-            }
+            };
 
-            create_connection();
-
-            SRV_LOGC_TRACE("connected");
-
-            if (_connect_callback)
-            {
-                _connect_callback(connect_state::ok);
-            }
-
-            return true;
+            return _connect_configurated();
         }
         catch (const std::exception& e)
         {
@@ -128,32 +142,31 @@ namespace network {
         return false;
     }
 
-    void persist_network_client::set_nb_workers(uint8_t nb_threads)
+    nt_persist_client& nt_persist_client::on_connection_state(connect_callback_type&& callback)
     {
-        SRV_LOGC_TRACE("changed number of workers. Old = " << _nb_threads << ", New = " << nb_threads);
-
-        _nb_threads = nb_threads;
-        _transport_layer->set_nb_workers(nb_threads);
+        _connect_callback = std::forward<connect_callback_type>(callback);
+        return *this;
     }
 
-    void persist_network_client::disconnect(bool wait_for_removal)
+    void nt_persist_client::disconnect()
     {
         SRV_LOGC_TRACE("attempts to disconnect");
 
         cancel_reconnect();
         clear_callbacks();
 
-        _transport_layer->disconnect(wait_for_removal);
+        if (_transport_layer)
+            _transport_layer->disconnect();
 
         SRV_LOGC_TRACE("disconnected");
     }
 
-    bool persist_network_client::is_connected() const
+    bool nt_persist_client::is_connected() const
     {
-        return _transport_layer->is_connected() && _connection && _connection->is_connected();
+        return _transport_layer && _transport_layer->is_connected() && _connection && _connection->is_connected();
     }
 
-    void persist_network_client::cancel_reconnect()
+    void nt_persist_client::cancel_reconnect()
     {
         _cancel = true;
 
@@ -165,19 +178,19 @@ namespace network {
         }
     }
 
-    bool persist_network_client::is_reconnecting() const
+    bool nt_persist_client::is_reconnecting() const
     {
         return _reconnecting;
     }
 
-    app_unit_builder_i& persist_network_client::protocol()
+    nt_unit_builder_i& nt_persist_client::protocol()
     {
         SRV_ASSERT(_protocol);
         return *_protocol;
     }
 
-    persist_network_client&
-    persist_network_client::send(const app_unit& cmd, const receive_callback_type& callback)
+    nt_persist_client&
+    nt_persist_client::send(const nt_unit& cmd, const receive_callback_type& callback)
     {
         std::lock_guard<std::mutex> lock_callback(_callbacks_mutex);
 
@@ -188,21 +201,21 @@ namespace network {
         return *this;
     }
 
-    std::future<app_unit> persist_network_client::send(const app_unit& cmd)
+    std::future<nt_unit> nt_persist_client::send(const nt_unit& cmd)
     {
-        auto f = [=](const receive_callback_type& cb) -> persist_network_client& { return send(cmd, cb); };
+        auto f = [=](const receive_callback_type& cb) -> nt_persist_client& { return send(cmd, cb); };
 
-        auto prms = std::make_shared<std::promise<app_unit>>();
+        auto prms = std::make_shared<std::promise<nt_unit>>();
 
-        f([prms](app_unit& unit) {
+        f([prms](nt_unit& unit) {
             prms->set_value(unit);
         }); //call send(cmd, { this callback })
 
         return prms->get_future();
     }
 
-    persist_network_client&
-    persist_network_client::commit()
+    nt_persist_client&
+    nt_persist_client::commit()
     {
         if (!is_reconnecting())
         {
@@ -212,8 +225,8 @@ namespace network {
         return *this;
     }
 
-    persist_network_client&
-    persist_network_client::sync_commit()
+    nt_persist_client&
+    nt_persist_client::sync_commit()
     {
         if (!is_reconnecting())
         {
@@ -227,7 +240,7 @@ namespace network {
         return *this;
     }
 
-    void persist_network_client::try_commit()
+    void nt_persist_client::try_commit()
     {
         try
         {
@@ -248,7 +261,7 @@ namespace network {
         }
     }
 
-    void persist_network_client::unprotected_send(const app_unit& cmd, const receive_callback_type& callback)
+    void nt_persist_client::unprotected_send(const nt_unit& cmd, const receive_callback_type& callback)
     {
         SRV_LOGC_TRACE("Before _commands = " << _commands.size() << ", _callbacks_running = " << _callbacks_running.load());
 
@@ -261,7 +274,7 @@ namespace network {
         SRV_LOGC_TRACE("After _commands = " << _commands.size() << ", _callbacks_running = " << _callbacks_running.load());
     }
 
-    void persist_network_client::connection_receive_handler(app_connection_i&, app_unit& unit)
+    void nt_persist_client::connection_receive_handler(nt_connection&, nt_unit& unit)
     {
         receive_callback_type callback = nullptr;
 
@@ -290,7 +303,7 @@ namespace network {
         }
     }
 
-    void persist_network_client::connection_disconnection_handler(app_connection_i&)
+    void nt_persist_client::connection_disconnection_handler(size_t)
     {
         if (_cancel.load())
         {
@@ -310,7 +323,7 @@ namespace network {
 
             if (_connect_callback)
             {
-                _connect_callback(connect_state::dropped);
+                _connect_callback(connection_state::dropped);
             }
 
             std::lock_guard<std::mutex> lock_callback(_callbacks_mutex);
@@ -332,7 +345,7 @@ namespace network {
         _reconnecting = false;
     }
 
-    void persist_network_client::sleep_before_next_reconnect_attempt()
+    void nt_persist_client::sleep_before_next_reconnect_attempt()
     {
         if (_reconnect_interval_ms <= 0)
         {
@@ -341,24 +354,24 @@ namespace network {
 
         if (_connect_callback)
         {
-            _connect_callback(connect_state::sleeping);
+            _connect_callback(connection_state::sleeping);
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(_reconnect_interval_ms));
     }
 
-    void persist_network_client::reconnect()
+    void nt_persist_client::reconnect()
     {
         ++_current_reconnect_attempts;
 
-        connect(_host, _port, _protocol.get(), _callback_thread, _connect_callback, _connect_timeout_ms, _max_reconnects,
-                _reconnect_interval_ms, _nb_threads);
+        SRV_ASSERT(_connect_configurated);
+        _connect_configurated();
 
         if (!is_connected())
         {
             if (_connect_callback)
             {
-                _connect_callback(connect_state::failed);
+                _connect_callback(connection_state::failed);
             }
             return;
         }
@@ -369,12 +382,12 @@ namespace network {
         try_commit();
     }
 
-    bool persist_network_client::should_reconnect() const
+    bool nt_persist_client::should_reconnect() const
     {
         return !is_connected() && !_cancel && (_max_reconnects < 0 || _current_reconnect_attempts < _max_reconnects);
     }
 
-    void persist_network_client::resend_failed_commands()
+    void nt_persist_client::resend_failed_commands()
     {
         if (_commands.empty())
         {
@@ -393,7 +406,7 @@ namespace network {
         }
     }
 
-    void persist_network_client::clear_callbacks()
+    void nt_persist_client::clear_callbacks()
     {
         if (_commands.empty())
         {
@@ -413,7 +426,7 @@ namespace network {
                 {
                     SRV_LOGC_TRACE("cleanup _commands = " << commands.size() << ", _callbacks_running = " << _callbacks_running.load());
 
-                    app_unit r { "network failure", false };
+                    nt_unit r { "network failure", false };
                     callback(r);
                 }
 
@@ -423,30 +436,26 @@ namespace network {
 
             _sync_condvar.notify_all();
         };
-        if (_callback_thread)
-        {
-            _callback_thread->post(call_);
-        }
-        else
-        {
-            std::thread t([call_]() mutable {
-                call_();
-            });
-            t.detach();
-        }
+        std::thread t([call_]() mutable {
+            call_();
+        });
+        t.detach();
     }
 
-    void persist_network_client::clear_connection()
+    void nt_persist_client::clear_connection()
     {
         SRV_LOGC_TRACE("reset connection");
 
         if (_connect_callback)
         {
-            _connect_callback(connect_state::stopped);
+            _connect_callback(connection_state::stopped);
         }
 
         _connection.reset();
         _protocol.reset();
+        _connect_configurated = nullptr;
     }
+#endif
+
 } // namespace network
 } // namespace server_lib

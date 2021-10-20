@@ -7,20 +7,20 @@
 namespace server_lib {
 namespace network {
 
-    app_unit msg_builder::create(const std::string& msg) const
+    nt_unit msg_builder::create(const std::string& msg) const
     {
         SRV_ASSERT(msg.size() <= _msg_max_size);
 
-        app_unit msg_unit { true };
+        nt_unit msg_unit { true };
 
         auto sz = msg.size();
         SRV_ASSERT(sz <= static_cast<size_type>(std::numeric_limits<size_type>::max()));
 
-        msg_unit << app_unit { integer_builder::pack(static_cast<size_type>(sz)) } << app_unit { msg };
+        msg_unit << nt_unit { integer_builder::pack(static_cast<size_type>(sz)) } << nt_unit { msg };
         return msg_unit;
     }
 
-    app_unit_builder_i& msg_builder::operator<<(std::string& network_data)
+    nt_unit_builder_i& msg_builder::operator<<(std::string& network_data)
     {
         if (unit_ready())
             return *this;

@@ -23,42 +23,42 @@ namespace network {
      * (data brick or container for nested bricks)
      * in TCP byte stream
      */
-    class app_unit
+    class nt_unit
     {
     public:
-        app_unit(const bool success = false);
+        nt_unit(const bool success = false);
 
-        app_unit(const std::string& value, const bool success = true);
-        app_unit(const char* value, const size_t sz, const bool success = true)
-            : app_unit(std::string { value, sz }, success)
+        nt_unit(const std::string& value, const bool success = true);
+        nt_unit(const char* value, const size_t sz, const bool success = true)
+            : nt_unit(std::string { value, sz }, success)
         {
         }
-        app_unit(const char* value, const bool success = true)
-            : app_unit(std::string { value }, success)
+        nt_unit(const char* value, const bool success = true)
+            : nt_unit(std::string { value }, success)
         {
         }
 
         using integer_type = uint32_t;
 
-        app_unit(const integer_type value, const bool success = true);
+        nt_unit(const integer_type value, const bool success = true);
 
         template <typename T>
-        app_unit(const T value, const bool success = true)
-            : app_unit(static_cast<integer_type>(value), success)
+        nt_unit(const T value, const bool success = true)
+            : nt_unit(static_cast<integer_type>(value), success)
         {
         }
 
-        app_unit(const std::vector<app_unit>& nested, const bool success = true);
+        nt_unit(const std::vector<nt_unit>& nested, const bool success = true);
 
-        ~app_unit() = default;
+        ~nt_unit() = default;
 
-        app_unit(const app_unit&) = default;
+        nt_unit(const nt_unit&) = default;
 
-        app_unit& operator=(const app_unit&) = default;
+        nt_unit& operator=(const nt_unit&) = default;
 
-        app_unit(app_unit&&) noexcept;
+        nt_unit(nt_unit&&) noexcept;
 
-        app_unit& operator=(app_unit&&) noexcept;
+        nt_unit& operator=(nt_unit&&) noexcept;
 
     public:
         bool is_root_for_nested_content() const;
@@ -71,7 +71,7 @@ namespace network {
 
         bool is_null() const;
 
-        friend bool operator==(const app_unit& a, const app_unit& b)
+        friend bool operator==(const nt_unit& a, const nt_unit& b)
         {
             if (a._success != b._success)
                 return false;
@@ -88,7 +88,7 @@ namespace network {
     public:
         const std::string& error() const;
 
-        const std::vector<app_unit>& get_nested() const;
+        const std::vector<nt_unit>& get_nested() const;
 
         const std::string& as_string() const;
 
@@ -105,7 +105,7 @@ namespace network {
 
         void set(const integer_type value, const bool success = true);
 
-        void set(const std::vector<app_unit>& nested, const bool success = true);
+        void set(const std::vector<nt_unit>& nested, const bool success = true);
 
         /**
          * For array unit, add a new unit to the root
@@ -114,7 +114,7 @@ namespace network {
          * \return Current instance
          *
          */
-        app_unit& operator<<(const app_unit& unit);
+        nt_unit& operator<<(const nt_unit& unit);
 
     private:
         using variant_type = boost::variant<std::string,
@@ -123,7 +123,7 @@ namespace network {
 
         bool _success = false;
         variant_type _data;
-        std::vector<app_unit> _nested_content;
+        std::vector<nt_unit> _nested_content;
     };
 
 } // namespace network
@@ -133,4 +133,4 @@ namespace network {
  * support for output
  *
  */
-std::ostream& operator<<(std::ostream& os, const server_lib::network::app_unit& unit);
+std::ostream& operator<<(std::ostream& os, const server_lib::network::nt_unit& unit);

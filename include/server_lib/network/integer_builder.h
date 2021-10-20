@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/app_unit_builder_i.h>
+#include <server_lib/network/nt_unit_builder_i.h>
 
 namespace server_lib {
 namespace network {
@@ -10,25 +10,25 @@ namespace network {
      *
      * \brief Represents 32-integer (uint32_t)
      */
-    class integer_builder : public app_unit_builder_i
+    class integer_builder : public nt_unit_builder_i
     {
     public:
         integer_builder() = default;
 
         ~integer_builder() override = default;
 
-        using integer_type = app_unit::integer_type;
+        using integer_type = nt_unit::integer_type;
 
         static std::string pack(const integer_type);
 
-        app_unit_builder_i& operator<<(std::string& network_data) override;
+        nt_unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override
         {
             return _unit.ok();
         }
 
-        app_unit get_unit() const override
+        nt_unit get_unit() const override
         {
             return _unit;
         }
@@ -39,7 +39,7 @@ namespace network {
         }
 
     private:
-        app_unit _unit;
+        nt_unit _unit;
     };
 
 } // namespace network

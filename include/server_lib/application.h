@@ -39,7 +39,7 @@ public:
     /**
      * \ingroup common
      *
-     * \brief This class configurate application.
+     * \brief This class configurates application.
      */
     class config
     {

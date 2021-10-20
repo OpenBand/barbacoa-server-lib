@@ -4,14 +4,14 @@
 namespace server_lib {
 namespace network {
 
-    app_unit dstream_builder::create(const std::string& buff) const
+    nt_unit dstream_builder::create(const std::string& buff) const
     {
         std::string buff_ { buff };
         buff_.append(_delimeter);
         return { buff_ };
     }
 
-    app_unit_builder_i& dstream_builder::operator<<(std::string& network_data)
+    nt_unit_builder_i& dstream_builder::operator<<(std::string& network_data)
     {
         if (unit_ready())
             return *this;

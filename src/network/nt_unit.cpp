@@ -1,4 +1,4 @@
-#include <server_lib/network/app_unit.h>
+#include <server_lib/network/nt_unit.h>
 #include <server_lib/network/integer_builder.h>
 
 #include <server_lib/asserts.h>
@@ -10,40 +10,40 @@
 namespace server_lib {
 namespace network {
 
-    app_unit::app_unit(const bool success)
+    nt_unit::nt_unit(const bool success)
         : _success(success)
         , _data(success)
     {
     }
 
-    app_unit::app_unit(const std::string& value, const bool success)
+    nt_unit::nt_unit(const std::string& value, const bool success)
         : _success(success)
         , _data(value)
     {
     }
 
-    app_unit::app_unit(const integer_type value, const bool success)
+    nt_unit::nt_unit(const integer_type value, const bool success)
         : _success(success)
         , _data(value)
     {
     }
 
-    app_unit::app_unit(const std::vector<app_unit>& nested, const bool success)
+    nt_unit::nt_unit(const std::vector<nt_unit>& nested, const bool success)
         : _success(success)
         , _data(success)
     {
         _nested_content = nested;
     }
 
-    app_unit::app_unit(app_unit&& other) noexcept
+    nt_unit::nt_unit(nt_unit&& other) noexcept
     {
         _success = other._success;
         _data = std::move(other._data);
         _nested_content = std::move(other._nested_content);
     }
 
-    app_unit&
-    app_unit::operator=(app_unit&& other) noexcept
+    nt_unit&
+    nt_unit::operator=(nt_unit&& other) noexcept
     {
         if (this != &other)
         {
@@ -55,50 +55,50 @@ namespace network {
         return *this;
     }
 
-    bool app_unit::ok() const
+    bool nt_unit::ok() const
     {
         return !is_error();
     }
 
     const std::string&
-    app_unit::error() const
+    nt_unit::error() const
     {
         SRV_ASSERT(is_error(), "Logic unit is not an error");
 
         return as_string();
     }
 
-    app_unit::operator bool() const
+    nt_unit::operator bool() const
     {
         return !is_error() && !is_null();
     }
 
-    void app_unit::set(const bool success)
+    void nt_unit::set(const bool success)
     {
         _success = success;
         _data = success;
     }
 
-    void app_unit::set(const std::string& value, const bool success)
+    void nt_unit::set(const std::string& value, const bool success)
     {
         _success = success;
         _data = value;
     }
 
-    void app_unit::set(const integer_type value, const bool success)
+    void nt_unit::set(const integer_type value, const bool success)
     {
         _success = success;
         _data = value;
     }
 
-    void app_unit::set(const std::vector<app_unit>& nested, const bool success)
+    void nt_unit::set(const std::vector<nt_unit>& nested, const bool success)
     {
         this->set(success);
         _nested_content = nested;
     }
 
-    app_unit&
-    app_unit::operator<<(const app_unit& unit)
+    nt_unit&
+    nt_unit::operator<<(const nt_unit& unit)
     {
         _nested_content.push_back(unit);
 
@@ -117,9 +117,9 @@ namespace network {
             {
                 return std::is_same<std::string, T>::value;
             }
-            auto operator()(const app_unit::integer_type)
+            auto operator()(const nt_unit::integer_type)
             {
-                return std::is_same<app_unit::integer_type, T>::value;
+                return std::is_same<nt_unit::integer_type, T>::value;
             }
             auto operator()(const bool)
             {
@@ -136,7 +136,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const app_unit::integer_type data)
+            auto operator()(const nt_unit::integer_type data)
             {
                 return std::to_string(data);
             }
@@ -155,7 +155,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const app_unit::integer_type data)
+            auto operator()(const nt_unit::integer_type data)
             {
                 return integer_builder::pack(data);
             }
@@ -166,55 +166,55 @@ namespace network {
         };
     } // namespace impl
 
-    bool app_unit::is_root_for_nested_content() const
+    bool nt_unit::is_root_for_nested_content() const
     {
         return !_nested_content.empty();
     }
 
-    bool app_unit::is_string() const
+    bool nt_unit::is_string() const
     {
         impl::is_lunit_type<std::string> check;
         return boost::apply_visitor(check, _data);
     }
 
-    bool app_unit::is_error() const
+    bool nt_unit::is_error() const
     {
         return !_success;
     }
 
-    bool app_unit::is_integer() const
+    bool nt_unit::is_integer() const
     {
         impl::is_lunit_type<integer_type> check;
         return boost::apply_visitor(check, _data);
     }
 
-    bool app_unit::is_null() const
+    bool nt_unit::is_null() const
     {
         impl::is_lunit_type<bool> check;
         return boost::apply_visitor(check, _data);
     }
 
-    const std::vector<app_unit>& app_unit::get_nested() const
+    const std::vector<nt_unit>& nt_unit::get_nested() const
     {
         return _nested_content;
     }
 
     const std::string&
-    app_unit::as_string() const
+    nt_unit::as_string() const
     {
         SRV_ASSERT(is_string(), "Logic unit is not a string");
 
         return boost::get<std::string>(_data);
     }
 
-    app_unit::integer_type app_unit::as_integer() const
+    nt_unit::integer_type nt_unit::as_integer() const
     {
         SRV_ASSERT(is_integer(), "Logic unit is not a integer");
 
         return boost::get<integer_type>(_data);
     }
 
-    std::string app_unit::to_printable_string() const
+    std::string nt_unit::to_printable_string() const
     {
         std::string result;
         if (!is_null())
@@ -246,7 +246,7 @@ namespace network {
         return result;
     }
 
-    std::string app_unit::to_network_string() const
+    std::string nt_unit::to_network_string() const
     {
         std::string result;
         if (!is_null())
@@ -268,7 +268,7 @@ namespace network {
 } // namespace server_lib
 
 std::ostream&
-operator<<(std::ostream& os, const server_lib::network::app_unit& unit)
+operator<<(std::ostream& os, const server_lib::network::nt_unit& unit)
 {
     os << unit.to_printable_string();
 
