@@ -30,7 +30,7 @@ namespace network {
 
                 SRV_ASSERT(_ptcp);
 
-                bool wait_for_removal = true;
+                bool wait_for_removal = false;
 
                 _ptcp->disconnect(wait_for_removal);
 

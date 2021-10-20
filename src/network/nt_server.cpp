@@ -9,51 +9,6 @@
 namespace server_lib {
 namespace network {
 
-    nt_server::tcp_config& nt_server::tcp_config::set_protocol(const nt_unit_builder_i* protocol)
-    {
-        SRV_ASSERT(protocol);
-
-        _protocol = std::shared_ptr<nt_unit_builder_i> { protocol->clone() };
-        SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-        return *this;
-    }
-
-    nt_server::tcp_config& nt_server::tcp_config::set_address(unsigned short port)
-    {
-        SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
-
-        _port = port;
-        return *this;
-    }
-
-    nt_server::tcp_config& nt_server::tcp_config::set_address(std::string address, unsigned short port)
-    {
-        SRV_ASSERT(!address.empty());
-
-        _address = address;
-        return set_address(port);
-    }
-
-    nt_server::tcp_config& nt_server::tcp_config::set_worker_threads(uint8_t worker_threads)
-    {
-        SRV_ASSERT(worker_threads > 0);
-
-        _worker_threads = worker_threads;
-        return *this;
-    }
-
-    nt_server::tcp_config& nt_server::tcp_config::disable_reuse_address()
-    {
-        _reuse_address = false;
-        return *this;
-    }
-
-    bool nt_server::tcp_config::valid() const
-    {
-        return _port > 0 && !_address.empty() && _protocol;
-    }
-
     nt_server::~nt_server()
     {
         SRV_LOGC_TRACE("attempts to destroy");
@@ -61,12 +16,12 @@ namespace network {
         SRV_LOGC_TRACE("destroyed");
     }
 
-    nt_server::tcp_config nt_server::configurate_tcp()
+    tcp_server_config nt_server::configurate_tcp()
     {
         return {};
     }
 
-    bool nt_server::start(const tcp_config& config)
+    bool nt_server::start(const tcp_server_config& config)
     {
         try
         {
@@ -80,7 +35,7 @@ namespace network {
             auto new_connection_handler = std::bind(&nt_server::on_new_connection_impl, this, std::placeholders::_1);
 
             auto transport_impl = std::make_shared<transport_layer::tcp_server_impl>();
-            transport_impl->config(config._address, config._port, config._worker_threads);
+            transport_impl->config(config);
             _transport_layer = transport_impl;
             _transport_layer->start(_start_callback, new_connection_handler);
 
@@ -147,9 +102,10 @@ namespace network {
             return;
         }
 
-        SRV_LOGC_TRACE("handle new client connection");
-
         SRV_ASSERT(raw_connection);
+
+        SRV_LOGC_TRACE("handle new client connection (" << raw_connection->id() << ")");
+
         SRV_ASSERT(_new_connection_callback);
         _new_connection_callback(std::make_shared<nt_connection>(raw_connection, _protocol));
     }

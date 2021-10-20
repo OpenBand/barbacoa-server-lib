@@ -10,7 +10,7 @@ namespace server_lib {
 namespace network {
 
 #if 0
-    nt_persist_client::tcp_config& nt_persist_client::tcp_config::set_max_reconnects(size_t max_reconnects)
+    nt_persist_client::tcp_client_config& nt_persist_client::tcp_client_config::set_max_reconnects(size_t max_reconnects)
     {
         _max_reconnects = max_reconnects;
         return *this;
@@ -50,7 +50,7 @@ namespace network {
         SRV_LOGC_TRACE("destroyed");
     }
 
-    nt_persist_client::tcp_config nt_persist_client::configurate_tcp()
+    nt_persist_client::tcp_client_config nt_persist_client::configurate_tcp()
     {
         return {};
     }
@@ -73,7 +73,7 @@ namespace network {
     }
 
     bool nt_persist_client::connect(
-        const tcp_config& config)
+        const tcp_client_config& config)
     {
         try
         {

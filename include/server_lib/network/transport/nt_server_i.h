@@ -15,6 +15,8 @@ namespace network {
          * \ingroup network
          * \defgroup network_i Interfaces
          * Auxiliary network object interfaces
+         * \defgroup network_utils Utilities
+         * Helpers
          */
 
         /**

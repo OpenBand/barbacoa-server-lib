@@ -1,4 +1,5 @@
 #include <server_lib/network/transport/nt_server_i.h>
+#include <server_lib/network/server_config.h>
 
 #include <tacopie/tacopie>
 
@@ -18,7 +19,7 @@ namespace network {
         public:
             tcp_server_impl() = default;
 
-            void config(std::string address, unsigned short port, uint8_t worker_threads);
+            void config(const tcp_server_config&);
 
             void start(const start_callback_type& start_callback,
                        const new_connection_callback_type& new_connection_callback) override;
@@ -34,9 +35,7 @@ namespace network {
             tacopie::tcp_server _impl;
             size_t _next_connection_id = 0;
 
-            std::string _config_address;
-            unsigned short _config_port = 0;
-            uint8_t _config_worker_threads = 1;
+            std::unique_ptr<tcp_server_config> _config;
 
             new_connection_callback_type _new_connection_handler = nullptr;
 

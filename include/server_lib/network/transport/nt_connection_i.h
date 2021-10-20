@@ -42,7 +42,7 @@ namespace network {
                  * Whether the operation succeeded or not
                  *
                  */
-                bool success;
+                bool success = false;
 
                 /**
                  * Read bytes
@@ -61,7 +61,7 @@ namespace network {
                  * Whether the operation succeeded or not
                  *
                  */
-                bool success;
+                bool success = false;
 
                 /**
                  * Number of bytes written
@@ -94,13 +94,13 @@ namespace network {
                  * Number of bytes to read
                  *
                  */
-                std::size_t size;
+                std::size_t size = 0;
 
                 /**
                  * Callback to be called on operation completion
                  *
                  */
-                async_read_callback_type async_read_callback;
+                async_read_callback_type async_read_callback = nullptr;
             };
 
             /**
@@ -119,7 +119,7 @@ namespace network {
                  * Callback to be called on operation completion
                  *
                  */
-                async_write_callback_type async_write_callback;
+                async_write_callback_type async_write_callback = nullptr;
             };
 
             /**

@@ -31,54 +31,54 @@ namespace network {
          *
          * \brief This class configurates TCP nt_persist_client.
          */
-        class tcp_config : protected nt_client::tcp_config
+        class tcp_client_config : protected nt_client::tcp_client_config
         {
             friend class nt_persist_client;
 
         protected:
-            tcp_config() = default;
+            tcp_client_config() = default;
 
         public:
-            tcp_config(const tcp_config&) = default;
-            ~tcp_config() = default;
+            tcp_client_config(const tcp_client_config&) = default;
+            ~tcp_client_config() = default;
 
-            tcp_config& set_protocol(const nt_unit_builder_i* protocol)
+            tcp_client_config& set_protocol(const nt_unit_builder_i* protocol)
             {
-                nt_client::tcp_config::set_protocol(protocol);
+                nt_client::tcp_client_config::set_protocol(protocol);
                 return *this;
             }
 
-            tcp_config& set_address(unsigned short port)
+            tcp_client_config& set_address(unsigned short port)
             {
-                nt_client::tcp_config::set_address(port);
+                nt_client::tcp_client_config::set_address(port);
                 return *this;
             }
 
-            tcp_config& set_address(std::string host, unsigned short port)
+            tcp_client_config& set_address(std::string host, unsigned short port)
             {
-                nt_client::tcp_config::set_address(host, port);
+                nt_client::tcp_client_config::set_address(host, port);
                 return *this;
             }
 
-            tcp_config& set_worker_threads(uint8_t worker_threads)
+            tcp_client_config& set_worker_threads(uint8_t worker_threads)
             {
-                nt_client::tcp_config::set_worker_threads(worker_threads);
+                nt_client::tcp_client_config::set_worker_threads(worker_threads);
                 return *this;
             }
 
             ///Set timeout for connection waiting
             template <typename DurationType>
-            tcp_config& set_timeout_connect(DurationType&& duration)
+            tcp_client_config& set_timeout_connect(DurationType&& duration)
             {
-                nt_client::tcp_config::set_timeout_connect(duration);
+                nt_client::tcp_client_config::set_timeout_connect(duration);
                 return *this;
             }
 
-            tcp_config& set_max_reconnects(size_t max_reconnects);
+            tcp_client_config& set_max_reconnects(size_t max_reconnects);
 
             ///Set timeout for connection waiting
             template <typename DurationType>
-            tcp_config& set_reconnect_interval(DurationType&& duration)
+            tcp_client_config& set_reconnect_interval(DurationType&& duration)
             {
                 auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
@@ -105,7 +105,7 @@ namespace network {
          * Configurate
          *
          */
-        static tcp_config configurate_tcp();
+        static tcp_client_config configurate_tcp();
 
         enum class connection_state
         {
@@ -123,7 +123,7 @@ namespace network {
          * Start the TCP client
          *
          */
-        bool connect(const tcp_config&);
+        bool connect(const tcp_client_config&);
 
         nt_persist_client& on_connection_state(connect_callback_type&& callback);
 

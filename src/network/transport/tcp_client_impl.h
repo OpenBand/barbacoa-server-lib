@@ -1,14 +1,16 @@
 #include <server_lib/network/transport/nt_client_i.h>
+#include <server_lib/network/client_config.h>
 
-#include <tacopie/tacopie>
+#include <server_lib/event_loop.h>
 
 #include <memory>
+#include <vector>
 
 namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_connection_impl;
+        class tcp_connection_impl_2;
 
         class tcp_client_impl : public nt_client_i
         {
@@ -16,25 +18,19 @@ namespace network {
             tcp_client_impl() = default;
             ~tcp_client_impl();
 
-            void config(std::string address, unsigned short port, uint8_t worker_threads, uint32_t timeout_ms);
+            void config(const tcp_client_config&);
 
             bool connect(const connect_callback_type& connect_callback,
                          const fail_callback_type& fail_callback) override;
 
         private:
-            std::shared_ptr<nt_connection_i> create_connection();
-
             void on_diconnected();
-            void clear_connection();
+            void clear_connection(bool stop_worker = false);
 
-            tacopie::tcp_client _impl;
+            event_loop _worker;
 
-            std::string _config_address;
-            unsigned short _config_port = 0;
-            uint8_t _config_worker_threads = 1;
-            size_t _config_timeout_ms = 0;
-
-            std::shared_ptr<tcp_connection_impl> _connection;
+            std::unique_ptr<tcp_client_config> _config;
+            std::shared_ptr<tcp_connection_impl_2> _connection;
         };
 
     } // namespace transport_layer

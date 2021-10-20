@@ -51,9 +51,9 @@ namespace network {
 
         std::unique_ptr<nt_units_builder> _protocol;
 
-        std::string _buffer;
+        std::string _send_buffer;
 
-        std::mutex _buffer_mutex;
+        std::mutex _send_buffer_mutex;
 
         receive_callback_type _receive_callback = nullptr;
         disconnect_callback_type _disconnection_callback = nullptr;

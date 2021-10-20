@@ -9,52 +9,13 @@
 namespace server_lib {
 namespace network {
 
-    nt_client::tcp_config& nt_client::tcp_config::set_protocol(const nt_unit_builder_i* protocol)
-    {
-        SRV_ASSERT(protocol);
-
-        _protocol = std::shared_ptr<nt_unit_builder_i> { protocol->clone() };
-        SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-        return *this;
-    }
-
-    nt_client::tcp_config& nt_client::tcp_config::set_address(unsigned short port)
-    {
-        SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
-
-        _port = port;
-        return *this;
-    }
-
-    nt_client::tcp_config& nt_client::tcp_config::set_address(std::string address, unsigned short port)
-    {
-        SRV_ASSERT(!address.empty());
-
-        _address = address;
-        return set_address(port);
-    }
-
-    nt_client::tcp_config& nt_client::tcp_config::set_worker_threads(uint8_t worker_threads)
-    {
-        SRV_ASSERT(worker_threads > 0);
-
-        _worker_threads = worker_threads;
-        return *this;
-    }
-
-    bool nt_client::tcp_config::valid() const
-    {
-        return _port > 0 && !_address.empty() && _protocol;
-    }
-
     nt_client::~nt_client()
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
         try
         {
-            clear_connection();
+            clear();
 
             SRV_LOGC_TRACE("destroyed");
         }
@@ -64,24 +25,24 @@ namespace network {
         }
     }
 
-    nt_client::tcp_config nt_client::configurate_tcp()
+    tcp_client_config nt_client::configurate_tcp()
     {
         return {};
     }
 
     bool nt_client::connect(
-        const tcp_config& config)
+        const tcp_client_config& config)
     {
         try
         {
-            clear_connection();
+            clear();
 
             SRV_ASSERT(config.valid());
 
             SRV_LOGC_TRACE("attempts to connect");
 
             auto transport_impl = std::make_shared<transport_layer::tcp_client_impl>();
-            transport_impl->config(config._address, config._port, config._worker_threads, config._timeout_connect_ms);
+            transport_impl->config(config);
             _transport_layer = transport_impl;
 
             auto connect_handler = std::bind(&nt_client::on_connect_impl, this, std::placeholders::_1);
@@ -142,17 +103,17 @@ namespace network {
 
             _connection.reset();
         }
-
-        clear_connection();
     }
 
-    void nt_client::clear_connection()
+    void nt_client::clear()
     {
         if (_connection)
         {
-            _connection->disconnect();
+            auto connection = _connection;
+            connection->disconnect();
             _connection.reset();
         }
+
         _transport_layer.reset();
         _protocol.reset();
     }

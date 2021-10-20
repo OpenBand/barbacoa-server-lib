@@ -80,9 +80,12 @@ namespace network {
 
     nt_connection& nt_connection::send(const nt_unit& unit)
     {
-        std::lock_guard<std::mutex> lock(_buffer_mutex);
+        std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
-        _buffer += unit.to_network_string();
+        _send_buffer += unit.to_network_string();
+
+        lock.unlock();
+
         SRV_LOGC_TRACE("stored new unit");
 
         return *this;
@@ -90,10 +93,13 @@ namespace network {
 
     nt_connection& nt_connection::commit()
     {
-        std::lock_guard<std::mutex> lock(_buffer_mutex);
-
         SRV_LOGC_TRACE("attempts to send pipelined units");
-        std::string buffer = std::move(_buffer);
+
+        std::unique_lock<std::mutex> lock(_send_buffer_mutex);
+
+        std::string buffer = std::move(_send_buffer);
+
+        lock.unlock();
 
         try
         {
@@ -143,7 +149,11 @@ namespace network {
     {
         SRV_LOGC_TRACE("has been disconnected");
 
-        _buffer.clear();
+        {
+            std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+
+            _send_buffer.clear();
+        }
 
         SRV_ASSERT(_protocol);
 
