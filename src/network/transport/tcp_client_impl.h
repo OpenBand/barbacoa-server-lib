@@ -16,7 +16,7 @@ namespace network {
             tcp_client_impl() = default;
             ~tcp_client_impl();
 
-            void config(std::string address, unsigned short port, uint8_t nb_threads, uint32_t timeout_ms);
+            void config(std::string address, unsigned short port, uint8_t worker_threads, uint32_t timeout_ms);
 
             bool connect(const connect_callback_type& connect_callback,
                          const fail_callback_type& fail_callback) override;
@@ -31,7 +31,7 @@ namespace network {
 
             std::string _config_address;
             unsigned short _config_port = 0;
-            uint8_t _config_nb_threads = 1;
+            uint8_t _config_worker_threads = 1;
             size_t _config_timeout_ms = 0;
 
             std::shared_ptr<tcp_connection_impl> _connection;

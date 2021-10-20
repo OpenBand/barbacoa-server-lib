@@ -60,9 +60,9 @@ namespace network {
                 return *this;
             }
 
-            tcp_config& set_worker_threads(uint8_t nb_threads)
+            tcp_config& set_worker_threads(uint8_t worker_threads)
             {
-                nt_client::tcp_config::set_worker_threads(nb_threads);
+                nt_client::tcp_config::set_worker_threads(worker_threads);
                 return *this;
             }
 

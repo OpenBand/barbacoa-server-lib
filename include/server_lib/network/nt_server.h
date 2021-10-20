@@ -41,7 +41,7 @@ namespace network {
 
             tcp_config& set_address(std::string address, unsigned short port);
 
-            tcp_config& set_worker_threads(uint8_t nb_threads);
+            tcp_config& set_worker_threads(uint8_t worker_threads);
 
             tcp_config& disable_reuse_address();
 

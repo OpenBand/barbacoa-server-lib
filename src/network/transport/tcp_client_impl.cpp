@@ -24,11 +24,11 @@ namespace network {
             }
         }
 
-        void tcp_client_impl::config(std::string address, unsigned short port, uint8_t nb_threads, uint32_t timeout_ms)
+        void tcp_client_impl::config(std::string address, unsigned short port, uint8_t worker_threads, uint32_t timeout_ms)
         {
             _config_address = address;
             _config_port = port;
-            _config_nb_threads = nb_threads;
+            _config_worker_threads = worker_threads;
             _config_timeout_ms = timeout_ms;
         }
 
@@ -43,9 +43,9 @@ namespace network {
 
                 SRV_ASSERT(!_config_address.empty());
                 SRV_ASSERT(_config_port > 0 && _config_port <= std::numeric_limits<unsigned short>::max());
-                SRV_ASSERT(_config_nb_threads > 0);
+                SRV_ASSERT(_config_worker_threads > 0);
 
-                _impl.get_io_service()->set_worker_threads(static_cast<size_t>(_config_nb_threads));
+                _impl.get_io_service()->set_nb_workers(static_cast<size_t>(_config_worker_threads));
 
                 _impl.connect(_config_address, static_cast<uint32_t>(_config_port), _config_timeout_ms);
                 _impl.set_on_disconnection_handler(std::bind(&tcp_client_impl::on_diconnected, this));

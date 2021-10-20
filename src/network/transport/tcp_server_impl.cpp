@@ -12,11 +12,11 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        void tcp_server_impl::config(std::string address, unsigned short port, uint8_t nb_threads)
+        void tcp_server_impl::config(std::string address, unsigned short port, uint8_t worker_threads)
         {
             _config_address = address;
             _config_port = port;
-            _config_nb_threads = nb_threads;
+            _config_worker_threads = worker_threads;
         }
 
         void tcp_server_impl::start(const start_callback_type& start_callback,
@@ -27,12 +27,12 @@ namespace network {
                 SRV_ASSERT(!is_running());
                 SRV_ASSERT(!_config_address.empty());
                 SRV_ASSERT(_config_port > 0 && _config_port <= std::numeric_limits<unsigned short>::max());
-                SRV_ASSERT(_config_nb_threads > 0);
+                SRV_ASSERT(_config_worker_threads > 0);
                 SRV_ASSERT(new_connection_callback);
 
                 SRV_LOGC_TRACE("attempts to start");
 
-                _impl.get_io_service()->set_worker_threads(static_cast<size_t>(_config_nb_threads));
+                _impl.get_io_service()->set_nb_workers(static_cast<size_t>(_config_worker_threads));
 
                 _new_connection_handler = new_connection_callback;
                 auto new_connection_handler = std::bind(&tcp_server_impl::on_new_connection, this, std::placeholders::_1);

@@ -41,7 +41,7 @@ namespace network {
 
             tcp_config& set_address(std::string host, unsigned short port);
 
-            tcp_config& set_worker_threads(uint8_t nb_threads);
+            tcp_config& set_worker_threads(uint8_t worker_threads);
 
             ///Set timeout for connection waiting
             template <typename DurationType>

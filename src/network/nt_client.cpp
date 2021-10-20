@@ -35,11 +35,11 @@ namespace network {
         return set_address(port);
     }
 
-    nt_client::tcp_config& nt_client::tcp_config::set_worker_threads(uint8_t nb_threads)
+    nt_client::tcp_config& nt_client::tcp_config::set_worker_threads(uint8_t worker_threads)
     {
-        SRV_ASSERT(nb_threads > 0);
+        SRV_ASSERT(worker_threads > 0);
 
-        _worker_threads = nb_threads;
+        _worker_threads = worker_threads;
         return *this;
     }
 
