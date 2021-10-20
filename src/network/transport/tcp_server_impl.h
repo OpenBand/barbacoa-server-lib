@@ -4,7 +4,6 @@
 #include <tacopie/tacopie>
 
 #include <mutex>
-#include <list>
 #include <map>
 
 namespace server_lib {

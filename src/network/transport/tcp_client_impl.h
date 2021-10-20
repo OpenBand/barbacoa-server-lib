@@ -4,7 +4,6 @@
 #include <server_lib/event_loop.h>
 
 #include <memory>
-#include <vector>
 
 namespace server_lib {
 namespace network {
