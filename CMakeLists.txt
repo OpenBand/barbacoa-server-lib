@@ -95,7 +95,6 @@ add_library( server_lib
              ${SERVER_LIB_HEADERS} )
 add_dependencies( server_lib
                   server_clib
-                  server_lib_tacopie
                   ssl-helpers
                   moonlight-web)
 
@@ -155,7 +154,6 @@ endif() # boost version check
 
 list(APPEND SERVER_LIB_USE_LIBS
     server_clib
-    server_lib_tacopie
     ssl-helpers
     moonlight-web
     Threads::Threads
