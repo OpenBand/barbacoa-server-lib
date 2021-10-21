@@ -11,9 +11,14 @@ namespace network {
 
     nt_server::~nt_server()
     {
-        SRV_LOGC_TRACE("attempts to destroy");
-        stop();
-        SRV_LOGC_TRACE("destroyed");
+        try
+        {
+            stop(false);
+        }
+        catch (const std::exception& e)
+        {
+            SRV_LOGC_ERROR(e.what());
+        }
     }
 
     tcp_server_config nt_server::configurate_tcp()
@@ -26,10 +31,9 @@ namespace network {
         try
         {
             SRV_ASSERT(!is_running());
+
             SRV_ASSERT(config.valid());
             SRV_ASSERT(_new_connection_callback);
-
-            SRV_LOGC_TRACE("attempts to start");
 
             _protocol = config._protocol;
             auto new_connection_handler = std::bind(&nt_server::on_new_connection_impl, this, std::placeholders::_1);
@@ -37,11 +41,7 @@ namespace network {
             auto transport_impl = std::make_shared<transport_layer::tcp_server_impl>();
             transport_impl->config(config);
             _transport_layer = transport_impl;
-            _transport_layer->start(_start_callback, new_connection_handler);
-
-            SRV_LOGC_TRACE("started");
-
-            return true;
+            return _transport_layer->start(_start_callback, new_connection_handler, _fail_callback);
         }
         catch (const std::exception& e)
         {
@@ -63,13 +63,13 @@ namespace network {
         return *this;
     }
 
-    nt_server& nt_server::on_stop(stop_callback_type&& callback)
+    nt_server& nt_server::on_fail(fail_callback_type&& callback)
     {
-        _stop_callback = std::forward<stop_callback_type>(callback);
+        _fail_callback = std::forward<fail_callback_type>(callback);
         return *this;
     }
 
-    void nt_server::stop()
+    void nt_server::stop(bool wait_for_removal)
     {
         if (!is_running())
         {
@@ -79,7 +79,7 @@ namespace network {
         SRV_LOGC_TRACE("attempts to stop");
 
         SRV_ASSERT(_transport_layer);
-        _transport_layer->stop(_stop_callback);
+        _transport_layer->stop(wait_for_removal);
 
         SRV_LOGC_TRACE("stopped");
     }

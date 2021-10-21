@@ -72,6 +72,12 @@ namespace network {
         return _raw_connection->is_connected();
     }
 
+    std::string nt_connection::remote_endpoint() const
+    {
+        SRV_ASSERT(_raw_connection);
+        return _raw_connection->remote_endpoint();
+    }
+
     nt_unit_builder_i& nt_connection::protocol()
     {
         SRV_ASSERT(_protocol);

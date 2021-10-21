@@ -86,7 +86,7 @@ namespace tests {
         };
 
         auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
-            LOG_TRACE("********* client_recieve_callback: " << conn.id());
+            LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE(unit.is_string());
 
@@ -196,7 +196,7 @@ namespace tests {
         };
 
         auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
-            LOG_TRACE("********* client_recieve_callback");
+            LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), ping_cmd);
 
@@ -273,7 +273,7 @@ namespace tests {
             BOOST_REQUIRE_EQUAL(unit.as_string(), pong_cmd);
 
             server_th.post([&server] {
-                server.stop();
+                server.stop(true);
             });
         };
 
@@ -300,7 +300,7 @@ namespace tests {
         };
 
         auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
-            LOG_TRACE("********* client_recieve_callback");
+            LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), ping_cmd);
 
@@ -465,7 +465,7 @@ namespace tests {
         };
 
         auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
-            LOG_TRACE("********* client_recieve_callback: " << conn.id());
+            LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE(unit.is_string());
             BOOST_REQUIRE_EQUAL(unit.as_string(), exit_cmd);

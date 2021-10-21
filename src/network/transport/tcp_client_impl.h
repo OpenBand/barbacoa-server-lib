@@ -9,7 +9,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_connection_impl_2;
+        class tcp_client_connection_impl;
 
         class tcp_client_impl : public nt_client_i
         {
@@ -29,7 +29,7 @@ namespace network {
             event_loop _worker;
 
             std::unique_ptr<tcp_client_config> _config;
-            std::shared_ptr<tcp_connection_impl_2> _connection;
+            std::shared_ptr<tcp_client_connection_impl> _connection;
         };
 
     } // namespace transport_layer

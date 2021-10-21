@@ -31,6 +31,8 @@ namespace network {
 
         bool is_connected() const;
 
+        std::string remote_endpoint() const;
+
         nt_unit_builder_i& protocol();
 
         nt_connection& send(const nt_unit& unit);

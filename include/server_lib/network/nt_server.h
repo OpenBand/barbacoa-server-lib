@@ -34,7 +34,7 @@ namespace network {
 
         using start_callback_type = transport_layer::nt_server_i::start_callback_type;
         using new_connection_callback_type = std::function<void(const std::shared_ptr<nt_connection>&)>;
-        using stop_callback_type = transport_layer::nt_server_i::stop_callback_type;
+        using fail_callback_type = transport_layer::nt_server_i::fail_callback_type;
 
         /**
          * Start the TCP server
@@ -44,9 +44,9 @@ namespace network {
 
         nt_server& on_start(start_callback_type&& callback);
         nt_server& on_new_connection(new_connection_callback_type&& callback);
-        nt_server& on_stop(stop_callback_type&& callback);
+        nt_server& on_fail(fail_callback_type&& callback);
 
-        void stop();
+        void stop(bool wait_for_removal);
 
         bool is_running(void) const;
 
@@ -57,7 +57,7 @@ namespace network {
 
         start_callback_type _start_callback = nullptr;
         new_connection_callback_type _new_connection_callback = nullptr;
-        stop_callback_type _stop_callback = nullptr;
+        fail_callback_type _fail_callback = nullptr;
         std::shared_ptr<transport_layer::nt_server_i> _transport_layer;
         std::shared_ptr<nt_unit_builder_i> _protocol;
     };

@@ -24,9 +24,9 @@ namespace network {
 
             void disconnect() override;
 
-            void on_disconnect(const disconnect_callback_type&) override;
-
             bool is_connected() const override;
+
+            void on_disconnect(const disconnect_callback_type&) override;
 
             void async_read(read_request& request) override;
 

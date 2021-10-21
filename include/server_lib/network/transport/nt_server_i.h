@@ -39,6 +39,13 @@ namespace network {
             using start_callback_type = std::function<void()>;
 
             /**
+             * Fail callback
+             * Return error if server failed asynchronously
+             *
+             */
+            using fail_callback_type = std::function<void(const std::string&)>;
+
+            /**
             * Callback called whenever a new client is connecting to the network server
             *
             * Takes as parameter a shared pointer to the nt_connection_i that wishes to connect
@@ -46,29 +53,25 @@ namespace network {
             using new_connection_callback_type = std::function<void(const std::shared_ptr<nt_connection_i>&)>;
 
             /**
-            * Callback called whenever a network server has been stopped
-            *
-            */
-            using stop_callback_type = std::function<void()>;
-
-            /**
             * Start the network server
             *
             * \param new_connection_callback
             * \param start_callback
+            * \param fail_callback
             *
             */
-            virtual void start(const start_callback_type& start_callback,
-                               const new_connection_callback_type& new_connection_callback)
+            virtual bool start(const start_callback_type& start_callback,
+                               const new_connection_callback_type& new_connection_callback,
+                               const fail_callback_type& fail_callback)
                 = 0;
 
             /**
             * Disconnect the network server if it was currently running.
             *
-            * \param stop_callback
+            * \param wait_for_removal
             *
             */
-            virtual void stop(const stop_callback_type& stop_callback) = 0;
+            virtual void stop(bool wait_for_removal) = 0;
 
             /**
             * \return whether the network server is currently running or not
