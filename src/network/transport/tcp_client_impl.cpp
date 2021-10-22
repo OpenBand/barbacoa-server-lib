@@ -54,8 +54,7 @@ namespace network {
                         });
 
                         auto scope_lock = [connection]() {
-                            auto loop_lock = connection->handler_runner.continue_lock();
-                            return loop_lock.operator bool();
+                            return connection->handler_runner.continue_lock().operator bool();
                         };
 
                         asio::ip::tcp::resolver::query query(_config->address(), std::to_string(_config->port()));

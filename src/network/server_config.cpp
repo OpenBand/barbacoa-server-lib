@@ -3,14 +3,6 @@
 namespace server_lib {
 namespace network {
 
-    tcp_server_config& tcp_server_config::set_protocol(const unit_builder_i& protocol)
-    {
-        _protocol = std::shared_ptr<unit_builder_i> { protocol.clone() };
-        SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-        return *this;
-    }
-
     tcp_server_config& tcp_server_config::set_address(unsigned short port)
     {
         SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());

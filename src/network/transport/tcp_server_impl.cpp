@@ -93,9 +93,8 @@ namespace network {
         {
             auto connection = std::make_shared<tcp_server_connection_impl>(_workers->service(), ++_next_connection_id);
 
-            auto scope_lock = [connection]() {
-                auto loop_lock = connection->handler_runner.continue_lock();
-                return loop_lock.operator bool();
+            auto scope_lock = [connection]() -> bool {
+                return connection->handler_runner.continue_lock().operator bool();
             };
 
             _acceptor->async_accept(connection->socket(), [this, connection, scope_lock](const error_code& ec) {

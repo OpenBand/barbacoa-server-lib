@@ -574,6 +574,129 @@ namespace tests {
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
+    BOOST_AUTO_TEST_CASE(tcp_mt_server_check)
+    {
+        print_current_test_name();
+
+        event_loop server_th;
+        event_loop client_th;
+
+        server_th.change_thread_name("!S");
+        client_th.change_thread_name("!C");
+
+        msg_protocol protocol;
+
+        const size_t CLIENTS = 10;
+        server server;
+        std::vector<std::unique_ptr<client>> clients;
+        for (size_t ci = 0; ci < CLIENTS; ++ci)
+        {
+            clients.emplace_back(new client());
+        }
+        std::atomic<int> waiting_clients;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
+        const std::string ping_cmd = "ping";
+        const std::string pong_cmd = "pong test";
+        const std::string exit_cmd = "exit";
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        auto server_recieve_callback = [&](connection& conn, unit& unit) {
+            LOG_TRACE("********* server_recieve_callback: " << conn.id());
+
+            BOOST_REQUIRE_EQUAL(unit.as_string(), pong_cmd);
+
+            BOOST_REQUIRE_NO_THROW(conn.send(protocol.create(exit_cmd)).commit());
+        };
+
+        auto server_disconnect_callback = [&](size_t connection_id) {
+            LOG_TRACE("********* server_disconnect_callback: " << connection_id);
+
+            std::atomic_fetch_sub<int>(&waiting_clients, 1);
+            if (waiting_clients.load() < 1)
+            {
+                client_th.post([&] {
+                    //done test
+                    std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                    done_test = true;
+                    done_test_cond.notify_one();
+                });
+            }
+        };
+
+        auto server_new_connection_callback = [&](const std::shared_ptr<connection>& connection) {
+            BOOST_REQUIRE(connection);
+
+            LOG_TRACE("********* server_new_connection_callback: " << connection->id());
+
+            connection->on_receive(server_recieve_callback);
+            connection->on_disconnect(server_disconnect_callback);
+
+            BOOST_REQUIRE_NO_THROW(connection->send(protocol.create(ping_cmd)).commit());
+        };
+
+        auto client_recieve_callback = [&](connection& conn, unit& unit) {
+            LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
+
+            BOOST_REQUIRE(unit.is_string());
+
+            if (unit.as_string() == ping_cmd)
+            {
+                BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(pong_cmd)).commit());
+            }
+            else if (unit.as_string() == exit_cmd)
+            {
+                conn.disconnect();
+
+                //It should not broke connection. But nothing will be sent
+                BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(pong_cmd)).commit());
+            }
+        };
+
+        auto client_disconnect_callback = [](size_t connection_id) {
+            LOG_TRACE("********* client_disconnect_callback: " << connection_id);
+        };
+
+        auto clients_run = [&]() {
+            LOG_TRACE("********* client run");
+
+            waiting_clients = CLIENTS;
+            for (auto& client : clients)
+            {
+                BOOST_REQUIRE(client->on_connect([&](connection& conn) {
+                                        conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
+                                    })
+                                  .connect(
+                                      client->configurate_tcp().set_worker_name("!C-T").set_address(
+                                                                                           host, port)
+                                          .set_protocol(protocol)));
+            }
+        };
+
+        server_th.on_start([&]() {
+                     BOOST_REQUIRE(server.on_start(
+                                             [&]() {
+                                                 client_th.on_start([&]() { clients_run(); }).start();
+                                             })
+                                       .on_new_connection(
+                                           server_new_connection_callback)
+                                       .start(
+                                           server.configurate_tcp()
+                                               .set_worker_name("!S-T")
+                                               .set_address(host, port)
+                                               .set_protocol(protocol)
+                                               .set_worker_threads(5)));
+                 })
+            .start();
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
+    }
+
     BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace tests

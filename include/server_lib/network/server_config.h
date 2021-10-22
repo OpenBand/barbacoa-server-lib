@@ -17,6 +17,7 @@ namespace network {
      *
      * \brief Base class for server configurations.
      */
+    template <typename T>
     class base_server_config
     {
     protected:
@@ -28,6 +29,22 @@ namespace network {
         }
 
     public:
+        T& set_protocol(const unit_builder_i& protocol)
+        {
+            _protocol = std::shared_ptr<unit_builder_i> { protocol.clone() };
+            SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
+
+            return dynamic_cast<T&>(*this);
+        }
+
+        T& set_worker_name(const std::string& name)
+        {
+            SRV_ASSERT(!name.empty());
+
+            _worker_name = name;
+            return dynamic_cast<T&>(*this);
+        }
+
         const std::string& worker_name() const
         {
             return _worker_name;
@@ -45,7 +62,7 @@ namespace network {
      *
      * \brief This class configurates TCP server.
      */
-    class tcp_server_config : public base_server_config
+    class tcp_server_config : public base_server_config<tcp_server_config>
     {
         friend class server;
 
@@ -55,8 +72,6 @@ namespace network {
     public:
         tcp_server_config(const tcp_server_config&) = default;
         ~tcp_server_config() = default;
-
-        tcp_server_config& set_protocol(const unit_builder_i&);
 
         tcp_server_config& set_address(unsigned short port);
 

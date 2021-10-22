@@ -10,7 +10,7 @@ namespace network {
     /**
      * \ingroup network_utils
      *
-     * \brief Makes it possible to for instance cancel Asio handlers without stopping asio::io_service
+     * \brief Makes it possible to cancel Asio handlers without stopping asio::io_service
      *
     */
     class scope_runner
