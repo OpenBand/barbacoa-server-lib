@@ -38,8 +38,6 @@ Use CMake
 # Dependences
 
 * Boost, OpenSSL
-* [moonlight-web-server](https://github.com/romualdo-bar/moonlight-web-server.git) (HTTP)
-* [tacopie](https://github.com/romualdo-bar/tacopie.git) (TCP)
 * [ssl-helpers](https://github.com/romualdo-bar/barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
 * [server-clib](https://github.com/romualdo-bar/barbacoa-server-clib.git) (POSIX C lib)
 

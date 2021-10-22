@@ -4,6 +4,3 @@
 [submodule "libs/ssl-helpers"]
 	path = libs/ssl-helpers
 	url = ../barbacoa-ssl-helpers.git
-[submodule "libs/web"]
-	path = libs/web
-	url = ../moonlight-web-server.git

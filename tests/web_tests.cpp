@@ -3,8 +3,8 @@
 #include <server_lib/event_loop.h>
 #include <server_lib/logging_helper.h>
 
-#include <moonlight/web/server_http.hpp>
-#include <moonlight/web/client_http.hpp>
+#include <server_lib/network/web/server_http.hpp>
+#include <server_lib/network/web/client_http.hpp>
 
 #include <mutex>
 #include <condition_variable>

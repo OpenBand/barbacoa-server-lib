@@ -6,5 +6,4 @@ else()
     add_subdirectory(server-clib)
 endif()
 
-add_subdirectory(web)
 add_subdirectory(ssl-helpers)

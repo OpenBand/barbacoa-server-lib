@@ -95,8 +95,7 @@ add_library( server_lib
              ${SERVER_LIB_HEADERS} )
 add_dependencies( server_lib
                   server_clib
-                  ssl-helpers
-                  moonlight-web)
+                  ssl-helpers)
 
 file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/version SERVER_LIB_VERSION_CONTENT)
 list(GET SERVER_LIB_VERSION_CONTENT 0 SERVER_LIB_VERSION)
@@ -155,7 +154,6 @@ endif() # boost version check
 list(APPEND SERVER_LIB_USE_LIBS
     server_clib
     ssl-helpers
-    moonlight-web
     Threads::Threads
     ${Boost_LIBRARIES}
     ${PLATFORM_SPECIFIC_LIBS})
