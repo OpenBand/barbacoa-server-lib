@@ -1,4 +1,4 @@
-#include <server_lib/network/transport/nt_connection_i.h>
+#include <server_lib/network/transport/connection_impl_i.h>
 
 #include <boost/asio.hpp>
 
@@ -17,16 +17,16 @@ namespace network {
             std::function<void()>&& failed_case);
 
         template <typename SocketType>
-        class tcp_base_connection_impl : public nt_connection_i,
-                                         public std::enable_shared_from_this<tcp_base_connection_impl<SocketType>>
+        class asio_connection_impl : public connection_impl_i,
+                                     public std::enable_shared_from_this<asio_connection_impl<SocketType>>
         {
         protected:
             using socket_type = SocketType;
-            using base_class = tcp_base_connection_impl<socket_type>;
+            using base_class = asio_connection_impl<socket_type>;
 
             template <typename... SocketConstructionArgs>
-            tcp_base_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                     size_t id, SocketConstructionArgs&&... args)
+            asio_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
+                                 size_t id, SocketConstructionArgs&&... args)
                 : _io_service(io_service)
                 , _socket(new socket_type(std::forward<SocketConstructionArgs>(args)...))
                 , _id(id)

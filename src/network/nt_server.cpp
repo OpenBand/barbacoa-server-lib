@@ -109,7 +109,7 @@ namespace network {
         return _transport_layer && _transport_layer->is_running();
     }
 
-    void nt_server::on_new_client(const std::shared_ptr<transport_layer::nt_connection_i>& raw_connection)
+    void nt_server::on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
     {
         if (!is_running())
         {

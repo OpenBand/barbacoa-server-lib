@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/transport/nt_client_i.h>
+#include <server_lib/network/transport/client_impl_i.h>
 
 #include <server_lib/network/nt_connection.h>
 #include <server_lib/network/client_config.h>
@@ -44,7 +44,7 @@ namespace network {
          * Return error if connection failed asynchronously
          *
          */
-        using fail_callback_type = transport_layer::nt_client_i::fail_callback_type;
+        using fail_callback_type = transport_layer::client_impl_i::fail_callback_type;
 
         /**
          * Start the TCP client
@@ -65,13 +65,13 @@ namespace network {
         nt_client& on_fail(fail_callback_type&& callback);
 
     private:
-        void on_connect_impl(const std::shared_ptr<transport_layer::nt_connection_i>&);
+        void on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>&);
         void on_diconnect_impl(size_t);
         void clear();
 
         connect_callback_type _connect_callback = nullptr;
         fail_callback_type _fail_callback = nullptr;
-        std::shared_ptr<transport_layer::nt_client_i> _transport_layer;
+        std::shared_ptr<transport_layer::client_impl_i> _transport_layer;
         std::shared_ptr<nt_unit_builder_i> _protocol;
         std::shared_ptr<nt_connection> _connection;
     };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/transport/nt_connection_i.h>
+#include <server_lib/network/transport/connection_impl_i.h>
 
 #include <server_lib/event_loop.h>
 
@@ -26,10 +26,10 @@ namespace network {
          *
          * Implementations: nt_server
          */
-        class nt_server_i
+        class server_impl_i
         {
         public:
-            virtual ~nt_server_i() = default;
+            virtual ~server_impl_i() = default;
 
         public:
             /**
@@ -48,9 +48,9 @@ namespace network {
             /**
             * Callback called whenever a new client is connecting to the network server
             *
-            * Takes as parameter a shared pointer to the nt_connection_i that wishes to connect
+            * Takes as parameter a shared pointer to the connection_impl_i that wishes to connect
             */
-            using new_connection_callback_type = std::function<void(const std::shared_ptr<nt_connection_i>&)>;
+            using new_connection_callback_type = std::function<void(const std::shared_ptr<connection_impl_i>&)>;
 
             /**
             * Start the network server

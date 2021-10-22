@@ -13,7 +13,7 @@
 namespace server_lib {
 namespace network {
 
-    nt_connection::nt_connection(const std::shared_ptr<transport_layer::nt_connection_i>& raw_connection,
+    nt_connection::nt_connection(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection,
                                  const std::shared_ptr<nt_unit_builder_i>& protocol)
         : _raw_connection(raw_connection)
     {
@@ -27,9 +27,9 @@ namespace network {
 
         try
         {
-            transport_layer::nt_connection_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                       std::bind(&nt_connection::on_raw_receive, this,
-                                                                                 std::placeholders::_1) };
+            transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
+                                                                         std::bind(&nt_connection::on_raw_receive, this,
+                                                                                   std::placeholders::_1) };
             _raw_connection->async_read(request);
         }
         catch (const std::exception& e)
@@ -103,7 +103,7 @@ namespace network {
 
         try
         {
-            transport_layer::nt_connection_i::write_request request = { std::vector<char> { buffer.begin(), buffer.end() }, nullptr };
+            transport_layer::connection_impl_i::write_request request = { std::vector<char> { buffer.begin(), buffer.end() }, nullptr };
             _raw_connection->async_write(request);
         }
         catch (const std::exception& e)
@@ -150,7 +150,7 @@ namespace network {
         }
     }
 
-    void nt_connection::on_raw_receive(const transport_layer::nt_connection_i::read_result& result)
+    void nt_connection::on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
     {
         if (!result.success)
         {
@@ -186,9 +186,9 @@ namespace network {
 
         try
         {
-            transport_layer::nt_connection_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                       std::bind(&nt_connection::on_raw_receive, this,
-                                                                                 std::placeholders::_1) };
+            transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
+                                                                         std::bind(&nt_connection::on_raw_receive, this,
+                                                                                   std::placeholders::_1) };
             _raw_connection->async_read(request);
         }
         catch (const std::exception& e)

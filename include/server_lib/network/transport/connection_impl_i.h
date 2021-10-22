@@ -13,10 +13,10 @@ namespace network {
          *
          * Interface for transport implementation for connetion entity (used for both server and client)
          */
-        class nt_connection_i
+        class connection_impl_i
         {
         public:
-            virtual ~nt_connection_i() = default;
+            virtual ~connection_impl_i() = default;
 
             /**
              * Connection ID

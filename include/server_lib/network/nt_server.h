@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/transport/nt_server_i.h>
+#include <server_lib/network/transport/server_impl_i.h>
 
 #include <server_lib/network/nt_connection.h>
 #include <server_lib/network/server_config.h>
@@ -32,9 +32,9 @@ namespace network {
          */
         static tcp_server_config configurate_tcp();
 
-        using start_callback_type = transport_layer::nt_server_i::start_callback_type;
+        using start_callback_type = transport_layer::server_impl_i::start_callback_type;
         using new_connection_callback_type = std::function<void(const std::shared_ptr<nt_connection>&)>;
-        using fail_callback_type = transport_layer::nt_server_i::fail_callback_type;
+        using fail_callback_type = transport_layer::server_impl_i::fail_callback_type;
 
         /**
          * Start the TCP server
@@ -51,10 +51,10 @@ namespace network {
         bool is_running(void) const;
 
     private:
-        void on_new_client(const std::shared_ptr<transport_layer::nt_connection_i>&);
+        void on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>&);
         void on_client_disconnected(size_t);
 
-        std::shared_ptr<transport_layer::nt_server_i> _transport_layer;
+        std::shared_ptr<transport_layer::server_impl_i> _transport_layer;
         std::shared_ptr<nt_unit_builder_i> _protocol;
 
         std::map<size_t, std::shared_ptr<nt_connection>> _connections;

@@ -58,7 +58,7 @@ namespace network {
         return false;
     }
 
-    void nt_client::on_connect_impl(const std::shared_ptr<transport_layer::nt_connection_i>& raw_connection)
+    void nt_client::on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
     {
         try
         {

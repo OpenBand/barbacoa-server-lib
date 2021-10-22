@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/transport/nt_connection_i.h>
+#include <server_lib/network/transport/connection_impl_i.h>
 
 #include <cstdint>
 #include <memory>
@@ -17,10 +17,10 @@ namespace network {
          * Implementations: nt_client, nt_persist_client
          *
          */
-        class nt_client_i
+        class client_impl_i
         {
         public:
-            virtual ~nt_client_i() = default;
+            virtual ~client_impl_i() = default;
 
         public:
             /**
@@ -28,7 +28,7 @@ namespace network {
              * Return connection object if client connected successfully
              *
              */
-            using connect_callback_type = std::function<void(const std::shared_ptr<nt_connection_i>&)>;
+            using connect_callback_type = std::function<void(const std::shared_ptr<connection_impl_i>&)>;
 
             /**
              * Fail callback

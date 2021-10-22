@@ -47,7 +47,7 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/msg_builder.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/scope_runner.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/tcp_client_impl.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/tcp_base_connection_impl.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/asio_connection_impl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/tcp_client_connection_impl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/tcp_server_connection_impl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/transport/tcp_server_impl.cpp"

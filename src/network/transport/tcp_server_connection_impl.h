@@ -1,10 +1,10 @@
-#include "tcp_base_connection_impl.h"
+#include "asio_connection_impl.h"
 
 namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_server_connection_impl : public tcp_base_connection_impl<boost::asio::ip::tcp::socket>
+        class tcp_server_connection_impl : public asio_connection_impl<boost::asio::ip::tcp::socket>
         {
         public:
             tcp_server_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,

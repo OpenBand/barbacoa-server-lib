@@ -193,7 +193,7 @@ namespace network {
         uint32_t _reconnect_interval_ms = 0;
         std::shared_ptr<nt_unit_builder_i> _protocol;
 
-        std::shared_ptr<transport_layer::nt_client_i> _transport_layer;
+        std::shared_ptr<transport_layer::client_impl_i> _transport_layer;
         std::shared_ptr<nt_connection> _connection;
 
         std::atomic_bool _reconnecting;

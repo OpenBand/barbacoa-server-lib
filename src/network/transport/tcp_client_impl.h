@@ -1,4 +1,4 @@
-#include <server_lib/network/transport/nt_client_i.h>
+#include <server_lib/network/transport/client_impl_i.h>
 #include <server_lib/network/client_config.h>
 
 #include <server_lib/event_loop.h>
@@ -9,7 +9,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_client_impl : public nt_client_i
+        class tcp_client_impl : public client_impl_i
         {
         public:
             tcp_client_impl() = default;

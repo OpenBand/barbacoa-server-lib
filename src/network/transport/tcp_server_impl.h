@@ -1,4 +1,4 @@
-#include <server_lib/network/transport/nt_server_i.h>
+#include <server_lib/network/transport/server_impl_i.h>
 #include <server_lib/network/server_config.h>
 
 #include <boost/asio.hpp>
@@ -12,7 +12,7 @@ namespace network {
 
         class tcp_server_connection_impl;
 
-        class tcp_server_impl : public nt_server_i,
+        class tcp_server_impl : public server_impl_i,
                                 public std::enable_shared_from_this<tcp_server_impl>
         {
         public:
