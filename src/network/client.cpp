@@ -1,4 +1,4 @@
-#include <server_lib/network/nt_client.h>
+#include <server_lib/network/client.h>
 
 #include "transport/tcp_client_impl.h"
 
@@ -9,7 +9,7 @@
 namespace server_lib {
 namespace network {
 
-    nt_client::~nt_client()
+    client::~client()
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
@@ -25,12 +25,12 @@ namespace network {
         }
     }
 
-    tcp_client_config nt_client::configurate_tcp()
+    tcp_client_config client::configurate_tcp()
     {
         return {};
     }
 
-    bool nt_client::connect(
+    bool client::connect(
         const tcp_client_config& config)
     {
         try
@@ -46,7 +46,7 @@ namespace network {
             _transport_layer = transport_impl;
             _protocol = config._protocol;
 
-            auto connect_handler = std::bind(&nt_client::on_connect_impl, this, std::placeholders::_1);
+            auto connect_handler = std::bind(&client::on_connect_impl, this, std::placeholders::_1);
 
             return _transport_layer->connect(connect_handler, _fail_callback);
         }
@@ -58,7 +58,7 @@ namespace network {
         return false;
     }
 
-    void nt_client::on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
+    void client::on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
     {
         try
         {
@@ -67,9 +67,9 @@ namespace network {
             SRV_ASSERT(_transport_layer);
             SRV_ASSERT(_protocol);
 
-            auto connection = std::make_shared<nt_connection>(raw_connection, _protocol);
-            connection->on_disconnect(std::bind(&nt_client::on_diconnect_impl, this, std::placeholders::_1));
-            _connection = connection;
+            auto conn = std::make_shared<connection>(raw_connection, _protocol);
+            conn->on_disconnect(std::bind(&client::on_diconnect_impl, this, std::placeholders::_1));
+            _connection = conn;
 
             if (_connect_callback)
                 _connect_callback(*_connection);
@@ -80,19 +80,19 @@ namespace network {
         }
     }
 
-    nt_client& nt_client::on_connect(connect_callback_type&& callback)
+    client& client::on_connect(connect_callback_type&& callback)
     {
         _connect_callback = std::forward<connect_callback_type>(callback);
         return *this;
     }
 
-    nt_client& nt_client::on_fail(fail_callback_type&& callback)
+    client& client::on_fail(fail_callback_type&& callback)
     {
         _fail_callback = std::forward<fail_callback_type>(callback);
         return *this;
     }
 
-    void nt_client::on_diconnect_impl(size_t connection_id)
+    void client::on_diconnect_impl(size_t connection_id)
     {
         SRV_LOGC_TRACE("has been disconnected");
 
@@ -104,7 +104,7 @@ namespace network {
         }
     }
 
-    void nt_client::clear()
+    void client::clear()
     {
         if (_connection)
         {

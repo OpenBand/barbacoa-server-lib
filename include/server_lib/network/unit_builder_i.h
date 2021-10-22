@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/nt_unit.h>
+#include <server_lib/network/unit.h>
 
 #include <memory>
 #include <string>
@@ -16,26 +16,26 @@ namespace network {
      * Use 'create' method to create units for sending
      *
      */
-    class nt_unit_builder_i
+    class unit_builder_i
     {
     public:
-        virtual ~nt_unit_builder_i() = default;
+        virtual ~unit_builder_i() = default;
 
         /**
          * Ability to create clones.
          * It is required if this object is used like protocol
         */
-        virtual nt_unit_builder_i* clone() const
+        virtual unit_builder_i* clone() const
         {
             return nullptr;
         }
 
-        virtual nt_unit create(const std::string&) const
+        virtual unit create(const std::string&) const
         {
             return {};
         }
 
-        virtual nt_unit create(const char* buff, const size_t sz) const
+        virtual unit create(const char* buff, const size_t sz) const
         {
             return create(std::string { buff, sz });
         }
@@ -49,7 +49,7 @@ namespace network {
          * \return Current instance
          *
          */
-        virtual nt_unit_builder_i& operator<<(std::string& data) = 0;
+        virtual unit_builder_i& operator<<(std::string& data) = 0;
 
         /**
          * \return Whether the unit could be built
@@ -61,7 +61,7 @@ namespace network {
          * \return Unit parsed object
          *
          */
-        virtual nt_unit get_unit() const = 0;
+        virtual unit get_unit() const = 0;
 
         /**
          * Reset state

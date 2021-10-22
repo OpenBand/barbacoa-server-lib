@@ -3,9 +3,9 @@
 namespace server_lib {
 namespace network {
 
-    tcp_client_config& tcp_client_config::set_protocol(const nt_unit_builder_i& protocol)
+    tcp_client_config& tcp_client_config::set_protocol(const unit_builder_i& protocol)
     {
-        _protocol = std::shared_ptr<nt_unit_builder_i> { protocol.clone() };
+        _protocol = std::shared_ptr<unit_builder_i> { protocol.clone() };
         SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
 
         return *this;

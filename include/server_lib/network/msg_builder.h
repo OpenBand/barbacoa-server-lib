@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/nt_unit_builder_i.h>
+#include <server_lib/network/unit_builder_i.h>
 
 #include <server_lib/network/integer_builder.h>
 #include <server_lib/network/string_builder.h>
@@ -14,7 +14,7 @@ namespace network {
      * \brief Represent boundered message that consists of size header
      * and byte array.
     */
-    class msg_builder : public nt_unit_builder_i
+    class msg_builder : public unit_builder_i
     {
     public:
         msg_builder(const size_t msg_max_size = 1024)
@@ -26,21 +26,21 @@ namespace network {
 
         using size_type = integer_builder::integer_type;
 
-        nt_unit_builder_i* clone() const override
+        unit_builder_i* clone() const override
         {
             return new msg_builder { _msg_max_size };
         }
 
-        nt_unit create(const std::string& msg) const override;
+        unit create(const std::string& msg) const override;
 
-        nt_unit_builder_i& operator<<(std::string& network_data) override;
+        unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override
         {
             return _ready;
         }
 
-        nt_unit get_unit() const override
+        unit get_unit() const override
         {
             return _msg_builder.get_unit();
         }

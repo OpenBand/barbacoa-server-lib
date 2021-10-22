@@ -3,8 +3,8 @@
 #include <server_lib/event_loop.h>
 #include <server_lib/logging_helper.h>
 
-#include <server_lib/network/nt_server.h>
-#include <server_lib/network/nt_client.h>
+#include <server_lib/network/server.h>
+#include <server_lib/network/client.h>
 #include <server_lib/network/protocols.h>
 
 #include <mutex>
@@ -31,8 +31,8 @@ namespace tests {
 
         msg_protocol protocol;
 
-        nt_server server;
-        nt_client client;
+        server server;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -41,13 +41,13 @@ namespace tests {
         const std::string pong_cmd = "pong test";
         const std::string exit_cmd = "exit";
 
-        std::shared_ptr<nt_connection> server_connection;
+        std::shared_ptr<connection> server_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << conn.id());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(server_connection.get()));
@@ -72,7 +72,7 @@ namespace tests {
             });
         };
 
-        auto server_new_connection_callback = [&](const std::shared_ptr<nt_connection>& connection) {
+        auto server_new_connection_callback = [&](const std::shared_ptr<connection>& connection) {
             BOOST_REQUIRE(connection);
 
             LOG_TRACE("********* server_new_connection_callback: " << connection->id());
@@ -85,7 +85,7 @@ namespace tests {
             server_connection = connection;
         };
 
-        auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto client_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE(unit.is_string());
@@ -110,7 +110,7 @@ namespace tests {
         auto client_run = [&]() {
             LOG_TRACE("********* client run");
 
-            BOOST_REQUIRE(client.on_connect([&](nt_connection& conn) {
+            BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                     conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
                                 })
                               .connect(
@@ -146,8 +146,8 @@ namespace tests {
 
         msg_protocol protocol;
 
-        nt_server server;
-        nt_client client;
+        server server;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -155,13 +155,13 @@ namespace tests {
         const std::string ping_cmd = "ping";
         const std::string pong_cmd = "pong test";
 
-        std::shared_ptr<nt_connection> server_connection;
+        std::shared_ptr<connection> server_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << conn.id());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(server_connection.get()));
@@ -182,7 +182,7 @@ namespace tests {
             server_connection.reset();
         };
 
-        auto server_new_connection_callback = [&](const std::shared_ptr<nt_connection>& connection) {
+        auto server_new_connection_callback = [&](const std::shared_ptr<connection>& connection) {
             BOOST_REQUIRE(connection);
 
             LOG_TRACE("********* server_new_connection_callback: " << connection->id());
@@ -195,7 +195,7 @@ namespace tests {
             server_connection = connection;
         };
 
-        auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto client_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), ping_cmd);
@@ -215,7 +215,7 @@ namespace tests {
         };
 
         auto client_run = [&]() {
-            BOOST_REQUIRE(client.on_connect([&](nt_connection& conn) {
+            BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                     conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
                                 })
                               .connect(
@@ -251,8 +251,8 @@ namespace tests {
 
         msg_protocol protocol;
 
-        nt_server server;
-        nt_client client;
+        server server;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -260,13 +260,13 @@ namespace tests {
         const std::string ping_cmd = "ping";
         const std::string pong_cmd = "pong test";
 
-        std::shared_ptr<nt_connection> server_connection;
+        std::shared_ptr<connection> server_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << conn.id());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(server_connection.get()));
@@ -286,7 +286,7 @@ namespace tests {
             server_connection.reset();
         };
 
-        auto server_new_connection_callback = [&](const std::shared_ptr<nt_connection>& connection) {
+        auto server_new_connection_callback = [&](const std::shared_ptr<connection>& connection) {
             BOOST_REQUIRE(connection);
 
             LOG_TRACE("********* server_new_connection_callback: " << connection->id());
@@ -299,7 +299,7 @@ namespace tests {
             server_connection = connection;
         };
 
-        auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto client_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), ping_cmd);
@@ -319,7 +319,7 @@ namespace tests {
         };
 
         auto client_run = [&]() {
-            BOOST_REQUIRE(client.on_connect([&](nt_connection& conn) {
+            BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                     conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
                                 })
                               .connect(
@@ -353,7 +353,7 @@ namespace tests {
 
         msg_protocol protocol;
 
-        nt_client client;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -396,7 +396,7 @@ namespace tests {
 
         client_th.change_thread_name("!C");
 
-        nt_client client;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -418,8 +418,8 @@ namespace tests {
 
         msg_protocol protocol;
 
-        nt_server server;
-        nt_client client;
+        server server;
+        client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
@@ -427,13 +427,13 @@ namespace tests {
         const std::string client_cmd = "hello";
         const std::string exit_cmd = "exit";
 
-        std::shared_ptr<nt_connection> server_connection;
+        std::shared_ptr<connection> server_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << conn.id());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(server_connection.get()));
@@ -451,7 +451,7 @@ namespace tests {
             server_connection.reset();
         };
 
-        auto server_new_connection_callback = [&](const std::shared_ptr<nt_connection>& connection) {
+        auto server_new_connection_callback = [&](const std::shared_ptr<connection>& connection) {
             BOOST_REQUIRE(connection);
 
             LOG_TRACE("********* server_new_connection_callback: " << connection->id());
@@ -464,7 +464,7 @@ namespace tests {
             server_connection = connection;
         };
 
-        auto client_recieve_callback = [&](nt_connection& conn, nt_unit& unit) {
+        auto client_recieve_callback = [&](connection& conn, unit& unit) {
             LOG_TRACE("********* client_recieve_callback: " << conn.remote_endpoint());
 
             BOOST_REQUIRE(unit.is_string());
@@ -495,12 +495,12 @@ namespace tests {
             BOOST_REQUIRE(client.connect(*config));
             LOG_TRACE("********* ATTEMPT #2");
             //second attempt will be aborted asynchronously if it was connected successfully
-            BOOST_REQUIRE(client.on_connect([&](nt_connection& conn) {
+            BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                     conn.on_disconnect(client_disconnect_callback);
                                     client_th.post([&] {
                                         LOG_TRACE("********* ATTEMPT #3");
                                         //last attempt will be allowed
-                                        BOOST_REQUIRE(client.on_connect([&](nt_connection& conn) {
+                                        BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                                                 conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
                                                             })
                                                           .connect(*config));

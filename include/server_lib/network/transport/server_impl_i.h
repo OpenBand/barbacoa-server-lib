@@ -24,7 +24,7 @@ namespace network {
          *
          * \brief Interface for transport implementation for async network server
          *
-         * Implementations: nt_server
+         * Implementations: server
          */
         class server_impl_i
         {

@@ -66,7 +66,7 @@ namespace network {
                                          std::placeholders::_2);
 
         auto raw_connection = _transport_layer->create_connection();
-        auto connection = std::make_shared<nt_connection>(raw_connection, _protocol);
+        auto connection = std::make_shared<connection>(raw_connection, _protocol);
         connection->on_disconnect(disconnection_handler);
         connection->on_receive(receive_handler);
         _connection = connection;
@@ -183,14 +183,14 @@ namespace network {
         return _reconnecting;
     }
 
-    nt_unit_builder_i& nt_persist_client::protocol()
+    unit_builder_i& nt_persist_client::protocol()
     {
         SRV_ASSERT(_protocol);
         return *_protocol;
     }
 
     nt_persist_client&
-    nt_persist_client::send(const nt_unit& cmd, const receive_callback_type& callback)
+    nt_persist_client::send(const unit& cmd, const receive_callback_type& callback)
     {
         std::lock_guard<std::mutex> lock_callback(_callbacks_mutex);
 
@@ -201,13 +201,13 @@ namespace network {
         return *this;
     }
 
-    std::future<nt_unit> nt_persist_client::send(const nt_unit& cmd)
+    std::future<unit> nt_persist_client::send(const unit& cmd)
     {
         auto f = [=](const receive_callback_type& cb) -> nt_persist_client& { return send(cmd, cb); };
 
-        auto prms = std::make_shared<std::promise<nt_unit>>();
+        auto prms = std::make_shared<std::promise<unit>>();
 
-        f([prms](nt_unit& unit) {
+        f([prms](unit& unit) {
             prms->set_value(unit);
         }); //call send(cmd, { this callback })
 
@@ -261,7 +261,7 @@ namespace network {
         }
     }
 
-    void nt_persist_client::unprotected_send(const nt_unit& cmd, const receive_callback_type& callback)
+    void nt_persist_client::unprotected_send(const unit& cmd, const receive_callback_type& callback)
     {
         SRV_LOGC_TRACE("Before _commands = " << _commands.size() << ", _callbacks_running = " << _callbacks_running.load());
 
@@ -274,7 +274,7 @@ namespace network {
         SRV_LOGC_TRACE("After _commands = " << _commands.size() << ", _callbacks_running = " << _callbacks_running.load());
     }
 
-    void nt_persist_client::connection_receive_handler(nt_connection&, nt_unit& unit)
+    void nt_persist_client::connection_receive_handler(connection&, unit& unit)
     {
         receive_callback_type callback = nullptr;
 
@@ -426,7 +426,7 @@ namespace network {
                 {
                     SRV_LOGC_TRACE("cleanup _commands = " << commands.size() << ", _callbacks_running = " << _callbacks_running.load());
 
-                    nt_unit r { "network failure", false };
+                    unit r { "network failure", false };
                     callback(r);
                 }
 

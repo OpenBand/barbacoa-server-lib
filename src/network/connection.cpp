@@ -1,8 +1,8 @@
-#include <server_lib/network/nt_connection.h>
+#include <server_lib/network/connection.h>
 
 #include <server_lib/asserts.h>
 
-#include "nt_units_builder.h"
+#include "unit_builder_manager.h"
 
 #include "../logger_set_internal_group.h"
 
@@ -13,22 +13,22 @@
 namespace server_lib {
 namespace network {
 
-    nt_connection::nt_connection(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection,
-                                 const std::shared_ptr<nt_unit_builder_i>& protocol)
+    connection::connection(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection,
+                           const std::shared_ptr<unit_builder_i>& protocol)
         : _raw_connection(raw_connection)
     {
         SRV_ASSERT(_raw_connection);
         SRV_ASSERT(protocol);
 
-        _protocol = std::make_unique<nt_units_builder>();
+        _protocol = std::make_unique<unit_builder_manager>();
         _protocol->set_builder(protocol);
 
-        _raw_connection->set_disconnect_handler(std::bind(&nt_connection::on_diconnected, this));
+        _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));
 
         try
         {
             transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                         std::bind(&nt_connection::on_raw_receive, this,
+                                                                         std::bind(&connection::on_raw_receive, this,
                                                                                    std::placeholders::_1) };
             _raw_connection->async_read(request);
         }
@@ -44,7 +44,7 @@ namespace network {
         SRV_LOGC_TRACE("created");
     }
 
-    nt_connection::~nt_connection()
+    connection::~connection()
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
@@ -53,32 +53,32 @@ namespace network {
         SRV_LOGC_TRACE("destroyed");
     }
 
-    size_t nt_connection::id() const
+    size_t connection::id() const
     {
         return _raw_connection->id();
     }
 
-    void nt_connection::disconnect()
+    void connection::disconnect()
     {
         _raw_connection->disconnect();
     }
 
-    bool nt_connection::is_connected() const
+    bool connection::is_connected() const
     {
         return _raw_connection->is_connected();
     }
 
-    std::string nt_connection::remote_endpoint() const
+    std::string connection::remote_endpoint() const
     {
         return _raw_connection->remote_endpoint();
     }
 
-    nt_unit_builder_i& nt_connection::protocol()
+    unit_builder_i& connection::protocol()
     {
         return _protocol->builder();
     }
 
-    nt_connection& nt_connection::send(const nt_unit& unit)
+    connection& connection::send(const unit& unit)
     {
         std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
@@ -91,7 +91,7 @@ namespace network {
         return *this;
     }
 
-    nt_connection& nt_connection::commit()
+    connection& connection::commit()
     {
         SRV_LOGC_TRACE("attempts to send pipelined units");
 
@@ -120,19 +120,19 @@ namespace network {
         return *this;
     }
 
-    nt_connection& nt_connection::on_receive(const receive_callback_type& callback)
+    connection& connection::on_receive(const receive_callback_type& callback)
     {
         _receive_callback = callback;
         return *this;
     }
 
-    nt_connection& nt_connection::on_disconnect(const disconnect_callback_type& callback)
+    connection& connection::on_disconnect(const disconnect_callback_type& callback)
     {
         _disconnection_callbacks.emplace_back(callback);
         return *this;
     }
 
-    void nt_connection::on_diconnected()
+    void connection::on_diconnected()
     {
         SRV_LOGC_TRACE("has been disconnected");
 
@@ -150,7 +150,7 @@ namespace network {
         }
     }
 
-    void nt_connection::on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
+    void connection::on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
     {
         if (!result.success)
         {
@@ -187,7 +187,7 @@ namespace network {
         try
         {
             transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                         std::bind(&nt_connection::on_raw_receive, this,
+                                                                         std::bind(&connection::on_raw_receive, this,
                                                                                    std::placeholders::_1) };
             _raw_connection->async_read(request);
         }

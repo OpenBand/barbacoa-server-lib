@@ -6,7 +6,7 @@
 namespace server_lib {
 namespace network {
 
-    nt_unit_builder_i& string_builder::operator<<(std::string& network_data)
+    unit_builder_i& string_builder::operator<<(std::string& network_data)
     {
         if (_ready)
             return *this;

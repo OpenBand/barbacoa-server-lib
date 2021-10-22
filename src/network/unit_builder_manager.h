@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <string>
 
-#include <server_lib/network/nt_unit_builder_i.h>
+#include <server_lib/network/unit_builder_i.h>
 
 namespace server_lib {
 namespace network {
@@ -14,35 +14,35 @@ namespace network {
  * class coordinating the several builders and the builder factory to build all the replies
  *
  */
-    class nt_units_builder
+    class unit_builder_manager
     {
     public:
         /**
      * ctor
      *
      */
-        nt_units_builder(const std::shared_ptr<nt_unit_builder_i> builder = {});
+        unit_builder_manager(const std::shared_ptr<unit_builder_i> builder = {});
         /**
      * dtor
      *
      */
-        ~nt_units_builder() = default;
+        ~unit_builder_manager() = default;
 
         /**
     * copy ctor
      *
      */
-        nt_units_builder(const nt_units_builder&) = delete;
+        unit_builder_manager(const unit_builder_manager&) = delete;
         /**
     * assignment operator
      *
      */
-        nt_units_builder& operator=(const nt_units_builder&) = delete;
+        unit_builder_manager& operator=(const unit_builder_manager&) = delete;
 
     public:
-        void set_builder(const std::shared_ptr<nt_unit_builder_i> builder);
+        void set_builder(const std::shared_ptr<unit_builder_i> builder);
 
-        nt_unit_builder_i& builder();
+        unit_builder_i& builder();
 
         /**
      * add data to unit builder
@@ -52,7 +52,7 @@ namespace network {
      * \return current instance
      *
      */
-        nt_units_builder& operator<<(const std::string& data);
+        unit_builder_manager& operator<<(const std::string& data);
 
         /**
      * similar as get_front, store unit in the passed parameter
@@ -60,13 +60,13 @@ namespace network {
      * \param unit reference to the unit object where to store the first available unit
      *
      */
-        void operator>>(nt_unit& unit);
+        void operator>>(unit& unit);
 
         /**
      * \return the first available unit
      *
      */
-        const nt_unit& get_front() const;
+        const unit& get_front() const;
 
         /**
      * pop the first available unit
@@ -106,13 +106,13 @@ namespace network {
      * builder used to build replies
      *
      */
-        std::shared_ptr<nt_unit_builder_i> _builder;
+        std::shared_ptr<unit_builder_i> _builder;
 
         /**
      * queue of available (built) replies
      *
      */
-        std::deque<nt_unit> _available_replies;
+        std::deque<unit> _available_replies;
     };
 
 } // namespace network

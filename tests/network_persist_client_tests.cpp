@@ -3,7 +3,7 @@
 #include <server_lib/event_loop.h>
 #include <server_lib/logging_helper.h>
 
-#include <server_lib/network/nt_server.h>
+#include <server_lib/network/server.h>
 #include <server_lib/network/nt_persist_client.h>
 #include <server_lib/network/protocols.h>
 
@@ -33,7 +33,7 @@ namespace tests {
 
         raw_builder protocol;
 
-        nt_server server;
+        server server;
         nt_persist_client client;
 
         std::string host = get_default_address();
@@ -42,13 +42,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<nt_connection> hold_connection;
+        std::shared_ptr<connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -74,7 +74,7 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
@@ -89,7 +89,7 @@ namespace tests {
             LOG_TRACE("********* client_disconnect_callback: " << state);
         };
 
-        auto client_ack_callback = [&pong_data, &client_th, &client](nt_unit& unit) {
+        auto client_ack_callback = [&pong_data, &client_th, &client](unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), pong_data);
@@ -136,7 +136,7 @@ namespace tests {
 
         raw_builder protocol;
 
-        nt_server server;
+        server server;
         nt_persist_client client;
 
         std::string host = get_default_address();
@@ -145,13 +145,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<nt_connection> hold_connection;
+        std::shared_ptr<connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -170,7 +170,7 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
@@ -196,7 +196,7 @@ namespace tests {
             }
         };
 
-        auto client_ack_callback = [&pong_data, &server_th, &server](nt_unit& unit) {
+        auto client_ack_callback = [&pong_data, &server_th, &server](unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), pong_data);
@@ -241,19 +241,19 @@ namespace tests {
 
         raw_builder protocol;
 
-        nt_server server;
+        server server;
         nt_persist_client client;
 
         std::string host = get_default_address();
         auto port = get_free_port();
 
-        std::shared_ptr<nt_connection> hold_connection;
+        std::shared_ptr<connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&hold_connection](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback: " << unit.as_string());
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -279,7 +279,7 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
@@ -298,7 +298,7 @@ namespace tests {
         static int message_2 = 2;
         static int message_fin = 3;
 
-        auto client_final_ack_callback = [&client_th, &client](nt_unit& unit) {
+        auto client_final_ack_callback = [&client_th, &client](unit& unit) {
             LOG_TRACE("********* client_final_ack_callback: " << unit.as_string());
 
             BOOST_REQUIRE(unit.is_string());
@@ -311,7 +311,7 @@ namespace tests {
             });
         };
 
-        auto client_ack_callback = [&client, &protocol, &client_th, &client_final_ack_callback](nt_unit& unit) {
+        auto client_ack_callback = [&client, &protocol, &client_th, &client_final_ack_callback](unit& unit) {
             LOG_TRACE("********* client_ack_callback: " << unit.as_string());
 
             BOOST_REQUIRE(unit.is_string());
@@ -373,7 +373,7 @@ namespace tests {
 
         raw_builder protocol;
 
-        nt_server server;
+        server server;
         nt_persist_client client;
 
         std::string host = get_default_address();
@@ -382,13 +382,13 @@ namespace tests {
         const std::string ping_data = "ping";
         const std::string pong_data = "pong test";
 
-        std::shared_ptr<nt_connection> hold_connection;
+        std::shared_ptr<connection> hold_connection;
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
         std::condition_variable done_test_cond;
 
-        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](nt_connection& conn, nt_unit& unit) {
+        auto server_recieve_callback = [&hold_connection, &ping_data, &pong_data, &protocol](connection& conn, unit& unit) {
             LOG_TRACE("********* server_recieve_callback");
 
             BOOST_REQUIRE_EQUAL(reinterpret_cast<uint64_t>(&conn), reinterpret_cast<uint64_t>(hold_connection.get()));
@@ -407,7 +407,7 @@ namespace tests {
         };
 
         auto server_new_connection_callback = [&hold_connection,
-                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<nt_connection>& connection) {
+                                               &server_recieve_callback, &server_disconnect_callback](const std::shared_ptr<connection>& connection) {
             LOG_TRACE("********* server_new_connection_callback");
 
             BOOST_REQUIRE(connection);
@@ -420,7 +420,7 @@ namespace tests {
 
         int32_t reconnects = 2;
 
-        auto client_ack_callback = [&pong_data, &server_th, &server, &reconnects](nt_unit& unit) {
+        auto client_ack_callback = [&pong_data, &server_th, &server, &reconnects](unit& unit) {
             LOG_TRACE("********* client_ack_callback");
 
             if (reconnects > 0)

@@ -1,4 +1,4 @@
-#include <server_lib/network/nt_unit.h>
+#include <server_lib/network/unit.h>
 #include <server_lib/network/integer_builder.h>
 
 #include <server_lib/asserts.h>
@@ -10,40 +10,40 @@
 namespace server_lib {
 namespace network {
 
-    nt_unit::nt_unit(const bool success)
+    unit::unit(const bool success)
         : _success(success)
         , _data(success)
     {
     }
 
-    nt_unit::nt_unit(const std::string& value, const bool success)
+    unit::unit(const std::string& value, const bool success)
         : _success(success)
         , _data(value)
     {
     }
 
-    nt_unit::nt_unit(const integer_type value, const bool success)
+    unit::unit(const integer_type value, const bool success)
         : _success(success)
         , _data(value)
     {
     }
 
-    nt_unit::nt_unit(const std::vector<nt_unit>& nested, const bool success)
+    unit::unit(const std::vector<unit>& nested, const bool success)
         : _success(success)
         , _data(success)
     {
         _nested_content = nested;
     }
 
-    nt_unit::nt_unit(nt_unit&& other) noexcept
+    unit::unit(unit&& other) noexcept
     {
         _success = other._success;
         _data = std::move(other._data);
         _nested_content = std::move(other._nested_content);
     }
 
-    nt_unit&
-    nt_unit::operator=(nt_unit&& other) noexcept
+    unit&
+    unit::operator=(unit&& other) noexcept
     {
         if (this != &other)
         {
@@ -55,50 +55,50 @@ namespace network {
         return *this;
     }
 
-    bool nt_unit::ok() const
+    bool unit::ok() const
     {
         return !is_error();
     }
 
     const std::string&
-    nt_unit::error() const
+    unit::error() const
     {
         SRV_ASSERT(is_error(), "Logic unit is not an error");
 
         return as_string();
     }
 
-    nt_unit::operator bool() const
+    unit::operator bool() const
     {
         return !is_error() && !is_null();
     }
 
-    void nt_unit::set(const bool success)
+    void unit::set(const bool success)
     {
         _success = success;
         _data = success;
     }
 
-    void nt_unit::set(const std::string& value, const bool success)
+    void unit::set(const std::string& value, const bool success)
     {
         _success = success;
         _data = value;
     }
 
-    void nt_unit::set(const integer_type value, const bool success)
+    void unit::set(const integer_type value, const bool success)
     {
         _success = success;
         _data = value;
     }
 
-    void nt_unit::set(const std::vector<nt_unit>& nested, const bool success)
+    void unit::set(const std::vector<unit>& nested, const bool success)
     {
         this->set(success);
         _nested_content = nested;
     }
 
-    nt_unit&
-    nt_unit::operator<<(const nt_unit& unit)
+    unit&
+    unit::operator<<(const unit& unit)
     {
         _nested_content.push_back(unit);
 
@@ -117,9 +117,9 @@ namespace network {
             {
                 return std::is_same<std::string, T>::value;
             }
-            auto operator()(const nt_unit::integer_type)
+            auto operator()(const unit::integer_type)
             {
-                return std::is_same<nt_unit::integer_type, T>::value;
+                return std::is_same<unit::integer_type, T>::value;
             }
             auto operator()(const bool)
             {
@@ -136,7 +136,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const nt_unit::integer_type data)
+            auto operator()(const unit::integer_type data)
             {
                 return std::to_string(data);
             }
@@ -155,7 +155,7 @@ namespace network {
             {
                 return data;
             }
-            auto operator()(const nt_unit::integer_type data)
+            auto operator()(const unit::integer_type data)
             {
                 return integer_builder::pack(data);
             }
@@ -166,55 +166,55 @@ namespace network {
         };
     } // namespace impl
 
-    bool nt_unit::is_root_for_nested_content() const
+    bool unit::is_root_for_nested_content() const
     {
         return !_nested_content.empty();
     }
 
-    bool nt_unit::is_string() const
+    bool unit::is_string() const
     {
         impl::is_lunit_type<std::string> check;
         return boost::apply_visitor(check, _data);
     }
 
-    bool nt_unit::is_error() const
+    bool unit::is_error() const
     {
         return !_success;
     }
 
-    bool nt_unit::is_integer() const
+    bool unit::is_integer() const
     {
         impl::is_lunit_type<integer_type> check;
         return boost::apply_visitor(check, _data);
     }
 
-    bool nt_unit::is_null() const
+    bool unit::is_null() const
     {
         impl::is_lunit_type<bool> check;
         return boost::apply_visitor(check, _data);
     }
 
-    const std::vector<nt_unit>& nt_unit::get_nested() const
+    const std::vector<unit>& unit::get_nested() const
     {
         return _nested_content;
     }
 
     const std::string&
-    nt_unit::as_string() const
+    unit::as_string() const
     {
         SRV_ASSERT(is_string(), "Logic unit is not a string");
 
         return boost::get<std::string>(_data);
     }
 
-    nt_unit::integer_type nt_unit::as_integer() const
+    unit::integer_type unit::as_integer() const
     {
         SRV_ASSERT(is_integer(), "Logic unit is not a integer");
 
         return boost::get<integer_type>(_data);
     }
 
-    std::string nt_unit::to_printable_string() const
+    std::string unit::to_printable_string() const
     {
         std::string result;
         if (!is_null())
@@ -246,7 +246,7 @@ namespace network {
         return result;
     }
 
-    std::string nt_unit::to_network_string() const
+    std::string unit::to_network_string() const
     {
         std::string result;
         if (!is_null())
@@ -268,7 +268,7 @@ namespace network {
 } // namespace server_lib
 
 std::ostream&
-operator<<(std::ostream& os, const server_lib::network::nt_unit& unit)
+operator<<(std::ostream& os, const server_lib::network::unit& unit)
 {
     os << unit.to_printable_string();
 

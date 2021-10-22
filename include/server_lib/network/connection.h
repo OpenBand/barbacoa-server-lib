@@ -1,7 +1,7 @@
 #pragma once
 
 #include <server_lib/network/transport/connection_impl_i.h>
-#include <server_lib/network/nt_unit_builder_i.h>
+#include <server_lib/network/unit_builder_i.h>
 
 #include <string>
 #include <mutex>
@@ -9,20 +9,20 @@
 namespace server_lib {
 namespace network {
 
-    class nt_units_builder;
+    class unit_builder_manager;
 
     /**
-     * Wrapper for network connection (used by both server and client) for nt_unit
+     * Wrapper for network connection (used by both server and client) for unit
      */
-    class nt_connection : public std::enable_shared_from_this<nt_connection>
+    class connection : public std::enable_shared_from_this<connection>
     {
     public:
-        nt_connection(const std::shared_ptr<transport_layer::connection_impl_i>&,
-                      const std::shared_ptr<nt_unit_builder_i>&);
+        connection(const std::shared_ptr<transport_layer::connection_impl_i>&,
+                      const std::shared_ptr<unit_builder_i>&);
 
-        ~nt_connection();
+        ~connection();
 
-        using receive_callback_type = std::function<void(nt_connection&, nt_unit&)>;
+        using receive_callback_type = std::function<void(connection&, unit&)>;
         using disconnect_callback_type = std::function<void(size_t /*id*/)>;
 
         size_t id() const;
@@ -33,15 +33,15 @@ namespace network {
 
         std::string remote_endpoint() const;
 
-        nt_unit_builder_i& protocol();
+        unit_builder_i& protocol();
 
-        nt_connection& send(const nt_unit& unit);
+        connection& send(const unit& unit);
 
-        nt_connection& commit();
+        connection& commit();
 
-        nt_connection& on_receive(const receive_callback_type&);
+        connection& on_receive(const receive_callback_type&);
 
-        nt_connection& on_disconnect(const disconnect_callback_type&);
+        connection& on_disconnect(const disconnect_callback_type&);
 
     private:
         void on_raw_receive(const transport_layer::connection_impl_i::read_result& result);
@@ -50,7 +50,7 @@ namespace network {
         void call_disconnection_handler();
 
         std::shared_ptr<transport_layer::connection_impl_i> _raw_connection;
-        std::unique_ptr<nt_units_builder> _protocol;
+        std::unique_ptr<unit_builder_manager> _protocol;
 
         std::string _send_buffer;
         std::mutex _send_buffer_mutex;

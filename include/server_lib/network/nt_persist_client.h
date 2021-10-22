@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/nt_client.h>
+#include <server_lib/network/client.h>
 
 #include <atomic>
 #include <condition_variable>
@@ -31,7 +31,7 @@ namespace network {
          *
          * \brief This class configurates TCP nt_persist_client.
          */
-        class tcp_client_config : protected nt_client::tcp_client_config
+        class tcp_client_config : protected client::tcp_client_config
         {
             friend class nt_persist_client;
 
@@ -42,27 +42,27 @@ namespace network {
             tcp_client_config(const tcp_client_config&) = default;
             ~tcp_client_config() = default;
 
-            tcp_client_config& set_protocol(const nt_unit_builder_i* protocol)
+            tcp_client_config& set_protocol(const unit_builder_i* protocol)
             {
-                nt_client::tcp_client_config::set_protocol(protocol);
+                client::tcp_client_config::set_protocol(protocol);
                 return *this;
             }
 
             tcp_client_config& set_address(unsigned short port)
             {
-                nt_client::tcp_client_config::set_address(port);
+                client::tcp_client_config::set_address(port);
                 return *this;
             }
 
             tcp_client_config& set_address(std::string host, unsigned short port)
             {
-                nt_client::tcp_client_config::set_address(host, port);
+                client::tcp_client_config::set_address(host, port);
                 return *this;
             }
 
             tcp_client_config& set_worker_threads(uint8_t worker_threads)
             {
-                nt_client::tcp_client_config::set_worker_threads(worker_threads);
+                client::tcp_client_config::set_worker_threads(worker_threads);
                 return *this;
             }
 
@@ -70,7 +70,7 @@ namespace network {
             template <typename DurationType>
             tcp_client_config& set_timeout_connect(DurationType&& duration)
             {
-                nt_client::tcp_client_config::set_timeout_connect(duration);
+                client::tcp_client_config::set_timeout_connect(duration);
                 return *this;
             }
 
@@ -135,13 +135,13 @@ namespace network {
 
         bool is_reconnecting() const;
 
-        nt_unit_builder_i& protocol();
+        unit_builder_i& protocol();
 
-        using receive_callback_type = std::function<void(nt_unit&)>;
+        using receive_callback_type = std::function<void(unit&)>;
 
-        nt_persist_client& send(const nt_unit& cmd, const receive_callback_type& callback);
+        nt_persist_client& send(const unit& cmd, const receive_callback_type& callback);
 
-        std::future<nt_unit> send(const nt_unit& cmd);
+        std::future<unit> send(const unit& cmd);
 
         nt_persist_client& commit();
 
@@ -167,8 +167,8 @@ namespace network {
         void create_connection();
         void try_commit();
 
-        void unprotected_send(const nt_unit& cmd, const receive_callback_type& callback);
-        void connection_receive_handler(nt_connection& connection, nt_unit& unit);
+        void unprotected_send(const unit& cmd, const receive_callback_type& callback);
+        void connection_receive_handler(connection& connection, unit& unit);
 
         void connection_disconnection_handler(size_t);
         void sleep_before_next_reconnect_attempt();
@@ -181,20 +181,20 @@ namespace network {
     private:
         struct command_request
         {
-            nt_unit command;
+            unit command;
             receive_callback_type callback;
         };
 
     private:
-        nt_client _client;
+        client _client;
         connect_callback_type _connect_callback;
         int32_t _max_reconnects = 0;
         int32_t _current_reconnect_attempts = 0;
         uint32_t _reconnect_interval_ms = 0;
-        std::shared_ptr<nt_unit_builder_i> _protocol;
+        std::shared_ptr<unit_builder_i> _protocol;
 
         std::shared_ptr<transport_layer::client_impl_i> _transport_layer;
-        std::shared_ptr<nt_connection> _connection;
+        std::shared_ptr<connection> _connection;
 
         std::atomic_bool _reconnecting;
         std::atomic_bool _cancel;

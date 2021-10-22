@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/nt_unit_builder_i.h>
+#include <server_lib/network/unit_builder_i.h>
 
 #include <server_lib/asserts.h>
 
@@ -15,7 +15,7 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief Base class for nt_client configurations.
+     * \brief Base class for client configurations.
      */
     class base_client_config
     {
@@ -34,7 +34,7 @@ namespace network {
         }
 
     protected:
-        std::shared_ptr<nt_unit_builder_i> _protocol;
+        std::shared_ptr<unit_builder_i> _protocol;
 
         /// Set name for worker thread
         std::string _worker_name = "client";
@@ -43,11 +43,11 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief This class configurates TCP nt_client.
+     * \brief This class configurates TCP client.
      */
     class tcp_client_config : public base_client_config
     {
-        friend class nt_client;
+        friend class client;
 
     protected:
         tcp_client_config() = default;
@@ -56,7 +56,7 @@ namespace network {
         tcp_client_config(const tcp_client_config&) = default;
         ~tcp_client_config() = default;
 
-        tcp_client_config& set_protocol(const nt_unit_builder_i&);
+        tcp_client_config& set_protocol(const unit_builder_i&);
 
         tcp_client_config& set_address(unsigned short port);
 

@@ -2,7 +2,7 @@
 
 #include <server_lib/network/transport/server_impl_i.h>
 
-#include <server_lib/network/nt_connection.h>
+#include <server_lib/network/connection.h>
 #include <server_lib/network/server_config.h>
 
 #include <string>
@@ -17,14 +17,14 @@ namespace network {
      *
      * \brief Simple async server with application connection
      */
-    class nt_server
+    class server
     {
     public:
-        nt_server() = default;
+        server() = default;
 
-        nt_server(const nt_server&) = delete;
+        server(const server&) = delete;
 
-        ~nt_server();
+        ~server();
 
         /**
          * Configurate
@@ -33,7 +33,7 @@ namespace network {
         static tcp_server_config configurate_tcp();
 
         using start_callback_type = transport_layer::server_impl_i::start_callback_type;
-        using new_connection_callback_type = std::function<void(const std::shared_ptr<nt_connection>&)>;
+        using new_connection_callback_type = std::function<void(const std::shared_ptr<connection>&)>;
         using fail_callback_type = transport_layer::server_impl_i::fail_callback_type;
 
         /**
@@ -42,9 +42,9 @@ namespace network {
          */
         bool start(const tcp_server_config&);
 
-        nt_server& on_start(start_callback_type&& callback);
-        nt_server& on_new_connection(new_connection_callback_type&& callback);
-        nt_server& on_fail(fail_callback_type&& callback);
+        server& on_start(start_callback_type&& callback);
+        server& on_new_connection(new_connection_callback_type&& callback);
+        server& on_fail(fail_callback_type&& callback);
 
         void stop(bool wait_for_removal);
 
@@ -55,9 +55,9 @@ namespace network {
         void on_client_disconnected(size_t);
 
         std::shared_ptr<transport_layer::server_impl_i> _transport_layer;
-        std::shared_ptr<nt_unit_builder_i> _protocol;
+        std::shared_ptr<unit_builder_i> _protocol;
 
-        std::map<size_t, std::shared_ptr<nt_connection>> _connections;
+        std::map<size_t, std::shared_ptr<connection>> _connections;
         std::mutex _connections_mutex;
 
         start_callback_type _start_callback = nullptr;

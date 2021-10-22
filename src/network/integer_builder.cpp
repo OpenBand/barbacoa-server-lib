@@ -44,7 +44,7 @@ namespace network {
         }
     } // namespace impl
 
-    nt_unit_builder_i& integer_builder::operator<<(std::string& network_data)
+    unit_builder_i& integer_builder::operator<<(std::string& network_data)
     {
         if (unit_ready())
             return *this;

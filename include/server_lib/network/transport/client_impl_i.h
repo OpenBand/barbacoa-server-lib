@@ -14,7 +14,7 @@ namespace network {
          *
          * \brief Interface for transport implementation for async network client
          *
-         * Implementations: nt_client, nt_persist_client
+         * Implementations: client, nt_persist_client
          *
          */
         class client_impl_i

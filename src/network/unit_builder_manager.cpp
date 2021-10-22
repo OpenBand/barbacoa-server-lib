@@ -1,29 +1,29 @@
-#include "nt_units_builder.h"
+#include "unit_builder_manager.h"
 
 #include <server_lib/asserts.h>
 
 namespace server_lib {
 namespace network {
 
-    nt_units_builder::nt_units_builder(const std::shared_ptr<nt_unit_builder_i> builder)
+    unit_builder_manager::unit_builder_manager(const std::shared_ptr<unit_builder_i> builder)
         : _builder(builder)
     {
     }
 
-    void nt_units_builder::set_builder(const std::shared_ptr<nt_unit_builder_i> builder)
+    void unit_builder_manager::set_builder(const std::shared_ptr<unit_builder_i> builder)
     {
         SRV_ASSERT(builder);
         _builder = builder;
     }
 
-    nt_unit_builder_i& nt_units_builder::builder()
+    unit_builder_i& unit_builder_manager::builder()
     {
         SRV_ASSERT(_builder);
         return *_builder;
     }
 
-    nt_units_builder&
-    nt_units_builder::operator<<(const std::string& data)
+    unit_builder_manager&
+    unit_builder_manager::operator<<(const std::string& data)
     {
         _buffer += data;
 
@@ -33,12 +33,12 @@ namespace network {
         return *this;
     }
 
-    void nt_units_builder::reset()
+    void unit_builder_manager::reset()
     {
         _buffer.clear();
     }
 
-    bool nt_units_builder::build_unit()
+    bool unit_builder_manager::build_unit()
     {
         if (_buffer.empty())
             return false;
@@ -58,27 +58,27 @@ namespace network {
         return false;
     }
 
-    void nt_units_builder::operator>>(nt_unit& unit)
+    void unit_builder_manager::operator>>(unit& unit)
     {
         unit = get_front();
     }
 
-    const nt_unit&
-    nt_units_builder::get_front() const
+    const unit&
+    unit_builder_manager::get_front() const
     {
         SRV_ASSERT(receive_available(), "No available unit");
 
         return _available_replies.front();
     }
 
-    void nt_units_builder::pop_front()
+    void unit_builder_manager::pop_front()
     {
         SRV_ASSERT(receive_available(), "No available unit");
 
         _available_replies.pop_front();
     }
 
-    bool nt_units_builder::receive_available() const
+    bool unit_builder_manager::receive_available() const
     {
         return !_available_replies.empty();
     }

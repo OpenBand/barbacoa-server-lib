@@ -17,7 +17,7 @@ namespace network {
         SRV_LOGC_TRACE("destroyed");
     }
 
-    nt_unit_builder_i& raw_builder::operator<<(std::string& network_data)
+    unit_builder_i& raw_builder::operator<<(std::string& network_data)
     {
         if (unit_ready() || network_data.empty())
             return *this;
@@ -28,7 +28,7 @@ namespace network {
         return *this;
     }
 
-    nt_unit raw_builder::get_unit() const
+    unit raw_builder::get_unit() const
     {
         if (unit_ready())
             return { _buffer };
