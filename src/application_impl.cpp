@@ -478,7 +478,13 @@ void application_impl::run_impl()
         {
             bool expected = false;
             while (!this->_signal_thread_initiated.compare_exchange_weak(expected, true))
+            {
+                if (!expected)
+                    return;
+
+                expected = false;
                 spin_loop_pause();
+            }
 
             SRV_LOGC_TRACE("Signal thread has completely initiated");
         }
@@ -499,7 +505,13 @@ void application_impl::run_impl()
 
     bool expected = true;
     while (!this->_signal_thread_initiated.compare_exchange_weak(expected, true))
+    {
+        if (expected)
+            return;
+
+        expected = true;
         spin_loop_pause();
+    }
     // Here signal thread has started, signal_thread_id has intialized
 
     // Stuck into main loop

@@ -1,5 +1,6 @@
 #include <server_lib/network/transport/server_impl_i.h>
 #include <server_lib/network/server_config.h>
+#include <server_lib/mt_event_loop.h>
 
 #include <boost/asio.hpp>
 
@@ -36,7 +37,7 @@ namespace network {
             void accept();
             void stop_impl();
 
-            event_loop _worker;
+            std::unique_ptr<mt_event_loop> _workers;
 
             std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 

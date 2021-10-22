@@ -40,7 +40,6 @@ private:
         return callback_;
     }
 
-    void reset();
     void apply_thread_name();
 
 public:
@@ -118,7 +117,7 @@ public:
         return _queue_size.load();
     }
 
-    bool is_this_loop() const
+    virtual bool is_this_loop() const
     {
         return _id.load() == std::this_thread::get_id();
     }
@@ -277,6 +276,7 @@ public:
 
 protected:
     void run();
+    void reset();
 
 protected:
     const bool _run_in_separate_thread = false;

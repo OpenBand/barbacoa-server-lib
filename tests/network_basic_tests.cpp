@@ -524,6 +524,56 @@ namespace tests {
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
+    BOOST_AUTO_TEST_CASE(tcp_server_fail_check)
+    {
+        print_current_test_name();
+
+        event_loop test_th;
+
+        test_th.change_thread_name("T");
+
+        msg_protocol protocol;
+
+        server server, server_to_fail;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
+        auto server_start = [&]() {
+            LOG_TRACE("********* server_start");
+
+            test_th.start();
+        };
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        auto server_fail = [&](const std::string& err) {
+            LOG_TRACE("********* server_fail: " << err);
+
+            test_th.post([&] {
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+            });
+        };
+
+        BOOST_REQUIRE(server.on_start(server_start)
+                          .start(
+                              server.configurate_tcp().set_address(host, port).set_protocol(protocol)));
+
+        test_th.post([&]() {
+            // Address already in use
+            BOOST_REQUIRE(server_to_fail.on_fail(server_fail)
+                              .start(
+                                  server.configurate_tcp().set_address(host, port).set_protocol(protocol)));
+        });
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
+    }
+
     BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace tests

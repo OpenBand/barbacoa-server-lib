@@ -78,7 +78,7 @@ namespace network {
             return _address;
         }
 
-        size_t worker_threads() const
+        uint8_t worker_threads() const
         {
             return _worker_threads;
         }
@@ -96,7 +96,7 @@ namespace network {
         std::string _address = "localhost";
         /// Number of threads that the server will use.
         /// Defaults to 1 thread.
-        std::size_t _worker_threads = 1;
+        uint8_t _worker_threads = 1;
         /// Maximum size of request stream buffer. Defaults to architecture maximum.
         /// Reaching this limit will result in a message_size error code.
         std::size_t _max_request_streambuf_size = std::numeric_limits<std::size_t>::max();

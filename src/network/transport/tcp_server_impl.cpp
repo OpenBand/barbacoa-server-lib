@@ -43,7 +43,9 @@ namespace network {
 
                 _new_connection_callback = new_connection_callback;
                 _fail_callback = fail_callback;
-                _worker.change_thread_name(_config->worker_name());
+
+                _workers = std::make_unique<mt_event_loop>(_config->worker_threads());
+                _workers->change_thread_name(_config->worker_name());
                 auto start_ = [this, start_callback]() {
                     try
                     {
@@ -55,7 +57,7 @@ namespace network {
                         else
                             endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), _config->port());
 
-                        _acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*_worker.service()));
+                        _acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*_workers->service()));
                         _acceptor->open(endpoint.protocol());
                         _acceptor->set_option(asio::socket_base::reuse_address(_config->reuse_address()));
                         _acceptor->bind(endpoint);
@@ -75,7 +77,7 @@ namespace network {
                             _fail_callback(e.what());
                     }
                 };
-                _worker.on_start(start_).start();
+                _workers->on_start(start_).start();
 
                 return true;
             }
@@ -89,7 +91,7 @@ namespace network {
 
         void tcp_server_impl::accept()
         {
-            auto connection = std::make_shared<tcp_server_connection_impl>(_worker.service(), ++_next_connection_id);
+            auto connection = std::make_shared<tcp_server_connection_impl>(_workers->service(), ++_next_connection_id);
 
             auto scope_lock = [connection]() {
                 auto loop_lock = connection->handler_runner.continue_lock();
@@ -142,14 +144,14 @@ namespace network {
                 _acceptor->close(ec);
             }
 
-            SRV_ASSERT(!_worker.is_run() || !_worker.is_this_loop(),
+            SRV_ASSERT(!_workers->is_run() || !_workers->is_this_loop(),
                        "Can't initiate thread stop in the same thread. It is the way to deadlock");
-            _worker.stop();
+            _workers->stop();
         }
 
         bool tcp_server_impl::is_running() const
         {
-            return _worker.is_running();
+            return _workers && _workers->is_running();
         }
 
     } // namespace transport_layer

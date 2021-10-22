@@ -4,6 +4,7 @@
 #include <server_lib/emergency_helper.h>
 #include <server_lib/logging_helper.h>
 #include <server_lib/observer.h>
+#include <server_lib/mt_event_loop.h>
 
 #include <boost/filesystem.hpp>
 
@@ -11,6 +12,7 @@ namespace server_lib {
 namespace tests {
 
     namespace bf = boost::filesystem;
+    using namespace std::chrono_literals;
 
 #if !defined(SERVER_LIB_PLATFORM_WINDOWS)
     namespace {
@@ -664,6 +666,135 @@ namespace tests {
         BOOST_REQUIRE_NO_THROW(loop2.wait(payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
+    }
+
+    BOOST_AUTO_TEST_CASE(mt_event_loop_check)
+    {
+        server_lib::mt_event_loop loop(5);
+
+        BOOST_REQUIRE_NO_THROW(loop.change_thread_name("L").start());
+        BOOST_REQUIRE_NO_THROW(loop.stop());
+
+        LOG_INFO("Next case");
+
+        //event loop can't stop itself (stop will emit deadlock)
+        //it will be done by creator or external loop
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        server_lib::event_loop external_stopper;
+        BOOST_REQUIRE_NO_THROW(external_stopper.change_thread_name("LS").start());
+        auto stop_action = [&]() {
+            LOG_INFO("Stop action is starting");
+            external_stopper.post([&]() {
+                LOG_INFO("Stop action has started");
+
+                BOOST_REQUIRE_NO_THROW(loop.stop());
+
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+
+                LOG_INFO("Stop action has finished");
+            });
+        };
+        BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
+        //external_stopper is stopping by destructor
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
+    }
+
+    BOOST_AUTO_TEST_CASE(mt_event_loop_post_distribution_check)
+    {
+        server_lib::mt_event_loop loop(5);
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        server_lib::event_loop external_stopper;
+
+        auto stop_action = [&]() {
+            external_stopper.post([&]() {
+                BOOST_REQUIRE_NO_THROW(loop.stop());
+
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+            });
+        };
+
+        std::atomic<size_t> waiting_posts;
+
+        auto test_action = [&] {
+            LOG_INFO("Test action");
+
+            std::atomic_fetch_sub<size_t>(&waiting_posts, 1);
+            if (!waiting_posts.load())
+                stop_action();
+        };
+
+        waiting_posts = 20; //total posts
+
+        for (size_t ci = 0; ci < 10; ++ci) //first half
+        {
+            loop.post(test_action);
+        }
+
+        BOOST_REQUIRE_NO_THROW(external_stopper.change_thread_name("LS").start());
+        BOOST_REQUIRE_NO_THROW(loop.change_thread_name("L").on_start([&]() {
+                                                               for (size_t ci = 0; ci < 10; ++ci) //second half
+                                                               {
+                                                                   loop.post(test_action);
+                                                               }
+                                                           })
+                                   .start());
+        //external_stopper is stopping by destructor
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
+    }
+
+    BOOST_AUTO_TEST_CASE(mt_event_loop_degenerate_case_check)
+    {
+        server_lib::mt_event_loop loop(1);
+
+        BOOST_REQUIRE_NO_THROW(loop.change_thread_name("L").start());
+        BOOST_REQUIRE_NO_THROW(loop.stop());
+
+        LOG_INFO("Next case");
+
+        //event loop can't stop itself (stop will emit deadlock)
+        //it will be done by creator or external loop
+
+        bool done_test = false;
+        std::mutex done_test_cond_guard;
+        std::condition_variable done_test_cond;
+
+        server_lib::event_loop external_stopper;
+        BOOST_REQUIRE_NO_THROW(external_stopper.change_thread_name("LS").start());
+        auto stop_action = [&]() {
+            LOG_INFO("Action is starting");
+            external_stopper.post([&]() {
+                LOG_INFO("Action has started");
+
+                BOOST_REQUIRE_NO_THROW(loop.stop());
+
+                //done test
+                std::unique_lock<std::mutex> lck(done_test_cond_guard);
+                done_test = true;
+                done_test_cond.notify_one();
+
+                LOG_INFO("Action has finished");
+            });
+        };
+        BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
+        //external_stopper is stopping by destructor
+
+        BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
 
     BOOST_AUTO_TEST_SUITE_END()

@@ -31,6 +31,7 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/emergency_helper.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/event_loop.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/main_loop.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/mt_event_loop.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/application_impl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/options_helper.cpp"

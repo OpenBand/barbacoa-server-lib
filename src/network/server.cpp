@@ -33,7 +33,6 @@ namespace network {
             SRV_ASSERT(!is_running());
 
             SRV_ASSERT(config.valid());
-            SRV_ASSERT(_new_connection_callback, "Silent server is not allowed");
 
             auto transport_impl = std::make_shared<transport_layer::tcp_server_impl>();
             transport_impl->config(config);
@@ -116,7 +115,6 @@ namespace network {
             return;
         }
 
-        SRV_ASSERT(_new_connection_callback);
         SRV_ASSERT(raw_connection);
         SRV_ASSERT(_protocol);
 
@@ -130,7 +128,8 @@ namespace network {
 
         SRV_LOGC_TRACE("new client connection #" << raw_connection->id() << ", total " << sz);
 
-        _new_connection_callback(conn);
+        if (_new_connection_callback)
+            _new_connection_callback(conn);
     }
 
     void server::on_client_disconnected(size_t conection_id)
