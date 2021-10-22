@@ -13,7 +13,7 @@
 namespace server_lib {
 namespace tests {
 
-    namespace web = SimpleWeb;
+    namespace web = server_lib::network::web;
     using namespace std::chrono_literals;
 
     class web_fixture : public basic_network_fixture
@@ -21,7 +21,7 @@ namespace tests {
     public:
         web_fixture() = default;
 
-        using WebServer = web::Server<SimpleWeb::HTTP>;
+        using WebServer = web::Server<web::HTTP>;
         using HttpStatusCode = web::StatusCode;
     };
 
@@ -112,7 +112,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -216,7 +216,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -359,7 +359,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -502,7 +502,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -650,7 +650,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -784,7 +784,7 @@ namespace tests {
         server_th.start();
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -931,7 +931,7 @@ namespace tests {
         server_th.start();
         server_th.post(server_run);
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
@@ -1079,7 +1079,7 @@ namespace tests {
         BOOST_REQUIRE(server_th.wait_result(false, server_run));
         server_th_for_postponed.start();
 
-        using WebClient = web::Client<SimpleWeb::HTTP>;
+        using WebClient = web::Client<web::HTTP>;
         std::string address { server.config.address };
         address.append(":");
         address.append(std::to_string(server.config.port));
