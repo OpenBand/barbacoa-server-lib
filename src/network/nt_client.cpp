@@ -44,10 +44,9 @@ namespace network {
             auto transport_impl = std::make_shared<transport_layer::tcp_client_impl>();
             transport_impl->config(config);
             _transport_layer = transport_impl;
+            _protocol = config._protocol;
 
             auto connect_handler = std::bind(&nt_client::on_connect_impl, this, std::placeholders::_1);
-
-            _protocol = config._protocol;
 
             return _transport_layer->connect(connect_handler, _fail_callback);
         }

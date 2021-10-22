@@ -8,7 +8,6 @@ namespace network {
         {
         public:
             tcp_client_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service);
-            ~tcp_client_connection_impl();
 
             void configurate(const std::string& remote_endpoint) override;
             void close_socket(socket_type&) override;

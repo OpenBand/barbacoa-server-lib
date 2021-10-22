@@ -23,7 +23,7 @@ namespace network {
         _protocol = std::make_unique<nt_units_builder>();
         _protocol->set_builder(protocol);
 
-        _raw_connection->on_disconnect(std::bind(&nt_connection::on_diconnected, this));
+        _raw_connection->set_disconnect_handler(std::bind(&nt_connection::on_diconnected, this));
 
         try
         {
@@ -48,39 +48,33 @@ namespace network {
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
-        if (_raw_connection)
-            _raw_connection->on_disconnect(nullptr);
+        _raw_connection->set_disconnect_handler(nullptr);
 
         SRV_LOGC_TRACE("destroyed");
     }
 
     size_t nt_connection::id() const
     {
-        SRV_ASSERT(_raw_connection);
         return _raw_connection->id();
     }
 
     void nt_connection::disconnect()
     {
-        SRV_ASSERT(_raw_connection);
         _raw_connection->disconnect();
     }
 
     bool nt_connection::is_connected() const
     {
-        SRV_ASSERT(_raw_connection);
         return _raw_connection->is_connected();
     }
 
     std::string nt_connection::remote_endpoint() const
     {
-        SRV_ASSERT(_raw_connection);
         return _raw_connection->remote_endpoint();
     }
 
     nt_unit_builder_i& nt_connection::protocol()
     {
-        SRV_ASSERT(_protocol);
         return _protocol->builder();
     }
 
@@ -134,21 +128,8 @@ namespace network {
 
     nt_connection& nt_connection::on_disconnect(const disconnect_callback_type& callback)
     {
-        _disconnection_callback = callback;
+        _disconnection_callbacks.emplace_back(callback);
         return *this;
-    }
-
-    void nt_connection::call_disconnection_handler()
-    {
-        if (_disconnection_callback)
-        {
-            SRV_LOGC_TRACE("calls disconnection handler");
-
-            auto hold_this = shared_from_this();
-
-            SRV_ASSERT(_raw_connection);
-            _disconnection_callback(_raw_connection->id());
-        }
     }
 
     void nt_connection::on_diconnected()
@@ -161,11 +142,12 @@ namespace network {
             _send_buffer.clear();
         }
 
-        SRV_ASSERT(_protocol);
+        auto hold_self = shared_from_this();
 
-        _protocol->reset();
-
-        call_disconnection_handler();
+        for (auto&& callback : _disconnection_callbacks)
+        {
+            callback(hold_self->id());
+        }
     }
 
     void nt_connection::on_raw_receive(const transport_layer::nt_connection_i::read_result& result)
@@ -175,9 +157,7 @@ namespace network {
             return;
         }
 
-        auto hold_this = shared_from_this();
-
-        SRV_ASSERT(_protocol);
+        auto hold_self = shared_from_this();
 
         try
         {
@@ -187,11 +167,11 @@ namespace network {
         catch (const std::exception& e)
         {
             SRV_LOGC_ERROR("Could not build unit (invalid format), disconnecting: " << e.what());
-            call_disconnection_handler();
+            _raw_connection->disconnect();
             return;
         }
 
-        while (_protocol->receive_available())
+        while (is_connected() && _protocol->receive_available())
         {
             SRV_LOGC_TRACE("unit fully built");
 
@@ -200,8 +180,7 @@ namespace network {
 
             if (_receive_callback)
             {
-                SRV_LOGC_TRACE("executes unit callback");
-                _receive_callback(*this, unit);
+                _receive_callback(*hold_self, unit);
             }
         }
 

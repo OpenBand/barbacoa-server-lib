@@ -14,10 +14,9 @@ namespace network {
 
         tcp_client_impl::~tcp_client_impl()
         {
-            SRV_LOGC_TRACE(__FUNCTION__);
             try
             {
-                clear_connection(true);
+                stop_worker();
             }
             catch (const std::exception& e)
             {
@@ -35,9 +34,9 @@ namespace network {
         {
             try
             {
-                SRV_LOGC_TRACE("attempts to connect");
+                SRV_LOGC_TRACE(__FUNCTION__);
 
-                clear_connection(true);
+                stop_worker();
 
                 SRV_ASSERT(_config && _config->valid());
 
@@ -45,11 +44,9 @@ namespace network {
                 auto connect_ = [this, connect_callback, fail_callback]() {
                     try
                     {
-                        SRV_LOGC_TRACE("connecting");
+                        SRV_LOGC_TRACE("sm - connecting");
 
                         auto connection = std::make_shared<tcp_client_connection_impl>(_worker.service());
-                        connection->on_disconnect(std::bind(&tcp_client_impl::on_diconnected, this));
-                        _connection = connection;
 
                         auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker.service());
                         connection->set_timeout(_config->timeout_connect_ms(), [resolver]() {
@@ -74,7 +71,7 @@ namespace network {
                                 {
                                     connection->configurate(_config->address() + ":" + std::to_string(_config->port()));
 
-                                    SRV_LOGC_TRACE("connected");
+                                    SRV_LOGC_TRACE("sm - connected");
 
                                     if (connect_callback)
                                         connect_callback(connection);
@@ -101,7 +98,7 @@ namespace network {
                                     return;
                                 if (!ec)
                                 {
-                                    SRV_LOGC_TRACE("resolved");
+                                    SRV_LOGC_TRACE("sm - resolved");
                                     asio::async_connect(connection->socket(), it, connect_step);
                                 }
                                 else if (fail_callback)
@@ -135,30 +132,13 @@ namespace network {
             return false;
         }
 
-        void tcp_client_impl::on_diconnected()
+        void tcp_client_impl::stop_worker()
         {
-            SRV_LOGC_TRACE("handle client disconnection");
+            SRV_LOGC_TRACE(__FUNCTION__);
 
-            clear_connection();
-        }
-
-        void tcp_client_impl::clear_connection(bool stop_worker)
-        {
-            SRV_LOGC_TRACE("clear connection");
-
-            if (_connection)
-            {
-                auto connection = _connection;
-                _connection.reset();
-                connection->disconnect();
-            }
-
-            if (stop_worker)
-            {
-                SRV_ASSERT(!_worker.is_run() || !_worker.is_this_loop(),
-                           "Can't initiate thread stop in the same thread. It is the way to deadlock");
-                _worker.stop();
-            }
+            SRV_ASSERT(!_worker.is_run() || !_worker.is_this_loop(),
+                       "Can't initiate thread stop in the same thread. It is the way to deadlock");
+            _worker.stop();
         }
 
     } // namespace transport_layer

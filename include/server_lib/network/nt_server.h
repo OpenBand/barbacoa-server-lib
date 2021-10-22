@@ -50,16 +50,19 @@ namespace network {
 
         bool is_running(void) const;
 
-        nt_unit_builder_i& protocol();
-
     private:
-        void on_new_connection_impl(const std::shared_ptr<transport_layer::nt_connection_i>&);
+        void on_new_client(const std::shared_ptr<transport_layer::nt_connection_i>&);
+        void on_client_disconnected(size_t);
+
+        std::shared_ptr<transport_layer::nt_server_i> _transport_layer;
+        std::shared_ptr<nt_unit_builder_i> _protocol;
+
+        std::map<size_t, std::shared_ptr<nt_connection>> _connections;
+        std::mutex _connections_mutex;
 
         start_callback_type _start_callback = nullptr;
         new_connection_callback_type _new_connection_callback = nullptr;
         fail_callback_type _fail_callback = nullptr;
-        std::shared_ptr<transport_layer::nt_server_i> _transport_layer;
-        std::shared_ptr<nt_unit_builder_i> _protocol;
     };
 
 } // namespace network

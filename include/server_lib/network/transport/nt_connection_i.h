@@ -51,7 +51,7 @@ namespace network {
              * Set callback for disconnection event
              *
              */
-            virtual void on_disconnect(const disconnect_callback_type&) = 0;
+            virtual void set_disconnect_handler(const disconnect_callback_type&) = 0;
 
             /**
              * Structure to store read requests result

@@ -9,8 +9,6 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_client_connection_impl;
-
         class tcp_client_impl : public nt_client_i
         {
         public:
@@ -23,13 +21,11 @@ namespace network {
                          const fail_callback_type& fail_callback) override;
 
         private:
-            void on_diconnected();
-            void clear_connection(bool stop_worker = false);
+            void stop_worker();
 
             event_loop _worker;
 
             std::unique_ptr<tcp_client_config> _config;
-            std::shared_ptr<tcp_client_connection_impl> _connection;
         };
 
     } // namespace transport_layer

@@ -13,10 +13,6 @@ namespace network {
             : base_class(io_service, id, *io_service)
         {
         }
-        tcp_server_connection_impl::~tcp_server_connection_impl()
-        {
-            SRV_LOGC_TRACE(__FUNCTION__);
-        }
 
         void tcp_server_connection_impl::configurate(const std::string&)
         {

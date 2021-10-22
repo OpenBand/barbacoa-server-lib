@@ -50,15 +50,13 @@ namespace network {
         void call_disconnection_handler();
 
         std::shared_ptr<transport_layer::nt_connection_i> _raw_connection;
-
         std::unique_ptr<nt_units_builder> _protocol;
 
         std::string _send_buffer;
-
         std::mutex _send_buffer_mutex;
 
         receive_callback_type _receive_callback = nullptr;
-        disconnect_callback_type _disconnection_callback = nullptr;
+        std::vector<disconnect_callback_type> _disconnection_callbacks;
     };
 
 } // namespace network

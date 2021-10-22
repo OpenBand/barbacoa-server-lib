@@ -16,7 +16,7 @@ namespace network {
         {
             try
             {
-                stop(false);
+                stop_impl();
             }
             catch (const std::exception& e)
             {
@@ -90,13 +90,16 @@ namespace network {
         void tcp_server_impl::accept()
         {
             auto connection = std::make_shared<tcp_server_connection_impl>(_worker.service(), ++_next_connection_id);
-            connection->on_disconnect(std::bind(&tcp_server_impl::on_client_disconnected, this, std::placeholders::_1));
 
-            _acceptor->async_accept(connection->socket(), [this, connection](const error_code& ec) {
+            auto scope_lock = [connection]() {
+                auto loop_lock = connection->handler_runner.continue_lock();
+                return loop_lock.operator bool();
+            };
+
+            _acceptor->async_accept(connection->socket(), [this, connection, scope_lock](const error_code& ec) {
                 try
                 {
-                    auto lock = connection->handler_runner.continue_lock();
-                    if (!lock)
+                    if (!scope_lock())
                         return;
 
                     // Immediately start accepting a new connection (unless io_service has been stopped)
@@ -106,12 +109,6 @@ namespace network {
                     if (!ec)
                     {
                         connection->configurate("");
-                        {
-                            std::lock_guard<std::mutex> lock(_connections_mutex);
-
-                            _connections.emplace(connection->id(), connection);
-                            SRV_LOGC_TRACE("connections = " << _connections.size());
-                        }
 
                         SRV_LOGC_TRACE("connected");
 
@@ -130,14 +127,14 @@ namespace network {
             });
         }
 
-        void tcp_server_impl::stop(bool wait_for_removal)
+        void tcp_server_impl::stop_impl()
         {
             if (!is_running())
             {
                 return;
             }
 
-            SRV_LOGC_TRACE("attempts to stop");
+            SRV_LOGC_TRACE(__FUNCTION__);
 
             if (_acceptor)
             {
@@ -145,52 +142,14 @@ namespace network {
                 _acceptor->close(ec);
             }
 
-            if (wait_for_removal)
-            {
-                std::unique_lock<std::mutex> lock(_connections_mutex);
-                auto connections = _connections;
-                lock.unlock();
-                for (const auto& ctx : connections)
-                {
-                    auto connection = ctx.second;
-                    connection->disconnect();
-                }
-                lock.lock();
-                _connections.clear();
-            }
-
+            SRV_ASSERT(!_worker.is_run() || !_worker.is_this_loop(),
+                       "Can't initiate thread stop in the same thread. It is the way to deadlock");
             _worker.stop();
-
-            SRV_LOGC_TRACE("stopped");
         }
 
         bool tcp_server_impl::is_running() const
         {
             return _worker.is_running();
-        }
-
-        void tcp_server_impl::on_client_disconnected(size_t connection_id)
-        {
-            if (!is_running())
-            {
-                return;
-            }
-
-            auto hold_this = shared_from_this();
-
-            SRV_LOGC_TRACE("handle server's client disconnection");
-
-            std::shared_ptr<tcp_server_connection_impl> connection;
-            std::unique_lock<std::mutex> lock(_connections_mutex);
-            auto it = _connections.find(connection_id);
-            if (it != _connections.end())
-            {
-                connection = it->second;
-                _connections.erase(it);
-            }
-            lock.unlock();
-            if (connection)
-                connection->disconnect();
         }
 
     } // namespace transport_layer

@@ -25,13 +25,16 @@ namespace network {
                        const new_connection_callback_type& new_connection_callback,
                        const fail_callback_type& fail_callback) override;
 
-            void stop(bool wait_for_removal) override;
+            void stop() override
+            {
+                stop_impl();
+            }
 
             bool is_running() const override;
 
         private:
             void accept();
-            void on_client_disconnected(size_t connection_id);
+            void stop_impl();
 
             event_loop _worker;
 
@@ -43,9 +46,6 @@ namespace network {
 
             new_connection_callback_type _new_connection_callback = nullptr;
             fail_callback_type _fail_callback = nullptr;
-
-            std::map<size_t, std::shared_ptr<tcp_server_connection_impl>> _connections;
-            std::mutex _connections_mutex;
         };
 
     } // namespace transport_layer

@@ -68,10 +68,8 @@ namespace network {
             /**
             * Disconnect the network server if it was currently running.
             *
-            * \param wait_for_removal
-            *
             */
-            virtual void stop(bool wait_for_removal) = 0;
+            virtual void stop() = 0;
 
             /**
             * \return whether the network server is currently running or not

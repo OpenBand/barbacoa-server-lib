@@ -12,10 +12,6 @@ namespace network {
             : base_class(io_service, 0, *io_service)
         {
         }
-        tcp_client_connection_impl::~tcp_client_connection_impl()
-        {
-            SRV_LOGC_TRACE(__FUNCTION__);
-        }
 
         void tcp_client_connection_impl::configurate(const std::string& remote_endpoint)
         {

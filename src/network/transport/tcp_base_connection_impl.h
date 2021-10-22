@@ -77,7 +77,7 @@ namespace network {
                 return _remote_endpoint;
             }
 
-            void on_disconnect(const disconnect_callback_type& callback) override
+            void set_disconnect_handler(const disconnect_callback_type& callback) override
             {
                 if (callback)
                 {
