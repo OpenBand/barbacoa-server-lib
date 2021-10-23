@@ -1,12 +1,6 @@
 #pragma once
 
-#include <server_lib/network/unit_builder_i.h>
-
-#include <server_lib/asserts.h>
-
-#include <string>
-#include <chrono>
-#include <memory>
+#include <server_lib/network/base_config.h>
 
 namespace server_lib {
 namespace network {
@@ -14,58 +8,16 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief Base class for server configurations.
-     */
-    template <typename T>
-    class base_server_config
-    {
-    protected:
-        base_server_config() = default;
-
-        virtual bool valid() const
-        {
-            return true;
-        }
-
-    public:
-        T& set_protocol(const unit_builder_i& protocol)
-        {
-            _protocol = std::shared_ptr<unit_builder_i> { protocol.clone() };
-            SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-            return dynamic_cast<T&>(*this);
-        }
-
-        T& set_worker_name(const std::string& name)
-        {
-            SRV_ASSERT(!name.empty());
-
-            _worker_name = name;
-            return dynamic_cast<T&>(*this);
-        }
-
-        const std::string& worker_name() const
-        {
-            return _worker_name;
-        }
-
-    protected:
-        std::shared_ptr<unit_builder_i> _protocol;
-
-        /// Set name for worker thread
-        std::string _worker_name = "server";
-    };
-
-    /**
-     * \ingroup network
-     *
      * \brief This is the base configuration for TCP server.
      */
     template <typename T>
-    class base_tcp_server_config : public base_server_config<T>
+    class base_tcp_server_config : public base_config<T>
     {
     protected:
-        base_tcp_server_config() = default;
+        base_tcp_server_config()
+        {
+            this->set_worker_name("server");
+        }
 
     public:
         T& set_address(unsigned short port)
@@ -73,7 +25,7 @@ namespace network {
             SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
 
             _port = port;
-            return dynamic_cast<T&>(*this);
+            return this->self();
         }
 
         T& set_address(std::string address, unsigned short port)
@@ -89,13 +41,13 @@ namespace network {
             SRV_ASSERT(worker_threads > 0);
 
             _worker_threads = worker_threads;
-            return dynamic_cast<T&>(*this);
+            return this->self();
         }
 
         T& disable_reuse_address()
         {
             _reuse_address = false;
-            return dynamic_cast<T&>(*this);
+            return this->self();
         }
 
         bool valid() const override

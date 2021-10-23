@@ -1,13 +1,6 @@
 #pragma once
 
-#include <server_lib/network/unit_builder_i.h>
-
-#include <server_lib/asserts.h>
-
-#include <string>
-#include <chrono>
-#include <limits>
-#include <memory>
+#include <server_lib/network/base_config.h>
 
 namespace server_lib {
 namespace network {
@@ -15,67 +8,37 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief Base class for client configurations.
-     */
-    template <typename T>
-    class base_client_config
-    {
-    protected:
-        base_client_config() = default;
-
-        virtual bool valid() const
-        {
-            return true;
-        }
-
-    public:
-        T& set_protocol(const unit_builder_i& protocol)
-        {
-            _protocol = std::shared_ptr<unit_builder_i> { protocol.clone() };
-            SRV_ASSERT(_protocol, "App build should be cloneable to be used like protocol");
-
-            return dynamic_cast<T&>(*this);
-        }
-
-        T& set_worker_name(const std::string& name)
-        {
-            SRV_ASSERT(!name.empty());
-
-            _worker_name = name;
-            return dynamic_cast<T&>(*this);
-        }
-
-        const std::string& worker_name() const
-        {
-            return _worker_name;
-        }
-
-    protected:
-        std::shared_ptr<unit_builder_i> _protocol;
-
-        /// Set name for worker thread
-        std::string _worker_name = "client";
-    };
-
-    /**
-     * \ingroup network
-     *
      * \brief This class configurates TCP client.
      */
-    class tcp_client_config : public base_client_config<tcp_client_config>
+    class tcp_client_config : public base_config<tcp_client_config>
     {
         friend class client;
 
     protected:
-        tcp_client_config() = default;
+        tcp_client_config()
+        {
+            this->set_worker_name("client");
+        }
 
     public:
         tcp_client_config(const tcp_client_config&) = default;
         ~tcp_client_config() = default;
 
-        tcp_client_config& set_address(unsigned short port);
+        tcp_client_config& set_address(unsigned short port)
+        {
+            SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
 
-        tcp_client_config& set_address(std::string host, unsigned short port);
+            _port = port;
+            return self();
+        }
+
+        tcp_client_config& set_address(std::string host, unsigned short port)
+        {
+            SRV_ASSERT(!host.empty());
+
+            _host = host;
+            return set_address(port);
+        }
 
         ///Set timeout for connection waiting
         template <typename DurationType>
@@ -86,19 +49,22 @@ namespace network {
             SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
 
             _timeout_connect_ms = ms.count();
-            return *this;
+            return self();
         }
 
-        bool valid() const override;
+        bool valid() const override
+        {
+            return _port > 0 && !_host.empty() && _protocol;
+        }
 
         unsigned short port() const
         {
             return _port;
         }
 
-        const std::string& address() const
+        const std::string& host() const
         {
-            return _address;
+            return _host;
         }
 
         size_t timeout_connect_ms() const
@@ -111,11 +77,8 @@ namespace network {
         unsigned short _port = 0;
         /// IPv4 address in dotted decimal form or IPv6 address in hexadecimal notation.
         /// If empty, the address will be any address.
-        std::string _address = "localhost";
+        std::string _host = "localhost";
 
-        /// Maximum size of request stream buffer. Defaults to architecture maximum.
-        /// Reaching this limit will result in a message_size error code.
-        std::size_t _max_request_streambuf_size = std::numeric_limits<std::size_t>::max();
         /// Set connect timeout in milliseconds.
         size_t _timeout_connect_ms = 0;
     };

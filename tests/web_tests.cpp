@@ -21,8 +21,8 @@ namespace tests {
     public:
         web_fixture() = default;
 
-        using WebServer = web::Server<web::HTTP>;
-        using HttpStatusCode = web::StatusCode;
+        using WebServer = web::server_impl<web::HTTP>;
+        using HttpStatusCode = web::http_status_code;
     };
 
     std::ostream& operator<<(std::ostream& stream, const web::CaseInsensitiveMultimap& params)

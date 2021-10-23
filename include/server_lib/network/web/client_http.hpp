@@ -1,5 +1,7 @@
 #pragma once
 
+#include <server_lib/network/web/web_client_config.h>
+
 #include "utility.hpp"
 
 #include <limits>
@@ -89,25 +91,6 @@ namespace network {
                 CaseInsensitiveMultimap header;
             };
 
-            class Config
-            {
-                friend class ClientBase<socket_type>;
-
-            private:
-                Config() noexcept {}
-
-            public:
-                /// Set timeout on requests in seconds. Default value: 0 (no timeout).
-                long timeout = 0;
-                /// Set connect timeout in seconds. Default value: 0 (Config::timeout is then used instead).
-                long timeout_connect = 0;
-                /// Maximum size of response stream buffer. Defaults to architecture maximum.
-                /// Reaching this limit will result in a message_size error code.
-                std::size_t max_response_streambuf_size = std::numeric_limits<std::size_t>::max();
-                /// Set proxy server (server:port)
-                std::string proxy_server;
-            };
-
         protected:
             class Connection : public std::enable_shared_from_this<Connection>
             {
@@ -178,7 +161,7 @@ namespace network {
 
         public:
             /// Set before calling request
-            Config config;
+            web_single_shot_client_config config;
 
             /// If you have your own asio::io_service, store its pointer here before calling request().
             /// When using asynchronous requests, running the io_service is up to the programmer.

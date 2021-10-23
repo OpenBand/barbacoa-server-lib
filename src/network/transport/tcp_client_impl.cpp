@@ -57,7 +57,7 @@ namespace network {
                             return connection->handler_runner.continue_lock().operator bool();
                         };
 
-                        asio::ip::tcp::resolver::query query(_config->address(), std::to_string(_config->port()));
+                        asio::ip::tcp::resolver::query query(_config->host(), std::to_string(_config->port()));
 
                         auto connect_step = [this, connect_callback, fail_callback, connection, scope_lock, resolver](
                                                 const error_code& ec, asio::ip::tcp::resolver::iterator /*it*/) {
@@ -68,7 +68,7 @@ namespace network {
                                     return;
                                 if (!ec)
                                 {
-                                    connection->configurate(_config->address() + ":" + std::to_string(_config->port()));
+                                    connection->configurate(_config->host() + ":" + std::to_string(_config->port()));
 
                                     SRV_LOGC_TRACE("sm - connected");
 

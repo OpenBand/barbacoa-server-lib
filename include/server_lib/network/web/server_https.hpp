@@ -13,14 +13,14 @@ namespace network {
         using HTTPS = asio::ssl::stream<asio::ip::tcp::socket>;
 
         template <>
-        class Server<HTTPS> : public ServerBase<HTTPS>
+        class server_impl<HTTPS> : public server_base_impl<HTTPS>
         {
             std::string session_id_context;
             bool set_session_id_context = false;
 
         public:
-            Server(const std::string& cert_file, const std::string& private_key_file, const std::string& verify_file = std::string())
-                : ServerBase<HTTPS>::ServerBase(443)
+            server_impl(const std::string& cert_file, const std::string& private_key_file, const std::string& verify_file = std::string())
+                : server_base_impl<HTTPS>::server_base_impl(443)
                 , context(asio::ssl::context::tlsv12)
             {
                 context.use_certificate_chain_file(cert_file);
@@ -44,7 +44,7 @@ namespace network {
                     SSL_CTX_set_session_id_context(context.native_handle(), reinterpret_cast<const unsigned char*>(session_id_context.data()),
                                                    std::min<std::size_t>(session_id_context.size(), SSL_MAX_SSL_SESSION_ID_LENGTH));
                 }
-                ServerBase::start(start_callback);
+                server_base_impl::start(start_callback);
             }
 
         protected:

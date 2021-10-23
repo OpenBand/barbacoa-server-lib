@@ -17,10 +17,19 @@ namespace network {
         class base_web_server_config : public base_tcp_server_config<T>
         {
         protected:
-            base_web_server_config() = default;
+            base_web_server_config()
+            {
+                this->set_worker_name("web-server");
+            }
 
         public:
             //TODO: protected
+
+            T& set_protocol(const unit_builder_i&)
+            {
+                SRV_ERROR("Not supported for Web");
+                return this->self();
+            }
 
             /// Timeout on request handling. Defaults to 5 seconds.
             long timeout_request = 5;

@@ -42,10 +42,10 @@ namespace server_lib {
 namespace network {
     namespace web {
         template <class socket_type>
-        class Server;
+        class server_impl;
 
         template <class socket_type>
-        class ServerBase
+        class server_base_impl
         {
         protected:
             class Session;
@@ -53,8 +53,8 @@ namespace network {
         public:
             class Response : public std::enable_shared_from_this<Response>, public std::ostream
             {
-                friend class ServerBase<socket_type>;
-                friend class Server<socket_type>;
+                friend class server_base_impl<socket_type>;
+                friend class server_impl<socket_type>;
 
                 asio::streambuf streambuf;
 
@@ -128,14 +128,14 @@ namespace network {
                 }
 
                 /// Convenience function for writing status line, potential header fields, and empty content
-                void write(StatusCode status_code = StatusCode::success_ok, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void write(http_status_code status_code = http_status_code::success_ok, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     write_header(header, 0);
                 }
 
                 /// Convenience function for writing status line, header fields, and content
-                void write(StatusCode status_code, const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void write(http_status_code status_code, const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     write_header(header, content.size());
@@ -144,7 +144,7 @@ namespace network {
                 }
 
                 /// Convenience function for writing status line, header fields, and content
-                void write(StatusCode status_code, std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void write(http_status_code status_code, std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     content.seekg(0, std::ios::end);
@@ -158,19 +158,19 @@ namespace network {
                 /// Convenience function for writing success status line, header fields, and content
                 void write(const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
                 {
-                    write(StatusCode::success_ok, content, header);
+                    write(http_status_code::success_ok, content, header);
                 }
 
                 /// Convenience function for writing success status line, header fields, and content
                 void write(std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
                 {
-                    write(StatusCode::success_ok, content, header);
+                    write(http_status_code::success_ok, content, header);
                 }
 
                 /// Convenience function for writing success status line, and header fields
                 void write(const CaseInsensitiveMultimap& header)
                 {
-                    write(StatusCode::success_ok, std::string(), header);
+                    write(http_status_code::success_ok, std::string(), header);
                 }
 
                 /// If true, force server to close the connection after the response have been sent.
@@ -182,7 +182,7 @@ namespace network {
 
             class Content : public std::istream
             {
-                friend class ServerBase<socket_type>;
+                friend class server_base_impl<socket_type>;
 
             public:
                 std::size_t size() noexcept
@@ -215,8 +215,8 @@ namespace network {
 
             class Request
             {
-                friend class ServerBase<socket_type>;
-                friend class Server<socket_type>;
+                friend class server_base_impl<socket_type>;
+                friend class server_impl<socket_type>;
                 friend class Session;
 
                 asio::streambuf streambuf;
@@ -379,14 +379,14 @@ namespace network {
             * Callback called whenever the server receives client request
             *
             */
-            using request_callback_type = std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>;
+            using request_callback_type = std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Response>, std::shared_ptr<typename server_base_impl<socket_type>::Request>)>;
 
             /**
              * Fail callback
              * Return error if server failed asynchronously
              *
              */
-            using fail_callback_type = std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Request>, const error_code&)>;
+            using fail_callback_type = std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Request>, const error_code&)>;
 
             /// Warning: do not add or remove resources after start() is called
             std::map<regex_orderable, std::map<std::string, request_callback_type>> resource;
@@ -396,7 +396,7 @@ namespace network {
             fail_callback_type on_error;
 
             // TODO: Upgrade
-            std::function<void(std::unique_ptr<socket_type>&, std::shared_ptr<typename ServerBase<socket_type>::Request>)> on_upgrade;
+            std::function<void(std::unique_ptr<socket_type>&, std::shared_ptr<typename server_base_impl<socket_type>::Request>)> on_upgrade;
 
         protected:
             std::unique_ptr<mt_event_loop> _workers;
@@ -495,7 +495,7 @@ namespace network {
                 _workers->stop();
             }
 
-            virtual ~ServerBase() noexcept
+            virtual ~server_base_impl() noexcept
             {
                 try
                 {
@@ -517,7 +517,7 @@ namespace network {
 
             std::shared_ptr<ScopeRunner> handler_runner;
 
-            ServerBase(size_t port) noexcept
+            server_base_impl(size_t port) noexcept
                 : config(port)
                 , connections(new std::unordered_set<Connection*>())
                 , connections_mutex(new std::mutex())
@@ -560,7 +560,7 @@ namespace network {
                     if ((!ec || ec == asio::error::not_found) && session->request->streambuf.size() == session->request->streambuf.max_size())
                     {
                         auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(StatusCode::client_error_payload_too_large);
+                        response->write(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -610,7 +610,7 @@ namespace network {
                                         if (session->request->streambuf.size() == session->request->streambuf.max_size())
                                         {
                                             auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                                            response->write(StatusCode::client_error_payload_too_large);
+                                            response->write(http_status_code::client_error_payload_too_large);
                                             response->send();
                                             if (this->on_error)
                                                 this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -649,7 +649,7 @@ namespace network {
                     if ((!ec || ec == asio::error::not_found) && session->request->streambuf.size() == session->request->streambuf.max_size())
                     {
                         auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(StatusCode::client_error_payload_too_large);
+                        response->write(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -688,7 +688,7 @@ namespace network {
                                     if (session->request->streambuf.size() == session->request->streambuf.max_size())
                                     {
                                         auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                                        response->write(StatusCode::client_error_payload_too_large);
+                                        response->write(http_status_code::client_error_payload_too_large);
                                         response->send();
                                         if (this->on_error)
                                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -719,7 +719,7 @@ namespace network {
                     if (chunks_streambuf->size() == chunks_streambuf->max_size())
                     {
                         auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(StatusCode::client_error_payload_too_large);
+                        response->write(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -785,7 +785,7 @@ namespace network {
             }
 
             void write(const std::shared_ptr<Session>& session,
-                       std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>& resource_function)
+                       std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Response>, std::shared_ptr<typename server_base_impl<socket_type>::Request>)>& resource_function)
             {
                 session->connection->set_timeout(config.timeout_content);
                 auto response = std::shared_ptr<Response>(new Response(session, config.timeout_content), [this](Response* response_ptr) {
@@ -834,18 +834,18 @@ namespace network {
         }; // namespace web
 
         template <class socket_type>
-        class Server : public ServerBase<socket_type>
+        class server_impl : public server_base_impl<socket_type>
         {
         };
 
         using HTTP = asio::ip::tcp::socket;
 
         template <>
-        class Server<HTTP> : public ServerBase<HTTP>
+        class server_impl<HTTP> : public server_base_impl<HTTP>
         {
         public:
-            Server() noexcept
-                : ServerBase<HTTP>::ServerBase(80)
+            server_impl() noexcept
+                : server_base_impl<HTTP>::server_base_impl(80)
             {
             }
 
