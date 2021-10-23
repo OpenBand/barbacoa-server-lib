@@ -1,5 +1,9 @@
 #pragma once
 
+#include <server_lib/mt_event_loop.h>
+
+#include <server_lib/network/web/web_server_config.h>
+
 #include "utility.hpp"
 
 #include <functional>
@@ -339,36 +343,8 @@ namespace network {
             };
 
         public:
-            class Config
-            {
-                friend class ServerBase<socket_type>;
-
-                Config(unsigned short port) noexcept
-                    : port(port)
-                {
-                }
-
-            public:
-                /// Port number to use. Defaults to 80 for HTTP and 443 for HTTPS.
-                unsigned short port;
-                /// If io_service is not set, number of threads that the server will use when start() is called.
-                /// Defaults to 1 thread.
-                std::size_t thread_pool_size = 1;
-                /// Timeout on request handling. Defaults to 5 seconds.
-                long timeout_request = 5;
-                /// Timeout on content handling. Defaults to 300 seconds.
-                long timeout_content = 300;
-                /// Maximum size of request stream buffer. Defaults to architecture maximum.
-                /// Reaching this limit will result in a message_size error code.
-                std::size_t max_request_streambuf_size = std::numeric_limits<std::size_t>::max();
-                /// IPv4 address in dotted decimal form or IPv6 address in hexadecimal notation.
-                /// If empty, the address will be any address.
-                std::string address;
-                /// Set to false to avoid binding the socket to an address that is already in use. Defaults to true.
-                bool reuse_address = true;
-            };
             /// Set before calling start().
-            Config config;
+            web_server_config config;
 
         private:
             class regex_orderable : public regex::regex
@@ -393,91 +369,146 @@ namespace network {
             };
 
         public:
+            /**
+            * Callback called whenever the server has been started
+            *
+            */
+            using start_callback_type = std::function<void()>;
+
+            /**
+            * Callback called whenever the server receives client request
+            *
+            */
+            using request_callback_type = std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>;
+
+            /**
+             * Fail callback
+             * Return error if server failed asynchronously
+             *
+             */
+            using fail_callback_type = std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Request>, const error_code&)>;
+
             /// Warning: do not add or remove resources after start() is called
-            std::map<regex_orderable, std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>>> resource;
+            std::map<regex_orderable, std::map<std::string, request_callback_type>> resource;
 
-            std::map<std::string, std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Response>, std::shared_ptr<typename ServerBase<socket_type>::Request>)>> default_resource;
+            std::map<std::string, request_callback_type> default_resource;
 
-            std::function<void(std::shared_ptr<typename ServerBase<socket_type>::Request>, const error_code&)> on_error;
+            fail_callback_type on_error;
 
+            // TODO: Upgrade
             std::function<void(std::unique_ptr<socket_type>&, std::shared_ptr<typename ServerBase<socket_type>::Request>)> on_upgrade;
 
-            /// If you have your own asio::io_service, store its pointer here before running start().
-            std::shared_ptr<asio::io_service> io_service;
+        protected:
+            std::unique_ptr<mt_event_loop> _workers;
 
-            virtual void start()
+        public:
+            bool is_running() const
             {
-                if (!io_service)
+                return _workers && _workers->is_running();
+            }
+
+            virtual bool start(const start_callback_type& start_callback)
+            {
+                try
                 {
-                    io_service = std::make_shared<asio::io_service>();
-                    internal_io_service = true;
+                    SRV_ASSERT(!is_running());
+
+                    // TODO: LOG
+
+                    _workers = std::make_unique<mt_event_loop>(config.worker_threads());
+                    _workers->change_thread_name(config.worker_name());
+
+                    auto start_ = [this, start_callback]() {
+                        try
+                        {
+                            // TODO: LOG
+
+                            asio::ip::tcp::endpoint endpoint;
+                            if (config.address().size() > 0)
+                                endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(config.address()), config.port());
+                            else
+                                endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), config.port());
+
+                            if (!acceptor)
+                                acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*_workers->service()));
+                            acceptor->open(endpoint.protocol());
+                            acceptor->set_option(asio::socket_base::reuse_address(config.reuse_address()));
+                            acceptor->bind(endpoint);
+                            acceptor->listen();
+
+                            accept();
+
+                            // TODO: LOG
+
+                            if (start_callback)
+                                start_callback();
+                        }
+                        catch (const std::exception& e)
+                        {
+                            // TODO: LOG
+                            if (on_error)
+                                on_error(nullptr, make_error_code::make_error_code(errc::interrupted));
+                        }
+                    };
+                    _workers->on_start(start_).start();
+
+                    return true;
+                }
+                catch (const std::exception& e)
+                {
+                    // TODO: LOG
                 }
 
-                if (internal_io_service && io_service->stopped())
-                    io_service->reset();
+                return false;
+            }
 
-                asio::ip::tcp::endpoint endpoint;
-                if (config.address.size() > 0)
-                    endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(config.address), config.port);
-                else
-                    endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), config.port);
-
-                if (!acceptor)
-                    acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*io_service));
-                acceptor->open(endpoint.protocol());
-                acceptor->set_option(asio::socket_base::reuse_address(config.reuse_address));
-                acceptor->bind(endpoint);
-                acceptor->listen();
-
-                accept();
-
-                // If thread_pool_size>1, start m_io_service.run() in (thread_pool_size-1) threads for thread-pooling
-                threads.clear();
-                for (std::size_t c = 1; c < config.thread_pool_size; c++)
-                {
-                    threads.emplace_back([this]() {
-                        this->io_service->run();
-                    });
-                }
-
-                // Main thread
-                if (internal_io_service && config.thread_pool_size > 0)
-                    io_service->run();
-
-                // Wait for the rest of the threads, if any, to finish as well
-                for (auto& t : threads)
-                    t.join();
+            void wait()
+            {
+                SRV_ASSERT(_workers);
+                _workers->wait();
             }
 
             /// Stop accepting new requests, and close current connections.
-            void stop() noexcept
+            void stop()
             {
+                if (!is_running())
+                {
+                    return;
+                }
+
+                // TODO: LOG
+
                 if (acceptor)
                 {
                     error_code ec;
                     acceptor->close(ec);
-
-                    {
-                        std::unique_lock<std::mutex> lock(*connections_mutex);
-                        for (auto& connection : *connections)
-                            connection->close();
-                        connections->clear();
-                    }
-
-                    if (internal_io_service)
-                        io_service->stop();
                 }
+
+                {
+                    std::unique_lock<std::mutex> lock(*connections_mutex);
+                    for (auto& connection : *connections)
+                        connection->close();
+                    connections->clear();
+                }
+                SRV_ASSERT(!_workers->is_run() || !_workers->is_this_loop(),
+                           "Can't initiate thread stop in the same thread. It is the way to deadlock");
+                _workers->stop();
             }
 
             virtual ~ServerBase() noexcept
             {
-                handler_runner->stop();
-                stop();
+                try
+                {
+                    handler_runner->stop();
+                    stop();
+                }
+                catch (const std::exception& e)
+                {
+                    // TODO: LOG
+                }
             }
 
         protected:
-            bool internal_io_service = false;
-
             std::unique_ptr<asio::ip::tcp::acceptor> acceptor;
             std::vector<std::thread> threads;
 
@@ -486,7 +517,7 @@ namespace network {
 
             std::shared_ptr<ScopeRunner> handler_runner;
 
-            ServerBase(unsigned short port) noexcept
+            ServerBase(size_t port) noexcept
                 : config(port)
                 , connections(new std::unordered_set<Connection*>())
                 , connections_mutex(new std::mutex())
@@ -729,7 +760,7 @@ namespace network {
                                 connections->erase(it);
                         }
 
-                        on_upgrade(session->connection->socket, session->request);
+                        on_upgrade(session->connection->socket, session->request); //TODO: Upgrade
                         return;
                     }
                 }
@@ -800,7 +831,7 @@ namespace network {
                     return;
                 }
             }
-        };
+        }; // namespace web
 
         template <class socket_type>
         class Server : public ServerBase<socket_type>
@@ -821,7 +852,7 @@ namespace network {
         protected:
             void accept() override
             {
-                auto connection = create_connection(*io_service);
+                auto connection = create_connection(*this->_workers->service());
 
                 acceptor->async_accept(*connection->socket, [this, connection](const error_code& ec) {
                     auto lock = connection->handler_runner->continue_lock();

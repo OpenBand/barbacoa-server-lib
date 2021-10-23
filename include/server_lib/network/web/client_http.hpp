@@ -366,7 +366,7 @@ namespace network {
                     {
                         header_it = header.find("Transfer-Encoding");
                         if (header_it == header.end() || header_it->second != "chunked")
-                            write_stream << "Content-Length: " << content_length << "\r\n";
+                            write_stream << "Content-Length: " << static_cast<size_t>(content_length) << "\r\n";
                     }
                 }
                 write_stream << "\r\n";

@@ -34,7 +34,7 @@ namespace network {
                 }
             }
 
-            void start() override
+            void start(const start_callback_type& start_callback) override
             {
                 if (set_session_id_context)
                 {
@@ -44,7 +44,7 @@ namespace network {
                     SSL_CTX_set_session_id_context(context.native_handle(), reinterpret_cast<const unsigned char*>(session_id_context.data()),
                                                    std::min<std::size_t>(session_id_context.size(), SSL_MAX_SSL_SESSION_ID_LENGTH));
                 }
-                ServerBase::start();
+                ServerBase::start(start_callback);
             }
 
         protected:

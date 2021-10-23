@@ -56,7 +56,6 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/server.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/client.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/client_config.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/network/server_config.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/raw_builder.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/dstream_builder.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/ifconfig.cpp"

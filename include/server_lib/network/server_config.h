@@ -6,7 +6,6 @@
 
 #include <string>
 #include <chrono>
-#include <limits>
 #include <memory>
 
 namespace server_lib {
@@ -60,28 +59,49 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief This class configurates TCP server.
+     * \brief This is the base configuration for TCP server.
      */
-    class tcp_server_config : public base_server_config<tcp_server_config>
+    template <typename T>
+    class base_tcp_server_config : public base_server_config<T>
     {
-        friend class server;
-
     protected:
-        tcp_server_config() = default;
+        base_tcp_server_config() = default;
 
     public:
-        tcp_server_config(const tcp_server_config&) = default;
-        ~tcp_server_config() = default;
+        T& set_address(unsigned short port)
+        {
+            SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
 
-        tcp_server_config& set_address(unsigned short port);
+            _port = port;
+            return dynamic_cast<T&>(*this);
+        }
 
-        tcp_server_config& set_address(std::string address, unsigned short port);
+        T& set_address(std::string address, unsigned short port)
+        {
+            SRV_ASSERT(!address.empty());
 
-        tcp_server_config& set_worker_threads(uint8_t worker_threads);
+            _address = address;
+            return this->set_address(port);
+        }
 
-        tcp_server_config& disable_reuse_address();
+        T& set_worker_threads(uint8_t worker_threads)
+        {
+            SRV_ASSERT(worker_threads > 0);
 
-        bool valid() const override;
+            _worker_threads = worker_threads;
+            return dynamic_cast<T&>(*this);
+        }
+
+        T& disable_reuse_address()
+        {
+            _reuse_address = false;
+            return dynamic_cast<T&>(*this);
+        }
+
+        bool valid() const override
+        {
+            return _port > 0 && !_address.empty();
+        }
 
         unsigned short port() const
         {
@@ -112,13 +132,34 @@ namespace network {
         /// Number of threads that the server will use.
         /// Defaults to 1 thread.
         uint8_t _worker_threads = 1;
-        /// Maximum size of request stream buffer. Defaults to architecture maximum.
-        /// Reaching this limit will result in a message_size error code.
-        std::size_t _max_request_streambuf_size = std::numeric_limits<std::size_t>::max();
+
         /// Set to false to avoid binding the socket to an address that is already in use. Defaults to true.
         bool _reuse_address = true;
     };
 
+    /**
+     * \ingroup network
+     *
+     * \brief This class configurates TCP server.
+     */
+    class tcp_server_config : public base_tcp_server_config<tcp_server_config>
+    {
+        friend class server;
+
+        using base_class = base_tcp_server_config<tcp_server_config>;
+
+    protected:
+        tcp_server_config() = default;
+
+    public:
+        tcp_server_config(const tcp_server_config&) = default;
+        ~tcp_server_config() = default;
+
+        bool valid() const override
+        {
+            return base_class::valid() && _protocol;
+        }
+    };
 
 } // namespace network
 } // namespace server_lib

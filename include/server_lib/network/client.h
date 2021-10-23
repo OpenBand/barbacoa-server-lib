@@ -54,12 +54,6 @@ namespace network {
          */
         bool connect(const tcp_client_config&);
 
-        /**
-         * Start UNIX local socket client
-         *
-         */
-        //bool connect(const local_unix_config&);
-
         client& on_connect(connect_callback_type&& callback);
 
         client& on_fail(fail_callback_type&& callback);

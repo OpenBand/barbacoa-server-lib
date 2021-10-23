@@ -49,7 +49,7 @@ namespace network {
                 auto start_ = [this, start_callback]() {
                     try
                     {
-                        SRV_LOGC_TRACE("connecting");
+                        SRV_LOGC_TRACE("starting");
 
                         asio::ip::tcp::endpoint endpoint;
                         if (!_config->address().empty())
