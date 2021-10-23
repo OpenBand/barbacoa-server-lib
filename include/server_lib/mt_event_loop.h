@@ -7,7 +7,7 @@ namespace server_lib {
 /**
  * \ingroup common
  *
- * \brief This class provides multithreaded event loop
+ * \brief This class provides multi-threaded event loop
  */
 class mt_event_loop : public event_loop
 {
@@ -27,7 +27,7 @@ public:
     void stop() override;
 
     /**
-     * Check all threads from threadpull via comparison with calling thread
+     * Check all threads from thread pull via comparison with calling thread
      *
      */
     bool is_this_loop() const override;
