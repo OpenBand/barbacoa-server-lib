@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 namespace server_lib {
 namespace network {
@@ -143,7 +142,7 @@ namespace network {
             return status_code_strings;
         }
 
-        inline http_status_code status_code(const std::string& status_code_string) noexcept
+        inline http_status_code status_code(const std::string& status_code_string)
         {
             class string_to_status_code : public std::unordered_map<std::string, http_status_code>
             {
@@ -161,7 +160,7 @@ namespace network {
             return pos->second;
         }
 
-        inline const std::string& status_code(http_status_code status_code_enum) noexcept
+        inline const std::string& status_code(http_status_code status_code_enum)
         {
             auto pos = status_code_strings().find(status_code_enum);
             if (pos == status_code_strings().end())

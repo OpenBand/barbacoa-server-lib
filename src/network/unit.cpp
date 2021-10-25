@@ -35,7 +35,7 @@ namespace network {
         _nested_content = nested;
     }
 
-    unit::unit(unit&& other) noexcept
+    unit::unit(unit&& other)
     {
         _success = other._success;
         _data = std::move(other._data);
@@ -43,7 +43,7 @@ namespace network {
     }
 
     unit&
-    unit::operator=(unit&& other) noexcept
+    unit::operator=(unit&& other)
     {
         if (this != &other)
         {

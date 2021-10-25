@@ -4,7 +4,7 @@
 
 #include <server_lib/network/web/web_server_config.h>
 
-#include "utility.hpp"
+#include "http_utility.h"
 
 #include <functional>
 #include <iostream>
@@ -61,7 +61,7 @@ namespace network {
                 std::shared_ptr<Session> session;
                 long timeout_content;
 
-                Response(std::shared_ptr<Session> session, long timeout_content) noexcept
+                Response(std::shared_ptr<Session> session, long timeout_content)
                     : std::ostream(&streambuf)
                     , session(std::move(session))
                     , timeout_content(timeout_content)
@@ -96,7 +96,7 @@ namespace network {
                 {
                 }
 
-                std::size_t size() noexcept
+                std::size_t size()
                 {
                     return streambuf.size();
                 }
@@ -107,7 +107,7 @@ namespace network {
                 }
 
                 /// Use this function if you need to recursively send parts of a longer message
-                void send(const std::function<void(const error_code&)>& callback = nullptr) noexcept
+                void send(const std::function<void(const error_code&)>& callback = nullptr)
                 {
                     session->connection->set_timeout(timeout_content);
                     auto self = this->shared_from_this(); // Keep Response instance alive through the following async_write
@@ -185,12 +185,12 @@ namespace network {
                 friend class server_base_impl<socket_type>;
 
             public:
-                std::size_t size() noexcept
+                std::size_t size()
                 {
                     return streambuf.size();
                 }
                 /// Convenience function to return std::string. The stream buffer is consumed.
-                std::string string() noexcept
+                std::string string()
                 {
                     try
                     {
@@ -206,7 +206,7 @@ namespace network {
 
             private:
                 asio::streambuf& streambuf;
-                Content(asio::streambuf& streambuf) noexcept
+                Content(asio::streambuf& streambuf)
                     : std::istream(&streambuf)
                     , streambuf(streambuf)
                 {
@@ -221,7 +221,7 @@ namespace network {
 
                 asio::streambuf streambuf;
 
-                Request(std::size_t max_request_streambuf_size, std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint) noexcept
+                Request(std::size_t max_request_streambuf_size, std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint)
                     : streambuf(max_request_streambuf_size)
                     , id(0u)
                     , content(streambuf)
@@ -245,7 +245,7 @@ namespace network {
                 /// The time point when the request header was fully read.
                 std::chrono::system_clock::time_point header_read_time;
 
-                std::string remote_endpoint_address() noexcept
+                std::string remote_endpoint_address()
                 {
                     try
                     {
@@ -257,13 +257,13 @@ namespace network {
                     }
                 }
 
-                unsigned short remote_endpoint_port() noexcept
+                unsigned short remote_endpoint_port()
                 {
                     return remote_endpoint->port();
                 }
 
                 /// Returns query keys with percent-decoded values.
-                CaseInsensitiveMultimap parse_query_string() noexcept
+                CaseInsensitiveMultimap parse_query_string()
                 {
                     return QueryString::parse(query_string);
                 }
@@ -274,7 +274,7 @@ namespace network {
             {
             public:
                 template <typename... Args>
-                Connection(std::shared_ptr<ScopeRunner> handler_runner, Args&&... args) noexcept
+                Connection(std::shared_ptr<ScopeRunner> handler_runner, Args&&... args)
                     : handler_runner(std::move(handler_runner))
                     , socket(new socket_type(std::forward<Args>(args)...))
                 {
@@ -289,7 +289,7 @@ namespace network {
 
                 std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint;
 
-                void close() noexcept
+                void close()
                 {
                     error_code ec;
                     std::unique_lock<std::mutex> lock(socket_close_mutex); // The following operations seems to be needed to run sequentially
@@ -297,7 +297,7 @@ namespace network {
                     socket->lowest_layer().close(ec);
                 }
 
-                void set_timeout(long seconds) noexcept
+                void set_timeout(long seconds)
                 {
                     if (seconds == 0)
                     {
@@ -314,7 +314,7 @@ namespace network {
                     });
                 }
 
-                void cancel_timeout() noexcept
+                void cancel_timeout()
                 {
                     if (timer)
                     {
@@ -327,7 +327,7 @@ namespace network {
             class Session
             {
             public:
-                Session(std::size_t max_request_streambuf_size, std::shared_ptr<Connection> connection) noexcept
+                Session(std::size_t max_request_streambuf_size, std::shared_ptr<Connection> connection)
                     : connection(std::move(connection))
                 {
                     if (!this->connection->remote_endpoint)
@@ -362,7 +362,7 @@ namespace network {
                     , str(std::move(regex_str))
                 {
                 }
-                bool operator<(const regex_orderable& rhs) const noexcept
+                bool operator<(const regex_orderable& rhs) const
                 {
                     return str < rhs.str;
                 }
@@ -495,7 +495,7 @@ namespace network {
                 _workers->stop();
             }
 
-            virtual ~server_base_impl() noexcept
+            virtual ~server_base_impl()
             {
                 try
                 {
@@ -517,8 +517,8 @@ namespace network {
 
             std::shared_ptr<ScopeRunner> handler_runner;
 
-            server_base_impl(size_t port) noexcept
-                : config(port)
+            server_base_impl(const web_server_config& config_)
+                : config(config_)
                 , connections(new std::unordered_set<Connection*>())
                 , connections_mutex(new std::mutex())
                 , handler_runner(new ScopeRunner())
@@ -528,7 +528,7 @@ namespace network {
             virtual void accept() = 0;
 
             template <typename... Args>
-            std::shared_ptr<Connection> create_connection(Args&&... args) noexcept
+            std::shared_ptr<Connection> create_connection(Args&&... args)
             {
                 auto connections = this->connections;
                 auto connections_mutex = this->connections_mutex;
@@ -843,11 +843,10 @@ namespace network {
         template <>
         class server_impl<HTTP> : public server_base_impl<HTTP>
         {
+            using base_type = server_base_impl<HTTP>;
+
         public:
-            server_impl() noexcept
-                : server_base_impl<HTTP>::server_base_impl(80)
-            {
-            }
+            using base_type::base_type;
 
         protected:
             void accept() override

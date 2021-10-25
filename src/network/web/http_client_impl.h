@@ -2,7 +2,7 @@
 
 #include <server_lib/network/web/web_client_config.h>
 
-#include "utility.hpp"
+#include "http_utility.h"
 
 #include <limits>
 #include <mutex>
@@ -42,12 +42,12 @@ namespace network {
                 friend class ClientBase<socket_type>;
 
             public:
-                std::size_t size() noexcept
+                std::size_t size()
                 {
                     return streambuf.size();
                 }
                 /// Convenience function to return std::string. The stream buffer is consumed.
-                std::string string() noexcept
+                std::string string()
                 {
                     try
                     {
@@ -63,7 +63,7 @@ namespace network {
 
             private:
                 asio::streambuf& streambuf;
-                Content(asio::streambuf& streambuf) noexcept
+                Content(asio::streambuf& streambuf)
                     : std::istream(&streambuf)
                     , streambuf(streambuf)
                 {
@@ -77,7 +77,7 @@ namespace network {
 
                 asio::streambuf streambuf;
 
-                Response(std::size_t max_response_streambuf_size) noexcept
+                Response(std::size_t max_response_streambuf_size)
                     : streambuf(max_response_streambuf_size)
                     , content(streambuf)
                 {
@@ -96,7 +96,7 @@ namespace network {
             {
             public:
                 template <typename... Args>
-                Connection(std::shared_ptr<ScopeRunner> handler_runner, long timeout, Args&&... args) noexcept
+                Connection(std::shared_ptr<ScopeRunner> handler_runner, long timeout, Args&&... args)
                     : handler_runner(std::move(handler_runner))
                     , timeout(timeout)
                     , socket(new socket_type(std::forward<Args>(args)...))
@@ -112,7 +112,7 @@ namespace network {
 
                 std::unique_ptr<asio::steady_timer> timer;
 
-                void set_timeout(long seconds = 0) noexcept
+                void set_timeout(long seconds = 0)
                 {
                     if (seconds == 0)
                         seconds = timeout;
@@ -133,7 +133,7 @@ namespace network {
                     });
                 }
 
-                void cancel_timeout() noexcept
+                void cancel_timeout()
                 {
                     if (timer)
                     {
@@ -146,7 +146,7 @@ namespace network {
             class Session
             {
             public:
-                Session(std::size_t max_response_streambuf_size, std::shared_ptr<Connection> connection, std::unique_ptr<asio::streambuf> request_streambuf) noexcept
+                Session(std::size_t max_response_streambuf_size, std::shared_ptr<Connection> connection, std::unique_ptr<asio::streambuf> request_streambuf)
                     : connection(std::move(connection))
                     , request_streambuf(std::move(request_streambuf))
                     , response(new Response(max_response_streambuf_size))
@@ -367,7 +367,7 @@ namespace network {
             }
 
             /// Close connections
-            void stop() noexcept
+            void stop()
             {
                 std::unique_lock<std::mutex> lock(connections_mutex);
                 for (auto it = connections.begin(); it != connections.end();)
@@ -378,7 +378,7 @@ namespace network {
                 }
             }
 
-            virtual ~ClientBase() noexcept
+            virtual ~ClientBase()
             {
                 handler_runner->stop();
                 stop();
@@ -401,7 +401,7 @@ namespace network {
             std::size_t concurrent_synchronous_requests = 0;
             std::mutex concurrent_synchronous_requests_mutex;
 
-            ClientBase(const std::string& host_port, unsigned short default_port) noexcept
+            ClientBase(const std::string& host_port, unsigned short default_port)
                 : default_port(default_port)
                 , handler_runner(new ScopeRunner())
             {
@@ -410,7 +410,7 @@ namespace network {
                 port = parsed_host_port.second;
             }
 
-            std::shared_ptr<Connection> get_connection() noexcept
+            std::shared_ptr<Connection> get_connection()
             {
                 std::shared_ptr<Connection> connection;
                 std::unique_lock<std::mutex> lock(connections_mutex);
@@ -451,7 +451,7 @@ namespace network {
                 return connection;
             }
 
-            virtual std::shared_ptr<Connection> create_connection() noexcept = 0;
+            virtual std::shared_ptr<Connection> create_connection() = 0;
             virtual void connect(const std::shared_ptr<Session>&) = 0;
 
             std::unique_ptr<asio::streambuf> create_request_header(const std::string& method, const std::string& path, const CaseInsensitiveMultimap& header) const
@@ -474,7 +474,7 @@ namespace network {
                 return streambuf;
             }
 
-            std::pair<std::string, unsigned short> parse_host_port(const std::string& host_port, unsigned short default_port) const noexcept
+            std::pair<std::string, unsigned short> parse_host_port(const std::string& host_port, unsigned short default_port) const
             {
                 std::pair<std::string, unsigned short> parsed_host_port;
                 std::size_t host_end = host_port.find(':');
@@ -721,13 +721,13 @@ namespace network {
         class Client<HTTP> : public ClientBase<HTTP>
         {
         public:
-            Client(const std::string& server_port_path) noexcept
+            Client(const std::string& server_port_path)
                 : ClientBase<HTTP>::ClientBase(server_port_path, 80)
             {
             }
 
         protected:
-            std::shared_ptr<Connection> create_connection() noexcept override
+            std::shared_ptr<Connection> create_connection() override
             {
                 return std::make_shared<Connection>(handler_runner, config.timeout, *io_service);
             }

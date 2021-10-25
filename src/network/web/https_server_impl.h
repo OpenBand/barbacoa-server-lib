@@ -1,6 +1,6 @@
 #pragma once
 
-#include "server_http.hpp"
+#include "http_server_impl.h"
 
 #include <boost/asio/ssl.hpp>
 
@@ -19,8 +19,11 @@ namespace network {
             bool set_session_id_context = false;
 
         public:
-            server_impl(const std::string& cert_file, const std::string& private_key_file, const std::string& verify_file = std::string())
-                : server_base_impl<HTTPS>::server_base_impl(443)
+            server_impl(const web_server_config& config_,
+                        const std::string& cert_file,
+                        const std::string& private_key_file,
+                        const std::string& verify_file = std::string())
+                : server_base_impl<HTTPS>::server_base_impl(config_)
                 , context(asio::ssl::context::tlsv12)
             {
                 context.use_certificate_chain_file(cert_file);
@@ -34,17 +37,17 @@ namespace network {
                 }
             }
 
-            void start(const start_callback_type& start_callback) override
+            bool start(const start_callback_type& start_callback) override
             {
                 if (set_session_id_context)
                 {
                     // Creating session_id_context from address:port but reversed due to small SSL_MAX_SSL_SESSION_ID_LENGTH
-                    session_id_context = std::to_string(config.port) + ':';
-                    session_id_context.append(config.address.rbegin(), config.address.rend());
+                    session_id_context = std::to_string(config.port()) + ':';
+                    session_id_context.append(config.address().rbegin(), config.address().rend());
                     SSL_CTX_set_session_id_context(context.native_handle(), reinterpret_cast<const unsigned char*>(session_id_context.data()),
                                                    std::min<std::size_t>(session_id_context.size(), SSL_MAX_SSL_SESSION_ID_LENGTH));
                 }
-                server_base_impl::start(start_callback);
+                return server_base_impl::start(start_callback);
             }
 
         protected:
@@ -52,7 +55,9 @@ namespace network {
 
             void accept() override
             {
-                auto connection = create_connection(*io_service, context);
+                SRV_ASSERT(_workers);
+
+                auto connection = create_connection(*_workers->service(), context);
 
                 acceptor->async_accept(connection->socket->lowest_layer(), [this, connection](const error_code& ec) {
                     auto lock = connection->handler_runner->continue_lock();

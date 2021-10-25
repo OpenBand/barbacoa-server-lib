@@ -56,9 +56,9 @@ namespace network {
 
         unit& operator=(const unit&) = default;
 
-        unit(unit&&) noexcept;
+        unit(unit&&);
 
-        unit& operator=(unit&&) noexcept;
+        unit& operator=(unit&&);
 
     public:
         bool is_root_for_nested_content() const;

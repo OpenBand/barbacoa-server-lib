@@ -1,6 +1,6 @@
 #pragma once
 
-#include "client_http.hpp"
+#include "https_client_impl.h"
 
 #include <boost/asio/ssl.hpp>
 
@@ -41,7 +41,7 @@ namespace network {
         protected:
             asio::ssl::context context;
 
-            std::shared_ptr<Connection> create_connection() noexcept override
+            std::shared_ptr<Connection> create_connection() override
             {
                 return std::make_shared<Connection>(handler_runner, config.timeout, *io_service, context);
             }
