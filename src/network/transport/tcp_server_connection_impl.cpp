@@ -9,7 +9,7 @@ namespace network {
     namespace transport_layer {
 
         tcp_server_connection_impl::tcp_server_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                                               size_t id)
+                                                               uint64_t id)
             : base_class(io_service, id, *io_service)
         {
         }

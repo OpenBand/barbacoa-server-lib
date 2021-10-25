@@ -22,7 +22,7 @@ namespace network {
              * Connection ID
              *
              */
-            virtual size_t id() const = 0;
+            virtual uint64_t id() const = 0;
 
             /**
              * Abort this connection

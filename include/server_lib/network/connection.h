@@ -18,14 +18,14 @@ namespace network {
     {
     public:
         connection(const std::shared_ptr<transport_layer::connection_impl_i>&,
-                      const std::shared_ptr<unit_builder_i>&);
+                   const std::shared_ptr<unit_builder_i>&);
 
         ~connection();
 
         using receive_callback_type = std::function<void(connection&, unit&)>;
         using disconnect_callback_type = std::function<void(size_t /*id*/)>;
 
-        size_t id() const;
+        uint64_t id() const;
 
         void disconnect();
 
@@ -35,9 +35,14 @@ namespace network {
 
         unit_builder_i& protocol();
 
-        connection& send(const unit& unit);
+        connection& post(const unit& unit);
 
         connection& commit();
+
+        connection& send(const unit& unit)
+        {
+            return post(unit).commit();
+        }
 
         connection& on_receive(const receive_callback_type&);
 

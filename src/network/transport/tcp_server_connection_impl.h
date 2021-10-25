@@ -8,7 +8,7 @@ namespace network {
         {
         public:
             tcp_server_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                       size_t id);
+                                       uint64_t id);
 
             void configurate(const std::string&) override;
             void close_socket(socket_type&) override;

@@ -3,6 +3,7 @@
 #include "transport/tcp_server_impl.h"
 
 #include <server_lib/asserts.h>
+#include <server_lib/thread_sync_helpers.h>
 
 #include "../logger_set_internal_group.h"
 
@@ -26,7 +27,7 @@ namespace network {
         return {};
     }
 
-    bool server::start(const tcp_server_config& config)
+    server& server::start(const tcp_server_config& config)
     {
         try
         {
@@ -41,14 +42,32 @@ namespace network {
 
             auto new_client_handler = std::bind(&server::on_new_client, this, std::placeholders::_1);
 
-            return _transport_layer->start(_start_callback, new_client_handler, _fail_callback);
+            SRV_ASSERT(_transport_layer->start(_start_callback, new_client_handler, _fail_callback));
         }
         catch (const std::exception& e)
         {
             SRV_LOGC_ERROR(e.what());
         }
 
-        return false;
+        return *this;
+    }
+
+    bool server::wait(bool wait_until_stop)
+    {
+        if (!is_running())
+            return false;
+
+        auto& loop = _transport_layer->loop();
+        while (wait_until_stop && is_running())
+        {
+            loop.wait([]() {
+                spin_loop_pause();
+            },
+                      std::chrono::seconds(1));
+            if (is_running())
+                spin_loop_pause();
+        }
+        return true;
     }
 
     server& server::on_start(start_callback_type&& callback)

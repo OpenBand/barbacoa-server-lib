@@ -53,7 +53,7 @@ namespace network {
         SRV_LOGC_TRACE("destroyed");
     }
 
-    size_t connection::id() const
+    uint64_t connection::id() const
     {
         return _raw_connection->id();
     }
@@ -78,7 +78,7 @@ namespace network {
         return _protocol->builder();
     }
 
-    connection& connection::send(const unit& unit)
+    connection& connection::post(const unit& unit)
     {
         std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
@@ -103,6 +103,8 @@ namespace network {
 
         try
         {
+            SRV_ASSERT(!buffer.empty());
+
             transport_layer::connection_impl_i::write_request request = { std::vector<char> { buffer.begin(), buffer.end() }, nullptr };
             _raw_connection->async_write(request);
         }

@@ -26,7 +26,7 @@ namespace network {
 
             template <typename... SocketConstructionArgs>
             asio_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                 size_t id, SocketConstructionArgs&&... args)
+                                 uint64_t id, SocketConstructionArgs&&... args)
                 : _io_service(io_service)
                 , _socket(new socket_type(std::forward<SocketConstructionArgs>(args)...))
                 , _id(id)
@@ -36,7 +36,7 @@ namespace network {
         public:
             ////////////////////////////////////////////////////
 
-            size_t id() const override
+            uint64_t id() const override
             {
                 return _id;
             }
@@ -194,7 +194,7 @@ namespace network {
         protected:
             std::shared_ptr<boost::asio::io_service> _io_service;
             std::unique_ptr<socket_type> _socket;
-            size_t _id = 0;
+            uint64_t _id = 0;
             std::string _remote_endpoint;
 
             std::unique_ptr<boost::asio::steady_timer> _socket_timer;

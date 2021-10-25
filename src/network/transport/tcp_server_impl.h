@@ -33,6 +33,8 @@ namespace network {
 
             bool is_running() const override;
 
+            event_loop& loop() override;
+
         private:
             void accept();
             void stop_impl();
@@ -41,7 +43,7 @@ namespace network {
 
             std::unique_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 
-            size_t _next_connection_id = 0;
+            uint64_t _next_connection_id = 0;
 
             std::unique_ptr<tcp_server_config> _config;
 

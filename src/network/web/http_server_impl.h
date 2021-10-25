@@ -18,6 +18,8 @@
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 
+#include <server_lib/network/web/web_server_i.h>
+
 namespace server_lib {
 namespace network {
     namespace web {
@@ -51,7 +53,9 @@ namespace network {
             class Session;
 
         public:
-            class Response : public std::enable_shared_from_this<Response>, public std::ostream
+            class Response : public std::enable_shared_from_this<Response>,
+                             public std::ostream,
+                             public web_response_i
             {
                 friend class server_base_impl<socket_type>;
                 friend class server_impl<socket_type>;
@@ -82,8 +86,8 @@ namespace network {
 
                         *this << field.first << ": " << field.second << "\r\n";
                     }
-                    if (!content_length_written && !chunked_transfer_encoding && !close_connection_after_response)
-                        *this << "Content-Length: " << size << "\r\n\r\n";
+                    if (!content_length_written && !chunked_transfer_encoding && !_close_connection_after_response)
+                        *this << "Content-Length: " << static_cast<size_t>(size) << "\r\n\r\n";
                     else
                         *this << "\r\n";
                 }
@@ -96,12 +100,12 @@ namespace network {
                 {
                 }
 
-                std::size_t size()
+                std::size_t size() const override
                 {
                     return streambuf.size();
                 }
 
-                std::string content() const
+                std::string content() const override
                 {
                     return { boost::asio::buffer_cast<const char*>(streambuf.data()), streambuf.size() };
                 }
@@ -128,14 +132,14 @@ namespace network {
                 }
 
                 /// Convenience function for writing status line, potential header fields, and empty content
-                void write(http_status_code status_code = http_status_code::success_ok, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void post(http_status_code status_code = http_status_code::success_ok, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap()) override
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     write_header(header, 0);
                 }
 
                 /// Convenience function for writing status line, header fields, and content
-                void write(http_status_code status_code, const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void post(http_status_code status_code, const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap()) override
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     write_header(header, content.size());
@@ -144,7 +148,7 @@ namespace network {
                 }
 
                 /// Convenience function for writing status line, header fields, and content
-                void write(http_status_code status_code, std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void post(http_status_code status_code, std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap()) override
                 {
                     *this << "HTTP/1.1 " << server_lib::network::web::status_code(status_code) << "\r\n";
                     content.seekg(0, std::ios::end);
@@ -156,28 +160,33 @@ namespace network {
                 }
 
                 /// Convenience function for writing success status line, header fields, and content
-                void write(const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void post(const std::string& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap()) override
                 {
-                    write(http_status_code::success_ok, content, header);
+                    post(http_status_code::success_ok, content, header);
                 }
 
                 /// Convenience function for writing success status line, header fields, and content
-                void write(std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
+                void post(std::istream& content, const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap()) override
                 {
-                    write(http_status_code::success_ok, content, header);
+                    post(http_status_code::success_ok, content, header);
                 }
 
                 /// Convenience function for writing success status line, and header fields
-                void write(const CaseInsensitiveMultimap& header)
+                void post(const CaseInsensitiveMultimap& header) override
                 {
-                    write(http_status_code::success_ok, std::string(), header);
+                    post(http_status_code::success_ok, std::string(), header);
                 }
 
                 /// If true, force server to close the connection after the response have been sent.
                 ///
                 /// This is useful when implementing a HTTP/1.0-server sending content
                 /// without specifying the content length.
-                bool close_connection_after_response = false;
+                bool _close_connection_after_response = false;
+
+                void close_connection_after_response() override
+                {
+                    this->_close_connection_after_response = true;
+                }
             };
 
             class Content : public std::istream
@@ -185,7 +194,7 @@ namespace network {
                 friend class server_base_impl<socket_type>;
 
             public:
-                std::size_t size()
+                std::size_t size() const
                 {
                     return streambuf.size();
                 }
@@ -213,7 +222,7 @@ namespace network {
                 }
             };
 
-            class Request
+            class Request : public web_request_i
             {
                 friend class server_base_impl<socket_type>;
                 friend class server_impl<socket_type>;
@@ -221,35 +230,88 @@ namespace network {
 
                 asio::streambuf streambuf;
 
-                Request(std::size_t max_request_streambuf_size, std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint)
+                Request(std::size_t max_request_streambuf_size,
+                        std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint)
                     : streambuf(max_request_streambuf_size)
-                    , id(0u)
-                    , content(streambuf)
-                    , remote_endpoint(std::move(remote_endpoint))
+                    , _id(0u)
+                    , _content(streambuf)
+                    , _remote_endpoint(std::move(remote_endpoint))
                 {
                 }
 
             public:
-                std::string method, path, query_string, http_version;
+                std::string _method, _path, _query_string, _http_version;
 
-                std::atomic<uint64_t> id;
+                std::atomic<uint64_t> _id;
 
-                Content content;
+                Content _content;
 
-                CaseInsensitiveMultimap header;
+                CaseInsensitiveMultimap _header;
 
-                regex::smatch path_match;
+                regex::smatch _path_match;
 
-                std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint;
+                std::string _path_match_str;
+
+                std::shared_ptr<asio::ip::tcp::endpoint> _remote_endpoint;
 
                 /// The time point when the request header was fully read.
-                std::chrono::system_clock::time_point header_read_time;
+                std::chrono::system_clock::time_point _header_read_time;
 
-                std::string remote_endpoint_address()
+                uint64_t id() const override
+                {
+                    return _id.load();
+                }
+
+                std::size_t size() const override
+                {
+                    return _content.size();
+                }
+
+                std::string content() override
+                {
+                    return _content.string();
+                }
+
+                std::string method() const override
+                {
+                    return _method;
+                }
+
+                std::string path() const override
+                {
+                    return _path;
+                }
+
+                std::string query_string() const override
+                {
+                    return _query_string;
+                }
+
+                std::string http_version() const override
+                {
+                    return _http_version;
+                }
+
+                case_insensitive_multimap header() const override
+                {
+                    return _header;
+                }
+
+                std::string path_match() const override
+                {
+                    return _path_match_str;
+                }
+
+                std::chrono::system_clock::time_point header_read_time() const override
+                {
+                    return _header_read_time;
+                }
+
+                std::string remote_endpoint_address() const override
                 {
                     try
                     {
-                        return remote_endpoint->address().to_string();
+                        return _remote_endpoint->address().to_string();
                     }
                     catch (...)
                     {
@@ -257,15 +319,15 @@ namespace network {
                     }
                 }
 
-                unsigned short remote_endpoint_port()
+                unsigned short remote_endpoint_port() const override
                 {
-                    return remote_endpoint->port();
+                    return _remote_endpoint->port();
                 }
 
                 /// Returns query keys with percent-decoded values.
-                CaseInsensitiveMultimap parse_query_string()
+                CaseInsensitiveMultimap parse_query_string() const override
                 {
-                    return QueryString::parse(query_string);
+                    return QueryString::parse(_query_string);
                 }
             };
 
@@ -366,13 +428,14 @@ namespace network {
                 {
                     return str < rhs.str;
                 }
+
+                const std::string& string() const
+                {
+                    return str;
+                }
             };
 
         public:
-            /**
-            * Callback called whenever the server has been started
-            *
-            */
             using start_callback_type = std::function<void()>;
 
             /**
@@ -462,12 +525,6 @@ namespace network {
                 return false;
             }
 
-            void wait()
-            {
-                SRV_ASSERT(_workers);
-                _workers->wait();
-            }
-
             /// Stop accepting new requests, and close current connections.
             void stop()
             {
@@ -550,17 +607,17 @@ namespace network {
 
             void read(const std::shared_ptr<Session>& session)
             {
-                session->connection->set_timeout(config.timeout_request);
+                session->connection->set_timeout(config.timeout_request());
                 asio::async_read_until(*session->connection->socket, session->request->streambuf, "\r\n\r\n", [this, session](const error_code& ec, std::size_t bytes_transferred) {
                     session->connection->cancel_timeout();
                     auto lock = session->connection->handler_runner->continue_lock();
                     if (!lock)
                         return;
-                    session->request->header_read_time = std::chrono::system_clock::now();
+                    session->request->_header_read_time = std::chrono::system_clock::now();
                     if ((!ec || ec == asio::error::not_found) && session->request->streambuf.size() == session->request->streambuf.max_size())
                     {
-                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(http_status_code::client_error_payload_too_large);
+                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content()));
+                        response->post(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -574,8 +631,12 @@ namespace network {
                         // streambuf (maybe some bytes of the content) is appended to in the async_read-function below (for retrieving content).
                         std::size_t num_additional_bytes = session->request->streambuf.size() - bytes_transferred;
 
-                        if (!RequestMessage::parse(session->request->content, session->request->method, session->request->path,
-                                                   session->request->query_string, session->request->http_version, session->request->header))
+                        if (!RequestMessage::parse(session->request->_content,
+                                                   session->request->_method,
+                                                   session->request->_path,
+                                                   session->request->_query_string,
+                                                   session->request->_http_version,
+                                                   session->request->_header))
                         {
                             if (this->on_error)
                                 this->on_error(session->request, make_error_code::make_error_code(errc::protocol_error));
@@ -583,8 +644,8 @@ namespace network {
                         }
 
                         // If content, read that as well
-                        auto header_it = session->request->header.find("Content-Length");
-                        if (header_it != session->request->header.end())
+                        auto header_it = session->request->_header.find("Content-Length");
+                        if (header_it != session->request->_header.end())
                         {
                             unsigned long long content_length = 0;
                             try
@@ -599,7 +660,7 @@ namespace network {
                             }
                             if (content_length > num_additional_bytes)
                             {
-                                session->connection->set_timeout(config.timeout_content);
+                                session->connection->set_timeout(config.timeout_content());
                                 asio::async_read(*session->connection->socket, session->request->streambuf, asio::transfer_exactly(content_length - num_additional_bytes), [this, session](const error_code& ec, std::size_t /*bytes_transferred*/) {
                                     session->connection->cancel_timeout();
                                     auto lock = session->connection->handler_runner->continue_lock();
@@ -609,8 +670,8 @@ namespace network {
                                     {
                                         if (session->request->streambuf.size() == session->request->streambuf.max_size())
                                         {
-                                            auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                                            response->write(http_status_code::client_error_payload_too_large);
+                                            auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content()));
+                                            response->post(http_status_code::client_error_payload_too_large);
                                             response->send();
                                             if (this->on_error)
                                                 this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -625,9 +686,9 @@ namespace network {
                             else
                                 this->find_resource(session);
                         }
-                        else if ((header_it = session->request->header.find("Transfer-Encoding")) != session->request->header.end() && header_it->second == "chunked")
+                        else if ((header_it = session->request->_header.find("Transfer-Encoding")) != session->request->_header.end() && header_it->second == "chunked")
                         {
-                            auto chunks_streambuf = std::make_shared<asio::streambuf>(this->config.max_request_streambuf_size);
+                            auto chunks_streambuf = std::make_shared<asio::streambuf>(this->config.max_request_streambuf_size());
                             this->read_chunked_transfer_encoded(session, chunks_streambuf);
                         }
                         else
@@ -640,7 +701,7 @@ namespace network {
 
             void read_chunked_transfer_encoded(const std::shared_ptr<Session>& session, const std::shared_ptr<asio::streambuf>& chunks_streambuf)
             {
-                session->connection->set_timeout(config.timeout_content);
+                session->connection->set_timeout(config.timeout_content());
                 asio::async_read_until(*session->connection->socket, session->request->streambuf, "\r\n", [this, session, chunks_streambuf](const error_code& ec, size_t bytes_transferred) {
                     session->connection->cancel_timeout();
                     auto lock = session->connection->handler_runner->continue_lock();
@@ -648,8 +709,8 @@ namespace network {
                         return;
                     if ((!ec || ec == asio::error::not_found) && session->request->streambuf.size() == session->request->streambuf.max_size())
                     {
-                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(http_status_code::client_error_payload_too_large);
+                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content()));
+                        response->post(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -658,7 +719,7 @@ namespace network {
                     if (!ec)
                     {
                         std::string line;
-                        getline(session->request->content, line);
+                        getline(session->request->_content, line);
                         bytes_transferred -= line.size() + 1;
                         line.pop_back();
                         unsigned long length = 0;
@@ -677,7 +738,7 @@ namespace network {
 
                         if ((2 + length) > num_additional_bytes)
                         {
-                            session->connection->set_timeout(config.timeout_content);
+                            session->connection->set_timeout(config.timeout_content());
                             asio::async_read(*session->connection->socket, session->request->streambuf, asio::transfer_exactly(2 + length - num_additional_bytes), [this, session, chunks_streambuf, length](const error_code& ec, size_t /*bytes_transferred*/) {
                                 session->connection->cancel_timeout();
                                 auto lock = session->connection->handler_runner->continue_lock();
@@ -687,8 +748,8 @@ namespace network {
                                 {
                                     if (session->request->streambuf.size() == session->request->streambuf.max_size())
                                     {
-                                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                                        response->write(http_status_code::client_error_payload_too_large);
+                                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content()));
+                                        response->post(http_status_code::client_error_payload_too_large);
                                         response->send();
                                         if (this->on_error)
                                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -714,12 +775,12 @@ namespace network {
                 if (length > 0)
                 {
                     std::unique_ptr<char[]> buffer(new char[length]);
-                    session->request->content.read(buffer.get(), static_cast<std::streamsize>(length));
+                    session->request->_content.read(buffer.get(), static_cast<std::streamsize>(length));
                     tmp_stream.write(buffer.get(), static_cast<std::streamsize>(length));
                     if (chunks_streambuf->size() == chunks_streambuf->max_size())
                     {
-                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content));
-                        response->write(http_status_code::client_error_payload_too_large);
+                        auto response = std::shared_ptr<Response>(new Response(session, this->config.timeout_content()));
+                        response->post(http_status_code::client_error_payload_too_large);
                         response->send();
                         if (this->on_error)
                             this->on_error(session->request, make_error_code::make_error_code(errc::message_size));
@@ -728,8 +789,8 @@ namespace network {
                 }
 
                 // Remove "\r\n"
-                session->request->content.get();
-                session->request->content.get();
+                session->request->_content.get();
+                session->request->_content.get();
 
                 if (length > 0)
                     read_chunked_transfer_encoded(session, chunks_streambuf);
@@ -749,8 +810,8 @@ namespace network {
                 // Upgrade connection
                 if (on_upgrade)
                 {
-                    auto it = session->request->header.find("Upgrade");
-                    if (it != session->request->header.end())
+                    auto it = session->request->_header.find("Upgrade");
+                    if (it != session->request->_header.end())
                     {
                         // remove connection from connections
                         {
@@ -767,19 +828,21 @@ namespace network {
                 // Find path- and method-match, and call write
                 for (auto& regex_method : resource)
                 {
-                    auto it = regex_method.second.find(session->request->method);
+                    auto it = regex_method.second.find(session->request->_method);
                     if (it != regex_method.second.end())
                     {
                         regex::smatch sm_res;
-                        if (regex::regex_match(session->request->path, sm_res, regex_method.first))
+                        auto&& regex_ = regex_method.first;
+                        if (regex::regex_match(session->request->_path, sm_res, regex_))
                         {
-                            session->request->path_match = std::move(sm_res);
+                            session->request->_path_match = std::move(sm_res);
+                            session->request->_path_match_str = regex_.string();
                             write(session, it->second);
                             return;
                         }
                     }
                 }
-                auto it = default_resource.find(session->request->method);
+                auto it = default_resource.find(session->request->_method);
                 if (it != default_resource.end())
                     write(session, it->second);
             }
@@ -787,30 +850,30 @@ namespace network {
             void write(const std::shared_ptr<Session>& session,
                        std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Response>, std::shared_ptr<typename server_base_impl<socket_type>::Request>)>& resource_function)
             {
-                session->connection->set_timeout(config.timeout_content);
-                auto response = std::shared_ptr<Response>(new Response(session, config.timeout_content), [this](Response* response_ptr) {
+                session->connection->set_timeout(config.timeout_content());
+                auto response = std::shared_ptr<Response>(new Response(session, config.timeout_content()), [this](Response* response_ptr) {
                     auto response = std::shared_ptr<Response>(response_ptr);
                     response->send([this, response](const error_code& ec) {
                         if (!ec)
                         {
-                            if (response->close_connection_after_response)
+                            if (response->_close_connection_after_response)
                                 return;
 
-                            auto range = response->session->request->header.equal_range("Connection");
+                            auto range = response->session->request->_header.equal_range("Connection");
                             for (auto it = range.first; it != range.second; it++)
                             {
                                 if (case_insensitive_equal(it->second, "close"))
                                     return;
                                 else if (case_insensitive_equal(it->second, "keep-alive"))
                                 {
-                                    auto new_session = std::make_shared<Session>(this->config.max_request_streambuf_size, response->session->connection);
+                                    auto new_session = std::make_shared<Session>(this->config.max_request_streambuf_size(), response->session->connection);
                                     this->read(new_session);
                                     return;
                                 }
                             }
-                            if (response->session->request->http_version >= "1.1")
+                            if (response->session->request->_http_version >= "1.1")
                             {
-                                auto new_session = std::make_shared<Session>(this->config.max_request_streambuf_size, response->session->connection);
+                                auto new_session = std::make_shared<Session>(this->config.max_request_streambuf_size(), response->session->connection);
                                 this->read(new_session);
                                 return;
                             }
@@ -846,7 +909,10 @@ namespace network {
             using base_type = server_base_impl<HTTP>;
 
         public:
-            using base_type::base_type;
+            server_impl(const web_server_config& config_)
+                : base_type(config_)
+            {
+            }
 
         protected:
             void accept() override
@@ -862,7 +928,7 @@ namespace network {
                     if (ec != asio::error::operation_aborted)
                         this->accept();
 
-                    auto session = std::make_shared<Session>(config.max_request_streambuf_size, connection);
+                    auto session = std::make_shared<Session>(config.max_request_streambuf_size(), connection);
 
                     if (!ec)
                     {

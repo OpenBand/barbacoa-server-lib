@@ -153,6 +153,12 @@ namespace network {
             return _workers && _workers->is_running();
         }
 
+        event_loop& tcp_server_impl::loop()
+        {
+            SRV_ASSERT(this->_workers);
+            return *this->_workers;
+        }
+
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib

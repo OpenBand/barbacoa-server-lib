@@ -3,8 +3,7 @@
 #include <server_lib/network/transport/web_server_impl_i.h>
 
 #include "web_server_config.h"
-#include "web_client_request.h"
-#include "web_server_response.h"
+#include "web_server_i.h"
 
 #include <memory>
 
@@ -31,13 +30,14 @@ namespace network {
              *
              */
             static web_server_config configurate();
+            static websec_server_config configurate_sec();
 
             using start_callback_type = std::function<void()>;
             using request_callback_type = std::function<void(
-                std::shared_ptr<web_request>,
-                std::shared_ptr<web_response>)>;
+                std::shared_ptr<web_request_i>,
+                std::shared_ptr<web_response_i>)>;
             using fail_callback_type = std::function<void(
-                std::shared_ptr<web_request>,
+                std::shared_ptr<web_request_i>,
                 const std::string&)>;
 
             /**
@@ -45,6 +45,12 @@ namespace network {
              *
              */
             web_server& start(const web_server_config&);
+
+            /**
+             * Start the encrypted Web server
+             *
+             */
+            web_server& start(const websec_server_config&);
 
             /**
              * Waiting for Web server starting or stopping
@@ -106,8 +112,9 @@ namespace network {
             std::unique_ptr<transport_layer::web_server_impl_i> _impl;
 
             start_callback_type _start_callback = nullptr;
-            request_callback_type _request_callback = nullptr;
             fail_callback_type _fail_callback = nullptr;
+            size_t _next_subscription = 0;
+            std::map<std::string, std::map<std::string, std::pair<size_t, request_callback_type>>> _request_callbacks;
         };
 
     } // namespace web

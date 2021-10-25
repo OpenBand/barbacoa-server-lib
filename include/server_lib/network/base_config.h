@@ -30,7 +30,7 @@ namespace network {
 
         T& self()
         {
-            return dynamic_cast<T&>(*this);
+            return static_cast<T&>(*this);
         }
 
     public:

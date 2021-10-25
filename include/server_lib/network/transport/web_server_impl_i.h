@@ -1,5 +1,7 @@
 #pragma once
 
+#include <server_lib/event_loop.h>
+
 namespace server_lib {
 namespace network {
     namespace web {
@@ -34,6 +36,11 @@ namespace network {
                 * \return whether the web server is currently running or not
                 */
                 virtual bool is_running() const = 0;
+
+                /**
+                * \return thread loop
+                */
+                virtual event_loop& loop() = 0;
             };
 
         } // namespace transport_layer

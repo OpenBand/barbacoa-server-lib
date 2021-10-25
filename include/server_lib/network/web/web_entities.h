@@ -150,6 +150,8 @@ namespace network {
             }
         };
 
+        using web_query = case_insensitive_multimap;
+
         class http_header
         {
         public:
@@ -243,6 +245,8 @@ namespace network {
                 };
             };
         };
+
+        using web_header = case_insensitive_multimap;
 
     } // namespace web
 } // namespace network

@@ -40,13 +40,23 @@ namespace network {
          * Start the TCP server
          *
          */
-        bool start(const tcp_server_config&);
+        server& start(const tcp_server_config&);
+
+        /**
+         * Waiting for Web server starting or stopping
+         *
+         * \param wait_until_stop if 'false' it waits only
+         * start process finishing
+         *
+         * \result if success
+         */
+        bool wait(bool wait_until_stop = false);
 
         server& on_start(start_callback_type&& callback);
         server& on_new_connection(new_connection_callback_type&& callback);
         server& on_fail(fail_callback_type&& callback);
 
-        void stop(bool wait_for_removal);
+        void stop(bool wait_for_removal = false);
 
         bool is_running(void) const;
 
