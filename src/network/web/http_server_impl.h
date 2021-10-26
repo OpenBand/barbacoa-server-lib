@@ -20,6 +20,8 @@
 
 #include <server_lib/network/web/web_server_i.h>
 
+#include "../../logger_set_internal_group.h"
+
 namespace server_lib {
 namespace network {
     namespace web {
@@ -476,7 +478,7 @@ namespace network {
                 {
                     SRV_ASSERT(!is_running());
 
-                    // TODO: LOG
+                    SRV_LOGC_TRACE("attempts to start");
 
                     _workers = std::make_unique<mt_event_loop>(config.worker_threads());
                     _workers->change_thread_name(config.worker_name());
@@ -484,7 +486,7 @@ namespace network {
                     auto start_ = [this, start_callback]() {
                         try
                         {
-                            // TODO: LOG
+                            SRV_LOGC_TRACE("starting");
 
                             asio::ip::tcp::endpoint endpoint;
                             if (config.address().size() > 0)
@@ -501,14 +503,14 @@ namespace network {
 
                             accept();
 
-                            // TODO: LOG
+                            SRV_LOGC_TRACE("started");
 
                             if (start_callback)
                                 start_callback();
                         }
                         catch (const std::exception& e)
                         {
-                            // TODO: LOG
+                            SRV_LOGC_ERROR(e.what());
                             if (on_error)
                                 on_error(nullptr, make_error_code::make_error_code(errc::interrupted));
                         }
@@ -519,7 +521,7 @@ namespace network {
                 }
                 catch (const std::exception& e)
                 {
-                    // TODO: LOG
+                    SRV_LOGC_ERROR(e.what());
                 }
 
                 return false;
@@ -533,7 +535,7 @@ namespace network {
                     return;
                 }
 
-                // TODO: LOG
+                SRV_LOGC_TRACE(__FUNCTION__);
 
                 if (acceptor)
                 {
@@ -561,7 +563,7 @@ namespace network {
                 }
                 catch (const std::exception& e)
                 {
-                    // TODO: LOG
+                    SRV_LOGC_ERROR(e.what());
                 }
             }
 
