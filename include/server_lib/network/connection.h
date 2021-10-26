@@ -28,7 +28,8 @@ namespace network {
         ~connection();
 
         using receive_callback_type = std::function<void(connection&, unit&)>;
-        using disconnect_callback_type = std::function<void(size_t /*id*/)>;
+        using disconnect_with_id_callback_type = std::function<void(size_t /*id*/)>;
+        using disconnect_callback_type = std::function<void()>;
 
         uint64_t id() const;
 
@@ -51,6 +52,8 @@ namespace network {
 
         connection& on_receive(const receive_callback_type&);
 
+        connection& on_disconnect(const disconnect_with_id_callback_type&);
+
         connection& on_disconnect(const disconnect_callback_type&);
 
     private:
@@ -67,7 +70,8 @@ namespace network {
         std::mutex _send_buffer_mutex;
 
         receive_callback_type _receive_callback = nullptr;
-        std::vector<disconnect_callback_type> _disconnection_callbacks;
+        std::vector<disconnect_with_id_callback_type> _disconnection_callbacks;
+        disconnect_callback_type _disconnection_callback = nullptr;
     };
 
 } // namespace network

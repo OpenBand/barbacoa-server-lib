@@ -53,7 +53,7 @@ int main(void)
 
         if (emit_fail[0].load())
         {
-            LOGC_INFO("Emulate memory fail in separated loop (job #0)");
+            LOGC_INFO("Emulate memory fail in main loop (job #0)");
 
             try_fail(fail::try_uninitialized_pointer);
         }

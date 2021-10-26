@@ -1,9 +1,9 @@
 #pragma once
 
+#include <server_lib/types.h>
+
 #include <chrono>
 #include <memory>
-
-#include <server_lib/types.h>
 
 namespace server_lib {
 
@@ -46,7 +46,6 @@ public:
         });
     }
 
-
     virtual void stop()
     {
         ++_current_timer_id->value;
@@ -85,7 +84,7 @@ public:
         });
     }
 
-    void stop()
+    virtual void stop()
     {
         _timer.stop();
     }
@@ -93,6 +92,5 @@ public:
 private:
     timer<EventLoop> _timer;
 };
-
 
 } // namespace server_lib

@@ -70,9 +70,9 @@ namespace network {
         return true;
     }
 
-    server& server::on_start(start_callback_type&& callback)
+    server& server::on_start(common_callback_type&& callback)
     {
-        _start_callback = std::forward<start_callback_type>(callback);
+        _start_callback = std::forward<common_callback_type>(callback);
         return *this;
     }
 
@@ -125,6 +125,15 @@ namespace network {
     bool server::is_running(void) const
     {
         return _transport_layer && _transport_layer->is_running();
+    }
+
+    void server::post(common_callback_type&& callback)
+    {
+        if (is_running())
+        {
+            SRV_ASSERT(_transport_layer);
+            _transport_layer->loop().post(std::move(callback));
+        }
     }
 
     void server::on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)

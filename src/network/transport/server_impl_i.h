@@ -4,7 +4,6 @@
 
 #include <server_lib/event_loop.h>
 
-#include <cstdint>
 #include <memory>
 
 namespace server_lib {

@@ -172,9 +172,15 @@ namespace network {
         return *this;
     }
 
-    connection& connection::on_disconnect(const disconnect_callback_type& callback)
+    connection& connection::on_disconnect(const disconnect_with_id_callback_type& callback)
     {
         _disconnection_callbacks.emplace_back(callback);
+        return *this;
+    }
+
+    connection& connection::on_disconnect(const disconnect_callback_type& callback)
+    {
+        _disconnection_callback = callback;
         return *this;
     }
 
@@ -194,6 +200,9 @@ namespace network {
         {
             callback(hold_self->id());
         }
+
+        if (_disconnection_callback)
+            _disconnection_callback();
     }
 
     void connection::on_raw_receive(const std::vector<char>& result)

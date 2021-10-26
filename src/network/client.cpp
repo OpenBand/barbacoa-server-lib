@@ -92,6 +92,14 @@ namespace network {
         return *this;
     }
 
+    void client::post(common_callback_type&& callback)
+    {
+        if (_transport_layer)
+        {
+            _transport_layer->loop().post(std::move(callback));
+        }
+    }
+
     void client::on_diconnect_impl(size_t connection_id)
     {
         SRV_LOGC_TRACE("has been disconnected");

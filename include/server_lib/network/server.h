@@ -36,10 +36,10 @@ namespace network {
         static tcp_server_config configurate_tcp();
 
         /**
-         * Start callback
+         * Common callback
          *
          */
-        using start_callback_type = std::function<void()>;
+        using common_callback_type = std::function<void()>;
 
         /**
          * Fail callback
@@ -71,13 +71,15 @@ namespace network {
          */
         bool wait(bool wait_until_stop = false);
 
-        server& on_start(start_callback_type&& callback);
+        server& on_start(common_callback_type&& callback);
         server& on_new_connection(new_connection_callback_type&& callback);
         server& on_fail(fail_callback_type&& callback);
 
         void stop(bool wait_for_removal = false);
 
         bool is_running(void) const;
+
+        void post(common_callback_type&& callback);
 
     private:
         void on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>&);
@@ -89,7 +91,7 @@ namespace network {
         std::unordered_map<size_t, std::shared_ptr<connection>> _connections;
         std::mutex _connections_mutex;
 
-        start_callback_type _start_callback = nullptr;
+        common_callback_type _start_callback = nullptr;
         new_connection_callback_type _new_connection_callback = nullptr;
         fail_callback_type _fail_callback = nullptr;
     };

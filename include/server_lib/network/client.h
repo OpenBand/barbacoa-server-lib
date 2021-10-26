@@ -49,6 +49,12 @@ namespace network {
         using fail_callback_type = std::function<void(const std::string&)>;
 
         /**
+         * Common callback
+         *
+         */
+        using common_callback_type = std::function<void()>;
+
+        /**
          * Start the TCP client
          *
          * \return return 'false' if connection was aborted synchronously
@@ -59,6 +65,8 @@ namespace network {
         client& on_connect(connect_callback_type&& callback);
 
         client& on_fail(fail_callback_type&& callback);
+
+        void post(common_callback_type&& callback);
 
     private:
         void on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>&);

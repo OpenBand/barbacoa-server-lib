@@ -2,7 +2,8 @@
 
 #include "connection_impl_i.h"
 
-#include <cstdint>
+#include <server_lib/event_loop.h>
+
 #include <memory>
 
 namespace server_lib {
@@ -38,6 +39,8 @@ namespace network {
             virtual bool connect(const connect_callback_type& connect_callback,
                                  const fail_callback_type& fail_callback)
                 = 0;
+
+            virtual event_loop& loop() = 0;
         };
 
     } // namespace transport_layer

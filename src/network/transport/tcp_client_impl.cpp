@@ -134,6 +134,11 @@ namespace network {
             return false;
         }
 
+        event_loop& tcp_client_impl::loop()
+        {
+            return _worker;
+        }
+
         void tcp_client_impl::stop_worker()
         {
             SRV_LOGC_TRACE(__FUNCTION__);
