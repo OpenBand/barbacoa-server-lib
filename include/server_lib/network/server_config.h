@@ -82,7 +82,7 @@ namespace network {
         unsigned short _port = 0;
         /// IPv4 address in dotted decimal form or IPv6 address in hexadecimal notation.
         /// If empty, the address will be any address.
-        std::string _address = "localhost";
+        std::string _address = "0.0.0.0";
         /// Number of threads that the server will use.
         /// Defaults to 1 thread.
         uint8_t _worker_threads = 1;

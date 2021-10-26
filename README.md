@@ -8,6 +8,11 @@ But the server is also a lot of stuff that you have to deal with from solution t
 These are settings, logging, threads, start and stop control, and some other things that I would not want to do every time from server to server. 
 Let's free a developer for specific business tasks.
 
+# Examples
+
+```cpp (examples/pretty_simple.cpp)
+```
+
 # Requirements
 
 C++14, Boost from version 1.58. 
