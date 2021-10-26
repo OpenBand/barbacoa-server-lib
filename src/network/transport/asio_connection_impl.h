@@ -26,10 +26,13 @@ namespace network {
 
             template <typename... SocketConstructionArgs>
             asio_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                 uint64_t id, SocketConstructionArgs&&... args)
+                                 uint64_t id,
+                                 size_t chunk_size,
+                                 SocketConstructionArgs&&... args)
                 : _io_service(io_service)
                 , _socket(new socket_type(std::forward<SocketConstructionArgs>(args)...))
                 , _id(id)
+                , _chunk_size(chunk_size)
             {
             }
 
@@ -75,6 +78,11 @@ namespace network {
             std::string remote_endpoint() const override
             {
                 return _remote_endpoint;
+            }
+
+            size_t chunk_size() const override
+            {
+                return _chunk_size;
             }
 
             void set_disconnect_handler(const disconnect_callback_type& callback) override
@@ -196,6 +204,7 @@ namespace network {
             std::unique_ptr<socket_type> _socket;
             uint64_t _id = 0;
             std::string _remote_endpoint;
+            size_t _chunk_size = 0;
 
             std::unique_ptr<boost::asio::steady_timer> _socket_timer;
 

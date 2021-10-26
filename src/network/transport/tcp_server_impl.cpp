@@ -91,7 +91,11 @@ namespace network {
 
         void tcp_server_impl::accept()
         {
-            auto connection = std::make_shared<tcp_server_connection_impl>(_workers->service(), ++_next_connection_id);
+            SRV_ASSERT(_config);
+
+            auto connection = std::make_shared<tcp_server_connection_impl>(_workers->service(),
+                                                                           ++_next_connection_id,
+                                                                           _config->chunk_size());
 
             auto scope_lock = [connection]() -> bool {
                 return connection->handler_runner.continue_lock().operator bool();

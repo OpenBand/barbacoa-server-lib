@@ -8,8 +8,10 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        tcp_client_connection_impl::tcp_client_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service)
-            : base_class(io_service, 0, *io_service)
+        tcp_client_connection_impl::tcp_client_connection_impl(
+            const std::shared_ptr<boost::asio::io_service>& io_service,
+            size_t chunk_size)
+            : base_class(io_service, 0, chunk_size, *io_service)
         {
         }
 

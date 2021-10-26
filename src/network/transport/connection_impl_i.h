@@ -23,6 +23,8 @@ namespace network {
                 return {};
             }
 
+            virtual size_t chunk_size() const = 0;
+
             using disconnect_callback_type = std::function<void(size_t /*id*/)>;
 
             virtual void set_disconnect_handler(const disconnect_callback_type&) = 0;

@@ -10,8 +10,10 @@ namespace network {
      *
      * \brief This class configurates TCP client.
      */
-    class tcp_client_config : public base_config<tcp_client_config>
+    class tcp_client_config : public base_stream_config<tcp_client_config>
     {
+        using base_type = base_stream_config<tcp_client_config>;
+
         friend class client;
 
     protected:
@@ -54,7 +56,7 @@ namespace network {
 
         bool valid() const override
         {
-            return _port > 0 && !_host.empty() && _protocol;
+            return base_type::valid() && _port > 0 && !_host.empty() && _protocol;
         }
 
         unsigned short port() const

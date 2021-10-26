@@ -8,10 +8,6 @@
 
 #include "../logger_set_internal_group.h"
 
-#ifndef SERVER_LIB_TCP_CLIENT_READ_SIZE
-#define SERVER_LIB_TCP_CLIENT_READ_SIZE 4096 //TODO: create common buffer controller
-#endif /* SERVER_LIB_TCP_CLIENT_READ_SIZE */
-
 namespace server_lib {
 namespace network {
 
@@ -72,7 +68,7 @@ namespace network {
         _impl = std::make_unique<connection_impl>(*this, *_raw_connection);
         _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));
 
-        _impl->async_read(SERVER_LIB_TCP_CLIENT_READ_SIZE);
+        _impl->async_read(_raw_connection->chunk_size());
 
         SRV_LOGC_TRACE("created");
     }
@@ -81,18 +77,29 @@ namespace network {
     {
         SRV_LOGC_TRACE("attempts to destroy");
 
-        _raw_connection->set_disconnect_handler(nullptr);
+        try
+        {
+            SRV_ASSERT(_raw_connection);
 
-        SRV_LOGC_TRACE("destroyed");
+            _raw_connection->set_disconnect_handler(nullptr);
+
+            SRV_LOGC_TRACE("destroyed");
+        }
+        catch (const std::exception& e)
+        {
+            SRV_LOGC_ERROR(e.what());
+        }
     }
 
     uint64_t connection::id() const
     {
+        SRV_ASSERT(_raw_connection);
         return _raw_connection->id();
     }
 
     void connection::disconnect()
     {
+        SRV_ASSERT(_raw_connection);
         _raw_connection->disconnect();
     }
 
@@ -103,11 +110,13 @@ namespace network {
 
     std::string connection::remote_endpoint() const
     {
+        SRV_ASSERT(_raw_connection);
         return _raw_connection->remote_endpoint();
     }
 
     unit_builder_i& connection::protocol()
     {
+        SRV_ASSERT(_protocol);
         return _protocol->builder();
     }
 
@@ -127,6 +136,8 @@ namespace network {
     connection& connection::commit()
     {
         SRV_LOGC_TRACE("attempts to send pipelined units");
+
+        SRV_ASSERT(_raw_connection);
 
         std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
@@ -189,6 +200,9 @@ namespace network {
     {
         auto hold_self = shared_from_this();
 
+        SRV_ASSERT(_protocol);
+        SRV_ASSERT(_raw_connection);
+
         try
         {
             SRV_LOGC_TRACE("receives packet, attempts to build unit");
@@ -214,7 +228,7 @@ namespace network {
             }
         }
 
-        _impl->async_read(SERVER_LIB_TCP_CLIENT_READ_SIZE);
+        _impl->async_read(_raw_connection->chunk_size());
     }
 
 } // namespace network

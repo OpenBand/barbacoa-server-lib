@@ -13,7 +13,7 @@ namespace network {
      *
      * \brief Represent boundered message that consists of size header
      * and byte array.
-    */
+     */
     class msg_builder : public unit_builder_i
     {
     public:

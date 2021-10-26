@@ -62,5 +62,40 @@ namespace network {
         std::string _worker_name;
     };
 
+    /**
+     * \ingroup network
+     *
+     * \brief This is the base configuration for stream connection.
+     */
+    template <typename T>
+    class base_stream_config : public base_config<T>
+    {
+    protected:
+        base_stream_config() = default;
+
+    public:
+        T& set_chunk_size(size_t sz)
+        {
+            SRV_ASSERT(sz > 0 && sz <= static_cast<size_t>(std::numeric_limits<uint32_t>::max()));
+
+            _chunk_size = sz;
+            return this->self();
+        }
+
+        bool valid() const override
+        {
+            return _chunk_size > 0;
+        }
+
+        size_t chunk_size() const
+        {
+            return _chunk_size;
+        }
+
+    protected:
+        /// Block size to read
+        size_t _chunk_size = 4096;
+    };
+
 } // namespace network
 } // namespace server_lib

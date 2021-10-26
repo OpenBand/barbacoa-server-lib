@@ -46,7 +46,10 @@ namespace network {
                     {
                         SRV_LOGC_TRACE("sm - connecting");
 
-                        auto connection = std::make_shared<tcp_client_connection_impl>(_worker.service());
+                        SRV_ASSERT(_config);
+
+                        auto connection = std::make_shared<tcp_client_connection_impl>(_worker.service(),
+                                                                                       _config->chunk_size());
 
                         auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker.service());
                         connection->set_timeout(_config->timeout_connect_ms(), [resolver]() {

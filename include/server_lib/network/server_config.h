@@ -11,8 +11,10 @@ namespace network {
      * \brief This is the base configuration for TCP server.
      */
     template <typename T>
-    class base_tcp_server_config : public base_config<T>
+    class base_tcp_server_config : public base_stream_config<T>
     {
+        using base_type = base_stream_config<T>;
+
     protected:
         base_tcp_server_config()
         {
@@ -52,7 +54,7 @@ namespace network {
 
         bool valid() const override
         {
-            return _port > 0 && !_address.empty();
+            return base_type::valid() && _port > 0 && !_address.empty();
         }
 
         unsigned short port() const
