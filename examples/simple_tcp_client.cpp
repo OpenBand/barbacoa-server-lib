@@ -21,8 +21,8 @@ int main(void)
     using connection = server_lib::network::connection;
     using unit = server_lib::network::unit;
 
-    using protocol = server_lib::network::msg_protocol;
-    const std::string proto_cmd = "PING";
+    using my_protocol = server_lib::network::msg_protocol;
+    const std::string protocol_message = "PING";
 
     server_lib::solo_periodical_timer ping_timer;
 
@@ -30,14 +30,14 @@ int main(void)
     auto&& app = server_lib::application::init();
     return app.on_start([&]() {
                   auto port = 19999;
-                  client.on_connect([&](connection& conn) {
+                  client.on_connect([&, port](connection& conn) {
                             std::cout << "Connected to " << port << ". Press ^C to stop"
                                       << "\n"
                                       << std::endl;
                             conn.on_receive([&](connection& conn, unit& unit) {
                                 auto data = unit.as_string();
                                 std::cout << "Received " << data.size() << " bytes: "
-                                          << ssl_helpers::to_hex(unit.as_string())
+                                          << ssl_helpers::to_printable(unit.as_string())
                                           << " from " << conn.remote_endpoint() << std::endl;
                             });
                             conn.on_disconnect([&]() {
@@ -46,7 +46,7 @@ int main(void)
                             ping_timer.start(2s, [&]() {
                                 //'post' just to make all business logic in the same thread
                                 client.post([&]() {
-                                    conn.send(conn.protocol().create(proto_cmd));
+                                    conn.send(conn.protocol().create(protocol_message));
                                 });
                             });
                         })
@@ -55,7 +55,7 @@ int main(void)
                           app.stop(1);
                       })
                       .connect(client.configurate_tcp()
-                                   .set_protocol(protocol {})
+                                   .set_protocol<my_protocol>()
                                    .set_address(port));
               })
         .run();

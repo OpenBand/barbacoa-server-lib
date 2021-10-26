@@ -19,9 +19,9 @@ int main(void)
     using connection = server_lib::network::connection;
     using unit = server_lib::network::unit;
 
-    using protocol = server_lib::network::msg_protocol;
-    const std::string proto_cmd = "PING";
-    const std::string proto_ask = "PONG";
+    using my_protocol = server_lib::network::msg_protocol;
+    const std::string protocol_message = "PING";
+    const std::string protocol_message_ack = "PONG";
 
     server_lib::network::server server;
     auto&& app = server_lib::application::init();
@@ -40,8 +40,8 @@ int main(void)
                                             << "received " << data.size() << " bytes: "
                                             << ssl_helpers::to_printable(unit.as_string())
                                             << std::endl;
-                                  if (proto_cmd == data)
-                                      conn.send(conn.protocol().create(proto_ask));
+                                  if (protocol_message == data)
+                                      conn.send(conn.protocol().create(protocol_message_ack));
                               })
                               .on_disconnect([&](size_t conn_id) {
                                   std::cout << "#" << conn_id << " - "
@@ -55,7 +55,7 @@ int main(void)
                           app.stop(1);
                       })
                       .start(server.configurate_tcp()
-                                 .set_protocol(protocol {})
+                                 .set_protocol<my_protocol>()
                                  .set_address(port));
               })
         .run();

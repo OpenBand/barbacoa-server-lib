@@ -42,6 +42,12 @@ namespace network {
             return self();
         }
 
+        template <typename Protocol>
+        T& set_protocol()
+        {
+            return this->set_protocol(Protocol());
+        }
+
         T& set_worker_name(const std::string& name)
         {
             SRV_ASSERT(!name.empty());
