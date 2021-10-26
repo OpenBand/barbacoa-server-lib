@@ -24,17 +24,25 @@ namespace network {
         /**
          * Ability to create clones.
          * It is required if this object is used like protocol
-        */
+         */
         virtual unit_builder_i* clone() const
         {
             return nullptr;
         }
 
+        /**
+         * Create unit.
+         *
+         */
         virtual unit create(const std::string&) const
         {
             return {};
         }
 
+        /**
+         * Create unit.
+         *
+        */
         virtual unit create(const char* buff, const size_t sz) const
         {
             return create(std::string { buff, sz });
