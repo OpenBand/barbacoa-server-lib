@@ -1,5 +1,7 @@
 #include <server_lib/network/connection.h>
 
+#include "transport/connection_impl_i.h"
+
 #include <server_lib/asserts.h>
 
 #include "unit_builder_manager.h"
@@ -13,6 +15,50 @@
 namespace server_lib {
 namespace network {
 
+    class connection_impl
+    {
+    public:
+        connection_impl(connection& self,
+                        transport_layer::connection_impl_i& raw_connection_ref)
+            : _self(self)
+            , _raw_connection_ref(raw_connection_ref)
+        {
+        }
+
+        void async_read(size_t sz)
+        {
+            try
+            {
+                transport_layer::connection_impl_i::read_request request = { sz,
+                                                                             std::bind(&connection_impl::on_raw_receive, this,
+                                                                                       std::placeholders::_1) };
+                _raw_connection_ref.async_read(request);
+            }
+            catch (const std::exception& e)
+            {
+                /**
+                * Client disconnected in the meantime
+                */
+
+                SRV_LOGC_WARN(e.what());
+            }
+        }
+
+    private:
+        void on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
+        {
+            if (!result.success)
+            {
+                return;
+            }
+
+            _self.on_raw_receive(result.buffer);
+        }
+
+        connection& _self;
+        transport_layer::connection_impl_i& _raw_connection_ref;
+    };
+
     connection::connection(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection,
                            const std::shared_ptr<unit_builder_i>& protocol)
         : _raw_connection(raw_connection)
@@ -23,23 +69,10 @@ namespace network {
         _protocol = std::make_unique<unit_builder_manager>();
         _protocol->set_builder(protocol);
 
+        _impl = std::make_unique<connection_impl>(*this, *_raw_connection);
         _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));
 
-        try
-        {
-            transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                         std::bind(&connection::on_raw_receive, this,
-                                                                                   std::placeholders::_1) };
-            _raw_connection->async_read(request);
-        }
-        catch (const std::exception& e)
-        {
-            /**
-            * Client disconnected in the meantime
-            */
-
-            SRV_LOGC_WARN(e.what());
-        }
+        _impl->async_read(SERVER_LIB_TCP_CLIENT_READ_SIZE);
 
         SRV_LOGC_TRACE("created");
     }
@@ -152,19 +185,14 @@ namespace network {
         }
     }
 
-    void connection::on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
+    void connection::on_raw_receive(const std::vector<char>& result)
     {
-        if (!result.success)
-        {
-            return;
-        }
-
         auto hold_self = shared_from_this();
 
         try
         {
             SRV_LOGC_TRACE("receives packet, attempts to build unit");
-            *_protocol << std::string(result.buffer.begin(), result.buffer.end());
+            *_protocol << std::string(result.begin(), result.end());
         }
         catch (const std::exception& e)
         {
@@ -186,21 +214,7 @@ namespace network {
             }
         }
 
-        try
-        {
-            transport_layer::connection_impl_i::read_request request = { SERVER_LIB_TCP_CLIENT_READ_SIZE,
-                                                                         std::bind(&connection::on_raw_receive, this,
-                                                                                   std::placeholders::_1) };
-            _raw_connection->async_read(request);
-        }
-        catch (const std::exception& e)
-        {
-            /**
-            * Client disconnected in the meantime
-            */
-
-            SRV_LOGC_WARN(e.what());
-        }
+        _impl->async_read(SERVER_LIB_TCP_CLIENT_READ_SIZE);
     }
 
 } // namespace network

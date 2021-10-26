@@ -1,16 +1,19 @@
 #pragma once
 
-#include <server_lib/network/transport/server_impl_i.h>
-
 #include <server_lib/network/connection.h>
 #include <server_lib/network/server_config.h>
 
 #include <string>
 #include <functional>
 #include <memory>
+#include <unordered_map>
 
 namespace server_lib {
 namespace network {
+    namespace transport_layer {
+        struct server_impl_i;
+        struct connection_impl_i;
+    } // namespace transport_layer
 
     /**
      * \ingroup network
@@ -32,9 +35,25 @@ namespace network {
          */
         static tcp_server_config configurate_tcp();
 
-        using start_callback_type = transport_layer::server_impl_i::start_callback_type;
+        /**
+         * Start callback
+         *
+         */
+        using start_callback_type = std::function<void()>;
+
+        /**
+         * Fail callback
+         * Return error if connection failed asynchronously
+         *
+         */
+        using fail_callback_type = std::function<void(const std::string&)>;
+
+        /**
+         * Inbound connection callback
+         * Return connection object
+         *
+         */
         using new_connection_callback_type = std::function<void(const std::shared_ptr<connection>&)>;
-        using fail_callback_type = transport_layer::server_impl_i::fail_callback_type;
 
         /**
          * Start the TCP server
@@ -67,7 +86,7 @@ namespace network {
         std::shared_ptr<transport_layer::server_impl_i> _transport_layer;
         std::shared_ptr<unit_builder_i> _protocol;
 
-        std::map<size_t, std::shared_ptr<connection>> _connections;
+        std::unordered_map<size_t, std::shared_ptr<connection>> _connections;
         std::mutex _connections_mutex;
 
         start_callback_type _start_callback = nullptr;

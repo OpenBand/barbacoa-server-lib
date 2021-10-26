@@ -1,7 +1,5 @@
 #pragma once
 
-#include <server_lib/network/transport/web_server_impl_i.h>
-
 #include "web_server_config.h"
 #include "web_server_i.h"
 
@@ -10,7 +8,9 @@
 namespace server_lib {
 namespace network {
     namespace web {
-
+        namespace transport_layer {
+            struct web_server_impl_i;
+        }
         /**
          * \ingroup network
          *

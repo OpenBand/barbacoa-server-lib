@@ -8,38 +8,16 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        /**
-         * \ingroup network_i
-         *
-         * Interface for transport implementation for connetion entity (used for both server and client)
-         */
-        class connection_impl_i
+        struct connection_impl_i
         {
-        public:
             virtual ~connection_impl_i() = default;
 
-            /**
-             * Connection ID
-             *
-             */
             virtual uint64_t id() const = 0;
 
-            /**
-             * Abort this connection
-             *
-             */
             virtual void disconnect() = 0;
 
-            /**
-             * \return Whether the client is currently connected or not
-             *
-             */
             virtual bool is_connected() const = 0;
 
-            /**
-             * \return Information about remote end of connection
-             *
-             */
             virtual std::string remote_endpoint() const
             {
                 return {};
@@ -47,16 +25,8 @@ namespace network {
 
             using disconnect_callback_type = std::function<void(size_t /*id*/)>;
 
-            /**
-             * Set callback for disconnection event
-             *
-             */
             virtual void set_disconnect_handler(const disconnect_callback_type&) = 0;
 
-            /**
-             * Structure to store read requests result
-             *
-             */
             struct read_result
             {
                 /**

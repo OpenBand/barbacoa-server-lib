@@ -1,6 +1,8 @@
 #include <server_lib/network/web/web_server.h>
 #include <server_lib/asserts.h>
 
+#include "transport/web_server_impl_i.h"
+
 #include "http_server_impl.h"
 #include "https_server_impl.h"
 
@@ -9,7 +11,6 @@
 namespace server_lib {
 namespace network {
     namespace web {
-
         template <typename socket_type>
         class web_server_impl : public server_impl<socket_type>,
                                 public transport_layer::web_server_impl_i

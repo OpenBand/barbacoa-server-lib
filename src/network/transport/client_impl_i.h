@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/network/transport/connection_impl_i.h>
+#include "connection_impl_i.h"
 
 #include <cstdint>
 #include <memory>
@@ -9,20 +9,10 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        /**
-         * \ingroup network_i
-         *
-         * \brief Interface for transport implementation for async network client
-         *
-         * Implementations: client, nt_persist_client
-         *
-         */
-        class client_impl_i
+        struct client_impl_i
         {
-        public:
             virtual ~client_impl_i() = default;
 
-        public:
             /**
              * Async connection callback
              * Return connection object if client connected successfully

@@ -1,4 +1,5 @@
-#include <server_lib/network/transport/client_impl_i.h>
+#include "client_impl_i.h"
+
 #include <server_lib/network/client_config.h>
 
 #include <server_lib/event_loop.h>

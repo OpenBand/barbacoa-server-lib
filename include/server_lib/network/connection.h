@@ -1,6 +1,5 @@
 #pragma once
 
-#include <server_lib/network/transport/connection_impl_i.h>
 #include <server_lib/network/unit_builder_i.h>
 
 #include <string>
@@ -8,7 +7,11 @@
 
 namespace server_lib {
 namespace network {
+    namespace transport_layer {
+        struct connection_impl_i;
+    }
 
+    class connection_impl;
     class unit_builder_manager;
 
     /**
@@ -16,6 +19,8 @@ namespace network {
      */
     class connection : public std::enable_shared_from_this<connection>
     {
+        friend class connection_impl;
+
     public:
         connection(const std::shared_ptr<transport_layer::connection_impl_i>&,
                    const std::shared_ptr<unit_builder_i>&);
@@ -49,11 +54,12 @@ namespace network {
         connection& on_disconnect(const disconnect_callback_type&);
 
     private:
-        void on_raw_receive(const transport_layer::connection_impl_i::read_result& result);
+        void on_raw_receive(const std::vector<char>& result);
         void on_diconnected();
 
         void call_disconnection_handler();
 
+        std::unique_ptr<connection_impl> _impl;
         std::shared_ptr<transport_layer::connection_impl_i> _raw_connection;
         std::unique_ptr<unit_builder_manager> _protocol;
 

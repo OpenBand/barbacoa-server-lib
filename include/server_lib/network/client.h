@@ -1,7 +1,5 @@
 #pragma once
 
-#include <server_lib/network/transport/client_impl_i.h>
-
 #include <server_lib/network/connection.h>
 #include <server_lib/network/client_config.h>
 
@@ -11,6 +9,10 @@
 
 namespace server_lib {
 namespace network {
+    namespace transport_layer {
+        struct client_impl_i;
+        struct connection_impl_i;
+    } // namespace transport_layer
 
     /**
      * \ingroup network
@@ -44,7 +46,7 @@ namespace network {
          * Return error if connection failed asynchronously
          *
          */
-        using fail_callback_type = transport_layer::client_impl_i::fail_callback_type;
+        using fail_callback_type = std::function<void(const std::string&)>;
 
         /**
          * Start the TCP client
