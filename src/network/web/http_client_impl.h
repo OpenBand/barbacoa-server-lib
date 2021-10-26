@@ -161,7 +161,7 @@ namespace network {
 
         public:
             /// Set before calling request
-            web_single_shot_client_config config;
+            web_client_config config;
 
             /// If you have your own asio::io_service, store its pointer here before calling request().
             /// When using asynchronous requests, running the io_service is up to the programmer.
@@ -234,7 +234,7 @@ namespace network {
             void request(const std::string& method, const std::string& path, string_view content, const CaseInsensitiveMultimap& header,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback_)
             {
-                auto session = std::make_shared<Session>(config.max_response_streambuf_size, get_connection(), create_request_header(method, path, header));
+                auto session = std::make_shared<Session>(config.max_response_streambuf_size(), get_connection(), create_request_header(method, path, header));
                 auto response = session->response;
                 auto request_callback = std::make_shared<std::function<void(std::shared_ptr<Response>, const error_code&)>>(std::move(request_callback_));
                 session->callback = [this, response, request_callback](const std::shared_ptr<Connection>& connection, const error_code& ec) {
@@ -307,7 +307,7 @@ namespace network {
             void request(const std::string& method, const std::string& path, std::istream& content, const CaseInsensitiveMultimap& header,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback_)
             {
-                auto session = std::make_shared<Session>(config.max_response_streambuf_size, get_connection(), create_request_header(method, path, header));
+                auto session = std::make_shared<Session>(config.max_response_streambuf_size(), get_connection(), create_request_header(method, path, header));
                 auto response = session->response;
                 auto request_callback = std::make_shared<std::function<void(std::shared_ptr<Response>, const error_code&)>>(std::move(request_callback_));
                 session->callback = [this, response, request_callback](const std::shared_ptr<Connection>& connection, const error_code& ec) {
@@ -401,8 +401,11 @@ namespace network {
             std::size_t concurrent_synchronous_requests = 0;
             std::mutex concurrent_synchronous_requests_mutex;
 
-            ClientBase(const std::string& host_port, unsigned short default_port)
-                : default_port(default_port)
+            ClientBase(
+                const web_client_config& config_, // TODO: move host/port to config
+                const std::string& host_port, unsigned short default_port)
+                : config(config_)
+                , default_port(default_port)
                 , handler_runner(new ScopeRunner())
             {
                 auto parsed_host_port = parse_host_port(host_port, default_port);
@@ -439,11 +442,11 @@ namespace network {
 
                 if (!query)
                 {
-                    if (config.proxy_server.empty())
+                    if (config.proxy_server().empty())
                         query = std::unique_ptr<asio::ip::tcp::resolver::query>(new asio::ip::tcp::resolver::query(host, std::to_string(port)));
                     else
                     {
-                        auto proxy_host_port = parse_host_port(config.proxy_server, 8080);
+                        auto proxy_host_port = parse_host_port(config.proxy_server(), 8080);
                         query = std::unique_ptr<asio::ip::tcp::resolver::query>(new asio::ip::tcp::resolver::query(proxy_host_port.first, std::to_string(proxy_host_port.second)));
                     }
                 }
@@ -459,7 +462,7 @@ namespace network {
                 auto corrected_path = path;
                 if (corrected_path == "")
                     corrected_path = "/";
-                if (!config.proxy_server.empty() && std::is_same<socket_type, asio::ip::tcp::socket>::value)
+                if (!config.proxy_server().empty() && std::is_same<socket_type, asio::ip::tcp::socket>::value)
                     corrected_path = "http://" + host + ':' + std::to_string(port) + corrected_path;
 
                 std::unique_ptr<asio::streambuf> streambuf(new asio::streambuf());
@@ -560,7 +563,7 @@ namespace network {
                         }
                         else if ((header_it = session->response->header.find("Transfer-Encoding")) != session->response->header.end() && header_it->second == "chunked")
                         {
-                            auto chunks_streambuf = std::make_shared<asio::streambuf>(this->config.max_response_streambuf_size);
+                            auto chunks_streambuf = std::make_shared<asio::streambuf>(this->config.max_response_streambuf_size());
                             this->read_chunked_transfer_encoded(session, chunks_streambuf);
                         }
                         else if (session->response->http_version < "1.1" || ((header_it = session->response->header.find("Session")) != session->response->header.end() && header_it->second == "close"))
@@ -721,15 +724,16 @@ namespace network {
         class Client<HTTP> : public ClientBase<HTTP>
         {
         public:
-            Client(const std::string& server_port_path)
-                : ClientBase<HTTP>::ClientBase(server_port_path, 80)
+            Client(const web_client_config& config_, // TODO: move server_port_path to config
+                   const std::string& server_port_path)
+                : ClientBase<HTTP>::ClientBase(config_, server_port_path, 80)
             {
             }
 
         protected:
             std::shared_ptr<Connection> create_connection() override
             {
-                return std::make_shared<Connection>(handler_runner, config.timeout, *io_service);
+                return std::make_shared<Connection>(handler_runner, config.timeout(), *io_service);
             }
 
             void connect(const std::shared_ptr<Session>& session) override
@@ -737,7 +741,7 @@ namespace network {
                 if (!session->connection->socket->lowest_layer().is_open())
                 {
                     auto resolver = std::make_shared<asio::ip::tcp::resolver>(*io_service);
-                    session->connection->set_timeout(config.timeout_connect);
+                    session->connection->set_timeout(config.timeout_connect());
                     resolver->async_resolve(*query, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
                         session->connection->cancel_timeout();
                         auto lock = session->connection->handler_runner->continue_lock();
@@ -745,7 +749,7 @@ namespace network {
                             return;
                         if (!ec)
                         {
-                            session->connection->set_timeout(config.timeout_connect);
+                            session->connection->set_timeout(config.timeout_connect());
                             asio::async_connect(*session->connection->socket, it, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator /*it*/) {
                                 session->connection->cancel_timeout();
                                 auto lock = session->connection->handler_runner->continue_lock();
