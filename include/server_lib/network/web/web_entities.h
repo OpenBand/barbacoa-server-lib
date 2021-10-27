@@ -2,6 +2,8 @@
 
 #include "status_code.h"
 
+#include <iostream>
+
 namespace server_lib {
 namespace network {
     namespace web {
@@ -25,9 +27,9 @@ namespace network {
         class __case_insensitive_hash
         {
         public:
-            std::size_t operator()(const std::string& str) const
+            size_t operator()(const std::string& str) const
             {
-                std::size_t h = 0;
+                size_t h = 0;
                 std::hash<int> hash;
                 for (auto c : str)
                     h ^= hash(tolower(c)) + 0x9e3779b9 + (h << 6) + (h >> 2);
@@ -66,7 +68,7 @@ namespace network {
                 std::string result;
                 result.reserve(value.size() / 3 + (value.size() % 3)); // Minimum size of result
 
-                for (std::size_t i = 0; i < value.size(); ++i)
+                for (size_t i = 0; i < value.size(); ++i)
                 {
                     auto& chr = value[i];
                     if (chr == '%' && i + 2 < value.size())
@@ -113,10 +115,10 @@ namespace network {
                 if (query_string.empty())
                     return result;
 
-                std::size_t name_pos = 0;
+                size_t name_pos = 0;
                 auto name_end_pos = std::string::npos;
                 auto value_pos = std::string::npos;
-                for (std::size_t c = 0; c < query_string.size(); ++c)
+                for (size_t c = 0; c < query_string.size(); ++c)
                 {
                     if (query_string[c] == '&')
                     {
@@ -161,10 +163,10 @@ namespace network {
                 case_insensitive_multimap result;
                 std::string line;
                 getline(stream, line);
-                std::size_t param_end;
+                size_t param_end;
                 while ((param_end = line.find(':')) != std::string::npos)
                 {
-                    std::size_t value_start = param_end + 1;
+                    size_t value_start = param_end + 1;
                     while (value_start + 1 < line.size() && line[value_start] == ' ')
                         ++value_start;
                     if (value_start < line.size())
@@ -186,10 +188,10 @@ namespace network {
                     {
                         case_insensitive_multimap result;
 
-                        std::size_t name_start_pos = std::string::npos;
-                        std::size_t name_end_pos = std::string::npos;
-                        std::size_t value_start_pos = std::string::npos;
-                        for (std::size_t c = 0; c < str.size(); ++c)
+                        size_t name_start_pos = std::string::npos;
+                        size_t name_end_pos = std::string::npos;
+                        size_t value_start_pos = std::string::npos;
+                        for (size_t c = 0; c < str.size(); ++c)
                         {
                             if (name_start_pos == std::string::npos)
                             {
@@ -247,6 +249,17 @@ namespace network {
         };
 
         using web_header = case_insensitive_multimap;
+
+        /// most probable HTTP methods:
+        enum class http_method
+        {
+            POST = 0,
+            GET,
+            PUT,
+            DELETE
+        };
+
+        std::string to_string(http_method);
 
     } // namespace web
 } // namespace network

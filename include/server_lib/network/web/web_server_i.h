@@ -13,11 +13,11 @@ namespace network {
         public:
             virtual uint64_t id() const = 0; // TODO: create id
 
-            virtual std::size_t size() const = 0;
+            virtual size_t size() const = 0;
 
             virtual std::string content() = 0;
 
-            virtual std::string method() const = 0;
+            virtual std::string method() const = 0; //TODO: change to refs
             virtual std::string path() const = 0;
             virtual std::string query_string() const = 0;
             virtual std::string http_version() const = 0;
@@ -39,7 +39,7 @@ namespace network {
         class web_response_i
         {
         public:
-            virtual std::size_t size() const = 0;
+            virtual size_t size() const = 0;
 
             virtual std::string content() const = 0;
 

@@ -1,8 +1,6 @@
 #include <server_lib/network/web/web_server.h>
 #include <server_lib/asserts.h>
 
-#include "transport/web_server_impl_i.h"
-
 #include "http_server_impl.h"
 #include "https_server_impl.h"
 
@@ -11,9 +9,22 @@
 namespace server_lib {
 namespace network {
     namespace web {
+        struct web_server_impl_i
+        {
+            virtual ~web_server_impl_i() = default;
+
+            virtual bool start() = 0;
+
+            virtual void stop() = 0;
+
+            virtual bool is_running() const = 0;
+
+            virtual event_loop& loop() = 0;
+        };
+
         template <typename socket_type>
         class web_server_impl : public server_impl<socket_type>,
-                                public transport_layer::web_server_impl_i
+                                public web_server_impl_i
         {
             using this_type = web_server_impl<socket_type>;
             using base_type = server_impl<socket_type>;
@@ -90,7 +101,7 @@ namespace network {
             }
 
         private:
-            void on_fail_impl(std::shared_ptr<typename server_impl<socket_type>::Request> request,
+            void on_fail_impl(std::shared_ptr<typename base_type::Request> request,
                               const error_code& ec)
             {
                 if (_fail_callback)
@@ -98,8 +109,8 @@ namespace network {
             }
 
             void on_request_impl(size_t subscription_id,
-                                 std::shared_ptr<typename server_impl<socket_type>::Response> response,
-                                 std::shared_ptr<typename server_impl<socket_type>::Request> request)
+                                 std::shared_ptr<typename base_type::Response> response,
+                                 std::shared_ptr<typename base_type::Request> request)
             {
                 auto it = _request_callbacks.find(subscription_id);
                 if (_request_callbacks.end() != it)
@@ -206,23 +217,6 @@ namespace network {
             return true;
         }
 
-        std::string web_server::to_string(http_method method)
-        {
-            switch (method)
-            {
-            case http_method::POST:
-                return "POST";
-            case http_method::GET:
-                return "GET";
-            case http_method::PUT:
-                return "PUT";
-            case http_method::DELETE:
-                return "DELETE";
-            }
-
-            return "";
-        }
-
         void web_server::stop()
         {
             if (!is_running())
@@ -290,12 +284,12 @@ namespace network {
 
         web_server& web_server::on_request(const std::string& pattern, request_callback_type&& callback)
         {
-            return on_request(pattern, this->to_string(http_method::POST), std::move(callback));
+            return on_request(pattern, to_string(http_method::POST), std::move(callback));
         }
 
         web_server& web_server::on_request(request_callback_type&& callback)
         {
-            return on_request("/", this->to_string(http_method::POST), std::move(callback));
+            return on_request("/", to_string(http_method::POST), std::move(callback));
         }
 
     } // namespace web

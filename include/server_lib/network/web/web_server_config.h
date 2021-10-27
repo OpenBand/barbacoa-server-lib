@@ -25,15 +25,23 @@ namespace network {
             }
 
         public:
-            T& set_timeout_request(size_t timeout_request)
+            template <typename DurationType>
+            T& set_timeout_request(DurationType&& duration)
             {
-                _timeout_request = timeout_request;
+                auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration);
+                SRV_ASSERT(sec.count() > 0, "1 second is minimum waiting accuracy");
+
+                _timeout_request_sec = sec.count();
                 return this->self();
             }
 
-            T& set_timeout_content(size_t timeout_content)
+            template <typename DurationType>
+            T& set_timeout_content(DurationType&& duration)
             {
-                _timeout_content = timeout_content;
+                auto sec = std::chrono::duration_cast<std::chrono::seconds>(duration);
+                SRV_ASSERT(sec.count() > 0, "1 second is minimum waiting accuracy");
+
+                _timeout_content_sec = sec.count();
                 return this->self();
             }
 
@@ -46,12 +54,12 @@ namespace network {
 
             auto timeout_request() const
             {
-                return _timeout_request;
+                return _timeout_request_sec;
             }
 
             auto timeout_content() const
             {
-                return _timeout_content;
+                return _timeout_content_sec;
             }
 
             auto max_request_streambuf_size() const
@@ -67,13 +75,13 @@ namespace network {
             }
 
             /// Timeout on request handling. Defaults to 5 seconds.
-            long _timeout_request = 5;
+            long _timeout_request_sec = 5;
             /// Timeout on content handling. Defaults to 300 seconds.
-            long _timeout_content = 300;
+            long _timeout_content_sec = 300;
 
             /// Maximum size of request stream buffer. Defaults to architecture maximum.
             /// Reaching this limit will result in a message_size error code.
-            size_t _max_request_streambuf_size = std::numeric_limits<std::size_t>::max();
+            size_t _max_request_streambuf_size = std::numeric_limits<size_t>::max();
         };
 
         /**
@@ -101,12 +109,15 @@ namespace network {
          *
          * \brief This class configurates encrypted Web server.
          */
-        class websec_server_config : public web_server_config
+        class websec_server_config : public base_web_server_config<websec_server_config>
         {
             friend class web_server;
 
         protected:
-            using web_server_config::web_server_config;
+            websec_server_config(size_t port)
+            {
+                set_address(port);
+            }
 
         public:
             websec_server_config(const websec_server_config&) = default;

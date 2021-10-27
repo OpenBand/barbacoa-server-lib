@@ -48,7 +48,7 @@ namespace network {
         template <class socket_type>
         class server_impl;
 
-        template <class socket_type>
+        template <class config_type, class socket_type>
         class server_base_impl
         {
         protected:
@@ -59,7 +59,7 @@ namespace network {
                              public std::ostream,
                              public web_response_i
             {
-                friend class server_base_impl<socket_type>;
+                friend class server_base_impl<config_type, socket_type>;
                 friend class server_impl<socket_type>;
 
                 asio::streambuf streambuf;
@@ -102,7 +102,7 @@ namespace network {
                 {
                 }
 
-                std::size_t size() const override
+                size_t size() const override
                 {
                     return streambuf.size();
                 }
@@ -117,7 +117,7 @@ namespace network {
                 {
                     session->connection->set_timeout(timeout_content);
                     auto self = this->shared_from_this(); // Keep Response instance alive through the following async_write
-                    asio::async_write(*session->connection->socket, streambuf, [self, callback](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                    asio::async_write(*session->connection->socket, streambuf, [self, callback](const error_code& ec, size_t /*bytes_transferred*/) {
                         self->session->connection->cancel_timeout();
                         auto lock = self->session->connection->handler_runner->continue_lock();
                         if (!lock)
@@ -193,10 +193,10 @@ namespace network {
 
             class Content : public std::istream
             {
-                friend class server_base_impl<socket_type>;
+                friend class server_base_impl<config_type, socket_type>;
 
             public:
-                std::size_t size() const
+                size_t size() const
                 {
                     return streambuf.size();
                 }
@@ -226,13 +226,13 @@ namespace network {
 
             class Request : public web_request_i
             {
-                friend class server_base_impl<socket_type>;
+                friend class server_base_impl<config_type, socket_type>;
                 friend class server_impl<socket_type>;
                 friend class Session;
 
                 asio::streambuf streambuf;
 
-                Request(std::size_t max_request_streambuf_size,
+                Request(size_t max_request_streambuf_size,
                         std::shared_ptr<asio::ip::tcp::endpoint> remote_endpoint)
                     : streambuf(max_request_streambuf_size)
                     , _id(0u)
@@ -264,7 +264,7 @@ namespace network {
                     return _id.load();
                 }
 
-                std::size_t size() const override
+                size_t size() const override
                 {
                     return _content.size();
                 }
@@ -391,7 +391,7 @@ namespace network {
             class Session
             {
             public:
-                Session(std::size_t max_request_streambuf_size, std::shared_ptr<Connection> connection)
+                Session(size_t max_request_streambuf_size, std::shared_ptr<Connection> connection)
                     : connection(std::move(connection))
                 {
                     if (!this->connection->remote_endpoint)
@@ -408,7 +408,7 @@ namespace network {
 
         public:
             /// Set before calling start().
-            web_server_config config;
+            config_type config;
 
         private:
             class regex_orderable : public regex::regex
@@ -444,14 +444,17 @@ namespace network {
             * Callback called whenever the server receives client request
             *
             */
-            using request_callback_type = std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Response>, std::shared_ptr<typename server_base_impl<socket_type>::Request>)>;
+            using request_callback_type = std::function<void(
+                std::shared_ptr<typename server_base_impl<config_type, socket_type>::Response>,
+                std::shared_ptr<typename server_base_impl<config_type, socket_type>::Request>)>;
 
             /**
              * Fail callback
              * Return error if server failed asynchronously
              *
              */
-            using fail_callback_type = std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Request>, const error_code&)>;
+            using fail_callback_type = std::function<void(
+                std::shared_ptr<typename server_base_impl<config_type, socket_type>::Request>, const error_code&)>;
 
             /// Warning: do not add or remove resources after start() is called
             std::map<regex_orderable, std::map<std::string, request_callback_type>> resource;
@@ -461,7 +464,9 @@ namespace network {
             fail_callback_type on_error;
 
             // TODO: Upgrade
-            std::function<void(std::unique_ptr<socket_type>&, std::shared_ptr<typename server_base_impl<socket_type>::Request>)> on_upgrade;
+            std::function<void(std::unique_ptr<socket_type>&,
+                               std::shared_ptr<typename server_base_impl<config_type, socket_type>::Request>)>
+                on_upgrade;
 
         protected:
             std::unique_ptr<mt_event_loop> _workers;
@@ -549,6 +554,9 @@ namespace network {
                         connection->close();
                     connections->clear();
                 }
+
+                handler_runner->stop();
+
                 SRV_ASSERT(!_workers->is_run() || !_workers->is_this_loop(),
                            "Can't initiate thread stop in the same thread. It is the way to deadlock");
                 _workers->stop();
@@ -558,7 +566,6 @@ namespace network {
             {
                 try
                 {
-                    handler_runner->stop();
                     stop();
                 }
                 catch (const std::exception& e)
@@ -576,7 +583,7 @@ namespace network {
 
             std::shared_ptr<ScopeRunner> handler_runner;
 
-            server_base_impl(const web_server_config& config_)
+            server_base_impl(const config_type& config_)
                 : config(config_)
                 , connections(new std::unordered_set<Connection*>())
                 , connections_mutex(new std::mutex())
@@ -610,7 +617,7 @@ namespace network {
             void read(const std::shared_ptr<Session>& session)
             {
                 session->connection->set_timeout(config.timeout_request());
-                asio::async_read_until(*session->connection->socket, session->request->streambuf, "\r\n\r\n", [this, session](const error_code& ec, std::size_t bytes_transferred) {
+                asio::async_read_until(*session->connection->socket, session->request->streambuf, "\r\n\r\n", [this, session](const error_code& ec, size_t bytes_transferred) {
                     session->connection->cancel_timeout();
                     auto lock = session->connection->handler_runner->continue_lock();
                     if (!lock)
@@ -631,7 +638,7 @@ namespace network {
                         // "After a successful async_read_until operation, the streambuf may contain additional data beyond the delimiter"
                         // The chosen solution is to extract lines from the stream directly when parsing the header. What is left of the
                         // streambuf (maybe some bytes of the content) is appended to in the async_read-function below (for retrieving content).
-                        std::size_t num_additional_bytes = session->request->streambuf.size() - bytes_transferred;
+                        size_t num_additional_bytes = session->request->streambuf.size() - bytes_transferred;
 
                         if (!RequestMessage::parse(session->request->_content,
                                                    session->request->_method,
@@ -663,7 +670,7 @@ namespace network {
                             if (content_length > num_additional_bytes)
                             {
                                 session->connection->set_timeout(config.timeout_content());
-                                asio::async_read(*session->connection->socket, session->request->streambuf, asio::transfer_exactly(content_length - num_additional_bytes), [this, session](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                                asio::async_read(*session->connection->socket, session->request->streambuf, asio::transfer_exactly(content_length - num_additional_bytes), [this, session](const error_code& ec, size_t /*bytes_transferred*/) {
                                     session->connection->cancel_timeout();
                                     auto lock = session->connection->handler_runner->continue_lock();
                                     if (!lock)
@@ -850,7 +857,8 @@ namespace network {
             }
 
             void write(const std::shared_ptr<Session>& session,
-                       std::function<void(std::shared_ptr<typename server_base_impl<socket_type>::Response>, std::shared_ptr<typename server_base_impl<socket_type>::Request>)>& resource_function)
+                       std::function<void(std::shared_ptr<typename server_base_impl<config_type, socket_type>::Response>,
+                                          std::shared_ptr<typename server_base_impl<config_type, socket_type>::Request>)>& resource_function)
             {
                 session->connection->set_timeout(config.timeout_content());
                 auto response = std::shared_ptr<Response>(new Response(session, config.timeout_content()), [this](Response* response_ptr) {
@@ -899,16 +907,16 @@ namespace network {
         }; // namespace web
 
         template <class socket_type>
-        class server_impl : public server_base_impl<socket_type>
+        class server_impl : public server_base_impl<web_server_config, socket_type>
         {
         };
 
         using HTTP = asio::ip::tcp::socket;
 
         template <>
-        class server_impl<HTTP> : public server_base_impl<HTTP>
+        class server_impl<HTTP> : public server_base_impl<web_server_config, HTTP>
         {
-            using base_type = server_base_impl<HTTP>;
+            using base_type = server_base_impl<web_server_config, HTTP>;
 
         public:
             server_impl(const web_server_config& config_)

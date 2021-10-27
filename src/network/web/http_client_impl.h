@@ -1,5 +1,7 @@
 #pragma once
 
+#include <server_lib/event_loop.h>
+
 #include <server_lib/network/web/web_client_config.h>
 
 #include "http_utility.h"
@@ -13,6 +15,10 @@
 #include <boost/asio.hpp>
 #include <boost/asio/steady_timer.hpp>
 #include <boost/utility/string_ref.hpp>
+
+#include <server_lib/network/web/web_client_i.h>
+
+#include "../../logger_set_internal_group.h"
 
 namespace server_lib {
 namespace network {
@@ -31,18 +37,18 @@ namespace server_lib {
 namespace network {
     namespace web {
         template <class socket_type>
-        class Client;
+        class client_impl;
 
-        template <class socket_type>
-        class ClientBase
+        template <class config_type, class socket_type>
+        class client_base_impl
         {
         public:
             class Content : public std::istream
             {
-                friend class ClientBase<socket_type>;
+                friend class client_base_impl<config_type, socket_type>;
 
             public:
-                std::size_t size()
+                size_t size() const
                 {
                     return streambuf.size();
                 }
@@ -70,25 +76,51 @@ namespace network {
                 }
             };
 
-            class Response
+            class Response : public web_solo_response_i
             {
-                friend class ClientBase<socket_type>;
-                friend class Client<socket_type>;
+                friend class client_base_impl<config_type, socket_type>;
+                friend class client_impl<socket_type>;
 
                 asio::streambuf streambuf;
 
-                Response(std::size_t max_response_streambuf_size)
+                Response(size_t max_response_streambuf_size)
                     : streambuf(max_response_streambuf_size)
-                    , content(streambuf)
+                    , _content(streambuf)
                 {
                 }
 
             public:
-                std::string http_version, status_code;
+                std::string _http_version, _status_code;
 
-                Content content;
+                Content _content;
 
-                CaseInsensitiveMultimap header;
+                CaseInsensitiveMultimap _header;
+
+            public:
+                size_t size() const override
+                {
+                    return _content.size();
+                }
+
+                std::string content() override
+                {
+                    return _content.string();
+                }
+
+                std::string status_code() const override
+                {
+                    return _status_code;
+                }
+
+                std::string http_version() const override
+                {
+                    return _http_version;
+                }
+
+                web_header header() const override
+                {
+                    return _header;
+                }
             };
 
         protected:
@@ -146,7 +178,7 @@ namespace network {
             class Session
             {
             public:
-                Session(std::size_t max_response_streambuf_size, std::shared_ptr<Connection> connection, std::unique_ptr<asio::streambuf> request_streambuf)
+                Session(size_t max_response_streambuf_size, std::shared_ptr<Connection> connection, std::unique_ptr<asio::streambuf> request_streambuf)
                     : connection(std::move(connection))
                     , request_streambuf(std::move(request_streambuf))
                     , response(new Response(max_response_streambuf_size))
@@ -161,7 +193,15 @@ namespace network {
 
         public:
             /// Set before calling request
-            web_client_config config;
+            config_type config;
+
+#if 0
+        protected:
+
+            size_t concurrent_synchronous_requests = 0;
+            std::mutex concurrent_synchronous_requests_mutex;
+
+        public:
 
             /// If you have your own asio::io_service, store its pointer here before calling request().
             /// When using asynchronous requests, running the io_service is up to the programmer.
@@ -228,8 +268,9 @@ namespace network {
 
                 return response;
             }
+#endif
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             /// Do not use concurrently with the synchronous request functions.
             void request(const std::string& method, const std::string& path, string_view content, const CaseInsensitiveMultimap& header,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback_)
@@ -243,7 +284,7 @@ namespace network {
                         connection->in_use = false;
 
                         // Remove unused connections, but keep one open for HTTP persistent connection:
-                        std::size_t unused_connections = 0;
+                        size_t unused_connections = 0;
                         for (auto it = this->connections.begin(); it != this->connections.end();)
                         {
                             if (ec && connection == *it)
@@ -282,7 +323,7 @@ namespace network {
                 connect(session);
             }
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             /// Do not use concurrently with the synchronous request functions.
             void request(const std::string& method, const std::string& path, string_view content,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback)
@@ -290,20 +331,20 @@ namespace network {
                 request(method, path, content, CaseInsensitiveMultimap(), std::move(request_callback));
             }
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             void request(const std::string& method, const std::string& path,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback)
             {
                 request(method, path, std::string(), CaseInsensitiveMultimap(), std::move(request_callback));
             }
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             void request(const std::string& method, std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback)
             {
                 request(method, std::string("/"), std::string(), CaseInsensitiveMultimap(), std::move(request_callback));
             }
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             void request(const std::string& method, const std::string& path, std::istream& content, const CaseInsensitiveMultimap& header,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback_)
             {
@@ -316,7 +357,7 @@ namespace network {
                         connection->in_use = false;
 
                         // Remove unused connections, but keep one open for HTTP persistent connection:
-                        std::size_t unused_connections = 0;
+                        size_t unused_connections = 0;
                         for (auto it = this->connections.begin(); it != this->connections.end();)
                         {
                             if (ec && connection == *it)
@@ -359,16 +400,76 @@ namespace network {
                 connect(session);
             }
 
-            /// Asynchronous request where setting and/or running Client's io_service is required.
+            /// Asynchronous request where setting and/or running client_impl's io_service is required.
             void request(const std::string& method, const std::string& path, std::istream& content,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback)
             {
                 request(method, path, content, CaseInsensitiveMultimap(), std::move(request_callback));
             }
 
+            using start_callback_type = std::function<void()>;
+
+            using fail_callback_type = std::function<void(const error_code&)>;
+
+            fail_callback_type on_error;
+
+        protected:
+            std::unique_ptr<event_loop> _worker;
+
+        public:
+            bool is_running() const
+            {
+                return _worker && _worker->is_running();
+            }
+
+            virtual bool start(const start_callback_type& start_callback)
+            {
+                try
+                {
+                    SRV_ASSERT(!is_running());
+
+                    SRV_LOGC_TRACE("attempts to start");
+
+                    _worker = std::make_unique<event_loop>();
+                    _worker->change_thread_name(config.worker_name());
+
+                    auto start_ = [this, start_callback]() {
+                        try
+                        {
+                            SRV_LOGC_TRACE("started");
+
+                            if (start_callback)
+                                start_callback();
+                        }
+                        catch (const std::exception& e)
+                        {
+                            SRV_LOGC_ERROR(e.what());
+                            if (on_error)
+                                on_error(make_error_code::make_error_code(errc::interrupted));
+                        }
+                    };
+                    _worker->on_start(start_).start();
+
+                    return true;
+                }
+                catch (const std::exception& e)
+                {
+                    SRV_LOGC_ERROR(e.what());
+                }
+
+                return false;
+            }
+
             /// Close connections
             void stop()
             {
+                if (!is_running())
+                {
+                    return;
+                }
+
+                SRV_LOGC_TRACE(__FUNCTION__);
+
                 std::unique_lock<std::mutex> lock(connections_mutex);
                 for (auto it = connections.begin(); it != connections.end();)
                 {
@@ -376,17 +477,27 @@ namespace network {
                     (*it)->socket->lowest_layer().cancel(ec);
                     it = connections.erase(it);
                 }
+
+                handler_runner->stop();
+
+                SRV_ASSERT(!_worker->is_run() || !_worker->is_this_loop(),
+                           "Can't initiate thread stop in the same thread. It is the way to deadlock");
+                _worker->stop();
             }
 
-            virtual ~ClientBase()
+            virtual ~client_base_impl()
             {
-                handler_runner->stop();
-                stop();
+                try
+                {
+                    stop();
+                }
+                catch (const std::exception& e)
+                {
+                    SRV_LOGC_ERROR(e.what());
+                }
             }
 
         protected:
-            bool internal_io_service = false;
-
             std::string host;
             unsigned short port;
             unsigned short default_port;
@@ -398,17 +509,13 @@ namespace network {
 
             std::shared_ptr<ScopeRunner> handler_runner;
 
-            std::size_t concurrent_synchronous_requests = 0;
-            std::mutex concurrent_synchronous_requests_mutex;
-
-            ClientBase(
-                const web_client_config& config_, // TODO: move host/port to config
-                const std::string& host_port, unsigned short default_port)
+            client_base_impl(
+                const config_type& config_)
                 : config(config_)
-                , default_port(default_port)
+                , default_port(config_.port())
                 , handler_runner(new ScopeRunner())
             {
-                auto parsed_host_port = parse_host_port(host_port, default_port);
+                auto parsed_host_port = parse_host_port(config_.host(), config_.port());
                 host = parsed_host_port.first;
                 port = parsed_host_port.second;
             }
@@ -417,12 +524,6 @@ namespace network {
             {
                 std::shared_ptr<Connection> connection;
                 std::unique_lock<std::mutex> lock(connections_mutex);
-
-                if (!io_service)
-                {
-                    io_service = std::make_shared<asio::io_service>();
-                    internal_io_service = true;
-                }
 
                 for (auto it = connections.begin(); it != connections.end(); ++it)
                 {
@@ -480,7 +581,7 @@ namespace network {
             std::pair<std::string, unsigned short> parse_host_port(const std::string& host_port, unsigned short default_port) const
             {
                 std::pair<std::string, unsigned short> parsed_host_port;
-                std::size_t host_end = host_port.find(':');
+                size_t host_end = host_port.find(':');
                 if (host_end == std::string::npos)
                 {
                     parsed_host_port.first = host_port;
@@ -497,7 +598,7 @@ namespace network {
             void write(const std::shared_ptr<Session>& session)
             {
                 session->connection->set_timeout();
-                asio::async_write(*session->connection->socket, session->request_streambuf->data(), [this, session](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                asio::async_write(*session->connection->socket, session->request_streambuf->data(), [this, session](const error_code& ec, size_t /*bytes_transferred*/) {
                     session->connection->cancel_timeout();
                     auto lock = session->connection->handler_runner->continue_lock();
                     if (!lock)
@@ -512,7 +613,7 @@ namespace network {
             void read(const std::shared_ptr<Session>& session)
             {
                 session->connection->set_timeout();
-                asio::async_read_until(*session->connection->socket, session->response->streambuf, "\r\n\r\n", [this, session](const error_code& ec, std::size_t bytes_transferred) {
+                asio::async_read_until(*session->connection->socket, session->response->streambuf, "\r\n\r\n", [this, session](const error_code& ec, size_t bytes_transferred) {
                     session->connection->cancel_timeout();
                     auto lock = session->connection->handler_runner->continue_lock();
                     if (!lock)
@@ -525,22 +626,25 @@ namespace network {
                     if (!ec)
                     {
                         session->connection->attempt_reconnect = true;
-                        std::size_t num_additional_bytes = session->response->streambuf.size() - bytes_transferred;
+                        size_t num_additional_bytes = session->response->streambuf.size() - bytes_transferred;
 
-                        if (!ResponseMessage::parse(session->response->content, session->response->http_version, session->response->status_code, session->response->header))
+                        if (!ResponseMessage::parse(session->response->_content,
+                                                    session->response->_http_version,
+                                                    session->response->_status_code,
+                                                    session->response->_header))
                         {
                             session->callback(session->connection, make_error_code::make_error_code(errc::protocol_error));
                             return;
                         }
 
-                        auto header_it = session->response->header.find("Content-Length");
-                        if (header_it != session->response->header.end())
+                        auto header_it = session->response->_header.find("Content-Length");
+                        if (header_it != session->response->_header.end())
                         {
                             auto content_length = stoull(header_it->second);
                             if (content_length > num_additional_bytes)
                             {
                                 session->connection->set_timeout();
-                                asio::async_read(*session->connection->socket, session->response->streambuf, asio::transfer_exactly(content_length - num_additional_bytes), [this, session](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                                asio::async_read(*session->connection->socket, session->response->streambuf, asio::transfer_exactly(content_length - num_additional_bytes), [this, session](const error_code& ec, size_t /*bytes_transferred*/) {
                                     session->connection->cancel_timeout();
                                     auto lock = session->connection->handler_runner->continue_lock();
                                     if (!lock)
@@ -561,15 +665,15 @@ namespace network {
                             else
                                 session->callback(session->connection, ec);
                         }
-                        else if ((header_it = session->response->header.find("Transfer-Encoding")) != session->response->header.end() && header_it->second == "chunked")
+                        else if ((header_it = session->response->_header.find("Transfer-Encoding")) != session->response->_header.end() && header_it->second == "chunked")
                         {
                             auto chunks_streambuf = std::make_shared<asio::streambuf>(this->config.max_response_streambuf_size());
                             this->read_chunked_transfer_encoded(session, chunks_streambuf);
                         }
-                        else if (session->response->http_version < "1.1" || ((header_it = session->response->header.find("Session")) != session->response->header.end() && header_it->second == "close"))
+                        else if (session->response->_http_version < "1.1" || ((header_it = session->response->_header.find("Session")) != session->response->_header.end() && header_it->second == "close"))
                         {
                             session->connection->set_timeout();
-                            asio::async_read(*session->connection->socket, session->response->streambuf, [this, session](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                            asio::async_read(*session->connection->socket, session->response->streambuf, [this, session](const error_code& ec, size_t /*bytes_transferred*/) {
                                 session->connection->cancel_timeout();
                                 auto lock = session->connection->handler_runner->continue_lock();
                                 if (!lock)
@@ -634,7 +738,7 @@ namespace network {
                     if (!ec)
                     {
                         std::string line;
-                        getline(session->response->content, line);
+                        getline(session->response->_content, line);
                         bytes_transferred -= line.size() + 1;
                         line.pop_back();
                         unsigned long length = 0;
@@ -685,7 +789,7 @@ namespace network {
                 if (length > 0)
                 {
                     std::unique_ptr<char[]> buffer(new char[length]);
-                    session->response->content.read(buffer.get(), static_cast<std::streamsize>(length));
+                    session->response->_content.read(buffer.get(), static_cast<std::streamsize>(length));
                     tmp_stream.write(buffer.get(), static_cast<std::streamsize>(length));
                     if (chunks_streambuf->size() == chunks_streambuf->max_size())
                     {
@@ -695,8 +799,8 @@ namespace network {
                 }
 
                 // Remove "\r\n"
-                session->response->content.get();
-                session->response->content.get();
+                session->response->_content.get();
+                session->response->_content.get();
 
                 if (length > 0)
                     read_chunked_transfer_encoded(session, chunks_streambuf);
@@ -714,33 +818,34 @@ namespace network {
         };
 
         template <class socket_type>
-        class Client : public ClientBase<socket_type>
+        class client_impl : public client_base_impl<web_client_config, socket_type>
         {
         };
 
         using HTTP = asio::ip::tcp::socket;
 
         template <>
-        class Client<HTTP> : public ClientBase<HTTP>
+        class client_impl<HTTP> : public client_base_impl<web_client_config, HTTP>
         {
+            using base_type = client_base_impl<web_client_config, HTTP>;
+
         public:
-            Client(const web_client_config& config_, // TODO: move server_port_path to config
-                   const std::string& server_port_path)
-                : ClientBase<HTTP>::ClientBase(config_, server_port_path, 80)
+            client_impl(const web_client_config& config_)
+                : base_type(config_)
             {
             }
 
         protected:
             std::shared_ptr<Connection> create_connection() override
             {
-                return std::make_shared<Connection>(handler_runner, config.timeout(), *io_service);
+                return std::make_shared<Connection>(handler_runner, config.timeout(), *_worker->service());
             }
 
             void connect(const std::shared_ptr<Session>& session) override
             {
                 if (!session->connection->socket->lowest_layer().is_open())
                 {
-                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*io_service);
+                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker->service());
                     session->connection->set_timeout(config.timeout_connect());
                     resolver->async_resolve(*query, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
                         session->connection->cancel_timeout();

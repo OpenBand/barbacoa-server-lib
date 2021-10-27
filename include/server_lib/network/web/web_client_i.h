@@ -8,23 +8,17 @@ namespace server_lib {
 namespace network {
     namespace web {
 
-        class web_connection_response_i
+        class web_solo_response_i
         {
         public:
-            virtual std::size_t size() const = 0;
+            virtual size_t size() const = 0;
 
             virtual std::string content() = 0;
 
-            virtual std::string method() const = 0;
-            virtual std::string path() const = 0;
-            virtual std::string query_string() const = 0;
+            virtual std::string status_code() const = 0;
             virtual std::string http_version() const = 0;
 
             virtual web_header header() const = 0;
-
-            virtual std::string remote_endpoint_address() const = 0;
-
-            virtual unsigned short remote_endpoint_port() const = 0;
         };
 
     } // namespace web

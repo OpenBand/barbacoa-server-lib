@@ -8,55 +8,50 @@ namespace network {
     /**
      * \ingroup network
      *
-     * \brief This class configurates TCP client.
+     * \brief This is the base configuration for TCP client.
      */
-    class tcp_client_config : public base_stream_config<tcp_client_config>
+    template <typename T>
+    class base_tcp_client_config : public base_stream_config<T>
     {
-        using base_type = base_stream_config<tcp_client_config>;
-
-        friend class client;
+        using base_type = base_stream_config<T>;
 
     protected:
-        tcp_client_config()
+        base_tcp_client_config()
         {
             this->set_worker_name("client");
         }
 
     public:
-        tcp_client_config(const tcp_client_config&) = default;
-        ~tcp_client_config() = default;
-
-        tcp_client_config& set_address(unsigned short port)
+        T& set_address(unsigned short port)
         {
             SRV_ASSERT(port > 0 && port <= std::numeric_limits<unsigned short>::max());
 
             _port = port;
-            return self();
+            return this->self();
         }
 
-        tcp_client_config& set_address(std::string host, unsigned short port)
+        T& set_address(const std::string& host, unsigned short port)
         {
             SRV_ASSERT(!host.empty());
 
             _host = host;
-            return set_address(port);
+            return this->set_address(port);
         }
 
         ///Set timeout for connection waiting
         template <typename DurationType>
-        tcp_client_config& set_timeout_connect(DurationType&& duration)
+        T& set_timeout_connect(DurationType&& duration)
         {
             auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-
             SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
 
             _timeout_connect_ms = ms.count();
-            return self();
+            return this->self();
         }
 
         bool valid() const override
         {
-            return base_type::valid() && _port > 0 && !_host.empty() && _protocol;
+            return base_type::valid() && _port > 0 && !_host.empty();
         }
 
         unsigned short port() const
@@ -69,7 +64,13 @@ namespace network {
             return _host;
         }
 
-        size_t timeout_connect_ms() const
+        /// return timeout in seconds
+        auto timeout_connect() const
+        {
+            return _timeout_connect_ms * 1000;
+        }
+
+        auto timeout_connect_ms() const
         {
             return _timeout_connect_ms;
         }
@@ -83,6 +84,30 @@ namespace network {
 
         /// Set connect timeout in milliseconds.
         size_t _timeout_connect_ms = 0;
+    };
+
+    /**
+     * \ingroup network
+     *
+     * \brief This class configurates TCP client.
+     */
+    class tcp_client_config : public base_tcp_client_config<tcp_client_config>
+    {
+        friend class client;
+
+        using base_class = base_tcp_client_config<tcp_client_config>;
+
+    protected:
+        tcp_client_config() = default;
+
+    public:
+        tcp_client_config(const tcp_client_config&) = default;
+        ~tcp_client_config() = default;
+
+        bool valid() const override
+        {
+            return base_class::valid() && _protocol;
+        }
     };
 
 } // namespace network

@@ -60,6 +60,7 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/connection.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/web/web_server.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/web/web_client.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/network/web/web_entities.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/network/ifconfig.cpp"
 )
 

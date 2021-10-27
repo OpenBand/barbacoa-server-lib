@@ -8,9 +8,8 @@
 namespace server_lib {
 namespace network {
     namespace web {
-        namespace transport_layer {
-            struct web_server_impl_i;
-        }
+        struct web_server_impl_i;
+
         /**
          * \ingroup network
          *
@@ -93,23 +92,12 @@ namespace network {
              */
             web_server& on_request(request_callback_type&& callback);
 
-            /// most probable HTTP methods:
-            enum class http_method
-            {
-                POST = 0,
-                GET,
-                PUT,
-                DELETE
-            };
-
-            static std::string to_string(http_method);
-
             void stop();
 
             bool is_running(void) const;
 
         private:
-            std::unique_ptr<transport_layer::web_server_impl_i> _impl;
+            std::unique_ptr<web_server_impl_i> _impl;
 
             start_callback_type _start_callback = nullptr;
             fail_callback_type _fail_callback = nullptr;

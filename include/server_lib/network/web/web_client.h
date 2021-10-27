@@ -8,9 +8,8 @@
 namespace server_lib {
 namespace network {
     namespace web {
-        namespace transport_layer {
-            struct web_client_impl_i;
-        }
+        struct web_client_impl_i;
+
         /**
          * \ingroup network
          *
@@ -30,34 +29,94 @@ namespace network {
              *
              */
             static web_client_config configurate();
+            static websec_client_config configurate_sec();
 
-            using connect_callback_type = std::function<void(
-                std::shared_ptr<web_connection_response_i>)>;
+            using start_callback_type = std::function<void()>;
+            using response_callback_type = std::function<void(
+                std::shared_ptr<web_solo_response_i>,
+                const std::string& /*error*/)>;
             using fail_callback_type = std::function<void(
                 const std::string&)>;
-            using common_callback_type = std::function<void()>;
 
             /**
-             * Start the Web server
+             * Start the Web client
              *
              */
-            web_client& connect(const web_client_config&);
+            web_client& start(const web_client_config&);
 
             /**
-             * Waiting for Web client connecting or disconnecting
+             * Start the encrypted Web client
+             *
+             */
+            web_client& start(const websec_client_config&);
+
+            /**
+             * Send request
+             *
+             * \param path
+             * \param method
+             * \param content
+             * \param callback
+             * \param header
+             *
+             */
+            web_client& request(const std::string& path,
+                                const std::string& method,
+                                std::string&& content,
+                                response_callback_type&& callback,
+                                const web_header& header = {});
+
+            /**
+             * Send POST request
+             *
+             * \param path
+             * \param method
+             * \param content
+             * \param callback
+             * \param header
+             *
+             */
+            web_client& request(const std::string& path,
+                                std::string&& content,
+                                response_callback_type&& callback,
+                                const web_header& header = {});
+
+            /**
+             * Send POST request with common pattern '/' without web_query
+             *
+             * \param content
+             * \param callback
+             * \param header
+             *
+             */
+            web_client& request(std::string&& content,
+                                response_callback_type&& callback,
+                                const web_header& header = {});
+
+            /**
+             * Waiting for Web client starting or stopping
+             *
+             * \param wait_until_stop if 'false' it waits only
+             * start process finishing
              *
              * \result if success
              */
-            bool wait();
+            bool wait(bool wait_until_stop = false);
 
-            web_client& on_connect(connect_callback_type&& callback);
+            web_client& on_start(start_callback_type&& callback);
 
             web_client& on_fail(fail_callback_type&& callback);
 
-        private:
-            //            std::unique_ptr<transport_layer::web_client_impl_i> _impl;
+            void stop();
 
-            // TODO
+            bool is_running(void) const;
+
+        private:
+            std::unique_ptr<web_client_impl_i> _impl;
+
+            start_callback_type _start_callback = nullptr;
+            response_callback_type _response_callback = nullptr;
+            fail_callback_type _fail_callback = nullptr;
         };
 
     } // namespace web

@@ -8,7 +8,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        std::function<void(boost::system::error_code, std::size_t)> async_handler(
+        std::function<void(boost::system::error_code, size_t)> async_handler(
             std::function<bool()>&& scope_lock,
             std::function<void(size_t)>&& success_case,
             std::function<void()>&& failed_case)

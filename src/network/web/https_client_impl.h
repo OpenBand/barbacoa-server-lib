@@ -1,6 +1,6 @@
 #pragma once
 
-#include "https_client_impl.h"
+#include "http_client_impl.h"
 
 #include <boost/asio/ssl.hpp>
 
@@ -10,30 +10,30 @@ namespace network {
         using HTTPS = asio::ssl::stream<asio::ip::tcp::socket>;
 
         template <>
-        class Client<HTTPS> : public ClientBase<HTTPS>
+        class client_impl<HTTPS> : public client_base_impl<websec_client_config, HTTPS>
         {
+            using base_type = client_base_impl<websec_client_config, HTTPS>;
+
         public:
-            Client(const web_client_config& config_, // TODO: move all security settings to config
-                   const std::string& server_port_path, bool verify_certificate = true, const std::string& cert_file = std::string(),
-                   const std::string& private_key_file = std::string(), const std::string& verify_file = std::string())
-                : ClientBase<HTTPS>::ClientBase(config_, server_port_path, 443)
+            client_impl(const websec_client_config& config_)
+                : base_type(config_)
                 , context(asio::ssl::context::tlsv12)
             {
-                if (cert_file.size() > 0 && private_key_file.size() > 0)
+                if (config_.cert_file().size() > 0 && config_.private_key_file().size() > 0)
                 {
-                    context.use_certificate_chain_file(cert_file);
-                    context.use_private_key_file(private_key_file, asio::ssl::context::pem);
+                    context.use_certificate_chain_file(config_.cert_file());
+                    context.use_private_key_file(config_.private_key_file(), asio::ssl::context::pem);
                 }
 
-                if (verify_certificate)
+                if (config_.verify_certificate())
                     context.set_verify_callback(asio::ssl::rfc2818_verification(host));
 
-                if (verify_file.size() > 0)
-                    context.load_verify_file(verify_file);
+                if (config_.verify_file().size() > 0)
+                    context.load_verify_file(config_.verify_file());
                 else
                     context.set_default_verify_paths();
 
-                if (verify_file.size() > 0 || verify_certificate)
+                if (config_.verify_file().size() > 0 || config_.verify_certificate())
                     context.set_verify_mode(asio::ssl::verify_peer);
                 else
                     context.set_verify_mode(asio::ssl::verify_none);
@@ -44,14 +44,14 @@ namespace network {
 
             std::shared_ptr<Connection> create_connection() override
             {
-                return std::make_shared<Connection>(handler_runner, config.timeout(), *io_service, context);
+                return std::make_shared<Connection>(handler_runner, config.timeout(), *_worker->service(), context);
             }
 
             void connect(const std::shared_ptr<Session>& session) override
             {
                 if (!session->connection->socket->lowest_layer().is_open())
                 {
-                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*io_service);
+                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker->service());
                     resolver->async_resolve(*query, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
                         auto lock = session->connection->handler_runner->continue_lock();
                         if (!lock)
@@ -78,7 +78,7 @@ namespace network {
                                         write_stream << "CONNECT " + host_port + " HTTP/1.1\r\n"
                                                      << "Host: " << host_port << "\r\n\r\n";
                                         session->connection->set_timeout(this->config.timeout_connect());
-                                        asio::async_write(session->connection->socket->next_layer(), *write_buffer, [this, session, write_buffer](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                                        asio::async_write(session->connection->socket->next_layer(), *write_buffer, [this, session, write_buffer](const error_code& ec, size_t /*bytes_transferred*/) {
                                             session->connection->cancel_timeout();
                                             auto lock = session->connection->handler_runner->continue_lock();
                                             if (!lock)
@@ -87,7 +87,7 @@ namespace network {
                                             {
                                                 std::shared_ptr<Response> response(new Response(this->config.max_response_streambuf_size()));
                                                 session->connection->set_timeout(this->config.timeout_connect());
-                                                asio::async_read_until(session->connection->socket->next_layer(), response->streambuf, "\r\n\r\n", [this, session, response](const error_code& ec, std::size_t /*bytes_transferred*/) {
+                                                asio::async_read_until(session->connection->socket->next_layer(), response->streambuf, "\r\n\r\n", [this, session, response](const error_code& ec, size_t /*bytes_transferred*/) {
                                                     session->connection->cancel_timeout();
                                                     auto lock = session->connection->handler_runner->continue_lock();
                                                     if (!lock)
@@ -99,11 +99,14 @@ namespace network {
                                                     }
                                                     if (!ec)
                                                     {
-                                                        if (!ResponseMessage::parse(response->content, response->http_version, response->status_code, response->header))
+                                                        if (!ResponseMessage::parse(response->_content,
+                                                                                    response->_http_version,
+                                                                                    response->_status_code,
+                                                                                    response->_header))
                                                             session->callback(session->connection, make_error_code::make_error_code(errc::protocol_error));
                                                         else
                                                         {
-                                                            if (response->status_code.empty() || response->status_code.compare(0, 3, "200") != 0)
+                                                            if (response->_status_code.empty() || response->_status_code.compare(0, 3, "200") != 0)
                                                                 session->callback(session->connection, make_error_code::make_error_code(errc::permission_denied));
                                                             else
                                                                 this->handshake(session);

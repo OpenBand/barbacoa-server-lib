@@ -34,14 +34,14 @@ namespace network {
                 header.clear();
                 std::string line;
                 getline(stream, line);
-                std::size_t method_end;
+                size_t method_end;
                 if ((method_end = line.find(' ')) != std::string::npos)
                 {
                     method = line.substr(0, method_end);
 
-                    std::size_t query_start = std::string::npos;
-                    std::size_t path_and_query_string_end = std::string::npos;
-                    for (std::size_t i = method_end + 1; i < line.size(); ++i)
+                    size_t query_start = std::string::npos;
+                    size_t path_and_query_string_end = std::string::npos;
+                    for (size_t i = method_end + 1; i < line.size(); ++i)
                     {
                         if (line[i] == '?' && (i + 1) < line.size())
                             query_start = i + 1;
@@ -61,7 +61,7 @@ namespace network {
                         else
                             path = line.substr(method_end + 1, path_and_query_string_end - method_end - 1);
 
-                        std::size_t protocol_end;
+                        size_t protocol_end;
                         if ((protocol_end = line.find('/', path_and_query_string_end + 1)) != std::string::npos)
                         {
                             if (line.compare(path_and_query_string_end + 1, protocol_end - path_and_query_string_end - 1, "HTTP") != 0)
@@ -91,7 +91,7 @@ namespace network {
                 header.clear();
                 std::string line;
                 getline(stream, line);
-                std::size_t version_end = line.find(' ');
+                size_t version_end = line.find(' ');
                 if (version_end != std::string::npos)
                 {
                     if (5 < line.size())

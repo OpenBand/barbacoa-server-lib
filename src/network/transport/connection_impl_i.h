@@ -60,7 +60,7 @@ namespace network {
                  * Number of bytes written
                  *
                  */
-                std::size_t size;
+                size_t size;
             };
 
             /**
@@ -87,7 +87,7 @@ namespace network {
                  * Number of bytes to read
                  *
                  */
-                std::size_t size = 0;
+                size_t size = 0;
 
                 /**
                  * Callback to be called on operation completion

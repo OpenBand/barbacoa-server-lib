@@ -30,7 +30,7 @@ namespace network {
             return this->self();
         }
 
-        T& set_address(std::string address, unsigned short port)
+        T& set_address(const std::string& address, unsigned short port)
         {
             SRV_ASSERT(!address.empty());
 
