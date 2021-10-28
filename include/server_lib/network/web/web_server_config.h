@@ -2,8 +2,6 @@
 
 #include <server_lib/network/server_config.h>
 
-#include <limits>
-
 #include <boost/filesystem.hpp>
 
 namespace server_lib {
@@ -120,6 +118,8 @@ namespace network {
         {
             friend class web_server;
 
+            using base_class = base_web_server_config<websec_server_config>;
+
         protected:
             websec_server_config(size_t port)
             {
@@ -177,7 +177,7 @@ namespace network {
 
             bool valid() const override
             {
-                return !_cert_file.empty() && !_private_key_file.empty();
+                return base_class::valid() && !_cert_file.empty() && !_private_key_file.empty();
             }
 
         protected:

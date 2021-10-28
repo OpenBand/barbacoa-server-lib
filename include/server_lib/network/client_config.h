@@ -118,5 +118,48 @@ namespace network {
         }
     };
 
+    /**
+     * \ingroup network
+     *
+     * \brief This class configurates UNIX local socket client.
+     */
+    class unix_local_client_config : public base_unix_local_socket_config<unix_local_client_config>
+    {
+        friend class client;
+
+    protected:
+        unix_local_client_config() = default;
+
+    public:
+        unix_local_client_config(const unix_local_client_config&) = default;
+        ~unix_local_client_config() = default;
+
+        ///Set timeout for connection waiting
+        template <typename DurationType>
+        unix_local_client_config& set_timeout_connect(DurationType&& duration)
+        {
+            auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+            SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+            _timeout_connect_ms = ms.count();
+            return *this;
+        }
+
+        /// return timeout in seconds
+        auto timeout_connect() const
+        {
+            return _timeout_connect_ms / 1000;
+        }
+
+        auto timeout_connect_ms() const
+        {
+            return _timeout_connect_ms;
+        }
+
+    protected:
+        /// Set connect timeout in milliseconds.
+        size_t _timeout_connect_ms = 0;
+    };
+
 } // namespace network
 } // namespace server_lib

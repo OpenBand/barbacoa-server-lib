@@ -1,3 +1,5 @@
+#pragma once
+
 #include "asio_connection_impl.h"
 
 namespace server_lib {

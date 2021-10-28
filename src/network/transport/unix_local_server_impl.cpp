@@ -1,7 +1,9 @@
-#include "tcp_server_impl.h"
-#include "tcp_server_connection_impl.h"
+#include "unix_local_server_impl.h"
+#include "unix_local_connection_impl.h"
 
 #include <server_lib/asserts.h>
+
+#include <boost/filesystem.hpp>
 
 #include "../../logger_set_internal_group.h"
 
@@ -12,12 +14,12 @@ namespace network {
         namespace asio = boost::asio;
         using error_code = boost::system::error_code;
 
-        tcp_server_impl::tcp_server_impl()
+        unix_local_server_impl::unix_local_server_impl()
         {
-            _next_connection_id = 0;
+            _next_connection_id = 1;
         }
 
-        tcp_server_impl::~tcp_server_impl()
+        unix_local_server_impl::~unix_local_server_impl()
         {
             try
             {
@@ -29,14 +31,14 @@ namespace network {
             }
         }
 
-        void tcp_server_impl::config(const tcp_server_config& config)
+        void unix_local_server_impl::config(const unix_local_server_config& config)
         {
-            _config = std::make_unique<tcp_server_config>(config);
+            _config = std::make_unique<unix_local_server_config>(config);
         }
 
-        bool tcp_server_impl::start(const start_callback_type& start_callback,
-                                    const new_connection_callback_type& new_connection_callback,
-                                    const fail_callback_type& fail_callback)
+        bool unix_local_server_impl::start(const start_callback_type& start_callback,
+                                           const new_connection_callback_type& new_connection_callback,
+                                           const fail_callback_type& fail_callback)
         {
             try
             {
@@ -56,18 +58,12 @@ namespace network {
                     {
                         SRV_LOGC_TRACE("starting");
 
-                        asio::ip::tcp::endpoint endpoint;
-                        if (!_config->address().empty())
-                            endpoint = asio::ip::tcp::endpoint(asio::ip::address::from_string(_config->address()), _config->port());
-                        else
-                            endpoint = asio::ip::tcp::endpoint(asio::ip::tcp::v4(), _config->port());
+                        boost::filesystem::remove(_config->socket_file());
 
-                        _acceptor = std::unique_ptr<asio::ip::tcp::acceptor>(new asio::ip::tcp::acceptor(*_workers->service()));
-                        _acceptor->open(endpoint.protocol());
-                        _acceptor->set_option(asio::socket_base::reuse_address(_config->reuse_address()));
-                        _acceptor->bind(endpoint);
-                        _acceptor->listen();
-
+                        using stream_protocol = boost::asio::local::stream_protocol;
+                        _acceptor = std::unique_ptr<stream_protocol::acceptor>(new stream_protocol::acceptor(
+                            *_workers->service(),
+                            stream_protocol::endpoint(_config->socket_file())));
                         accept();
 
                         SRV_LOGC_TRACE("started");
@@ -94,13 +90,13 @@ namespace network {
             return false;
         }
 
-        void tcp_server_impl::accept()
+        void unix_local_server_impl::accept()
         {
             SRV_ASSERT(_config);
 
-            auto connection = std::make_shared<tcp_server_connection_impl>(_workers->service(),
-                                                                           std::atomic_fetch_add<uint64_t>(&_next_connection_id, 1),
-                                                                           _config->chunk_size());
+            auto connection = std::make_shared<unix_local_connection_impl>(_workers->service(),
+                                                                           _config->chunk_size(),
+                                                                           std::atomic_fetch_add<uint64_t>(&_next_connection_id, 1));
 
             auto scope_lock = [connection]() -> bool {
                 return connection->handler_runner.continue_lock().operator bool();
@@ -118,7 +114,7 @@ namespace network {
 
                     if (!ec)
                     {
-                        connection->configurate("");
+                        connection->configurate(_config->socket_file());
 
                         SRV_LOGC_TRACE("connected");
 
@@ -137,7 +133,7 @@ namespace network {
             });
         }
 
-        void tcp_server_impl::stop_impl()
+        void unix_local_server_impl::stop_impl()
         {
             if (!is_running())
             {
@@ -157,16 +153,17 @@ namespace network {
             _workers->stop();
         }
 
-        bool tcp_server_impl::is_running() const
+        bool unix_local_server_impl::is_running() const
         {
             return _workers && _workers->is_running();
         }
 
-        event_loop& tcp_server_impl::loop()
+        event_loop& unix_local_server_impl::loop()
         {
             SRV_ASSERT(this->_workers);
             return *this->_workers;
         }
+
 
     } // namespace transport_layer
 } // namespace network

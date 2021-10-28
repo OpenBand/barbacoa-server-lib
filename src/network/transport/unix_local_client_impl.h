@@ -12,13 +12,13 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_client_impl : public client_impl_i
+        class unix_local_client_impl : public client_impl_i
         {
         public:
-            tcp_client_impl() = default;
-            ~tcp_client_impl();
+            unix_local_client_impl() = default;
+            ~unix_local_client_impl();
 
-            void config(const tcp_client_config&);
+            void config(const unix_local_client_config&);
 
             bool connect(const connect_callback_type& connect_callback,
                          const fail_callback_type& fail_callback) override;
@@ -30,7 +30,7 @@ namespace network {
 
             event_loop _worker;
 
-            std::unique_ptr<tcp_client_config> _config;
+            std::unique_ptr<unix_local_client_config> _config;
         };
 
     } // namespace transport_layer

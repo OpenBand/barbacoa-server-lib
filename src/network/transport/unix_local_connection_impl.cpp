@@ -1,4 +1,4 @@
-#include "tcp_client_connection_impl.h"
+#include "unix_local_connection_impl.h"
 
 #include <server_lib/asserts.h>
 
@@ -8,29 +8,22 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        tcp_client_connection_impl::tcp_client_connection_impl(
+        unix_local_connection_impl::unix_local_connection_impl(
             const std::shared_ptr<boost::asio::io_service>& io_service,
-            size_t chunk_size)
-            : base_class(io_service, 0, chunk_size, *io_service)
+            size_t chunk_size, uint64_t id)
+            : base_class(io_service, id, chunk_size, *io_service)
         {
         }
 
-        void tcp_client_connection_impl::configurate(const std::string& remote_endpoint)
+        void unix_local_connection_impl::configurate(const std::string& remote_endpoint)
         {
-            namespace asio = boost::asio;
-            using error_code = boost::system::error_code;
-
             SRV_ASSERT(_socket);
-
-            asio::ip::tcp::no_delay option(true);
-            error_code ec;
-            _socket->set_option(option, ec);
 
             SRV_ASSERT(!remote_endpoint.empty());
             _remote_endpoint = remote_endpoint;
         }
 
-        void tcp_client_connection_impl::close_socket(socket_type& socket)
+        void unix_local_connection_impl::close_socket(socket_type& socket)
         {
             using error_code = boost::system::error_code;
 

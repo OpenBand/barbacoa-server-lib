@@ -1,5 +1,5 @@
-#include "tcp_client_impl.h"
-#include "tcp_client_connection_impl.h"
+#include "unix_local_client_impl.h"
+#include "unix_local_connection_impl.h"
 
 #include <server_lib/asserts.h>
 
@@ -12,7 +12,7 @@ namespace network {
         namespace asio = boost::asio;
         using error_code = boost::system::error_code;
 
-        tcp_client_impl::~tcp_client_impl()
+        unix_local_client_impl::~unix_local_client_impl()
         {
             try
             {
@@ -24,13 +24,13 @@ namespace network {
             }
         }
 
-        void tcp_client_impl::config(const tcp_client_config& config)
+        void unix_local_client_impl::config(const unix_local_client_config& config)
         {
-            _config = std::make_unique<tcp_client_config>(config);
+            _config = std::make_unique<unix_local_client_config>(config);
         }
 
-        bool tcp_client_impl::connect(const connect_callback_type& connect_callback,
-                                      const fail_callback_type& fail_callback)
+        bool unix_local_client_impl::connect(const connect_callback_type& connect_callback,
+                                             const fail_callback_type& fail_callback)
         {
             try
             {
@@ -48,22 +48,16 @@ namespace network {
 
                         SRV_ASSERT(_config);
 
-                        auto connection = std::make_shared<tcp_client_connection_impl>(_worker.service(),
+                        auto connection = std::make_shared<unix_local_connection_impl>(_worker.service(),
                                                                                        _config->chunk_size());
-
-                        auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker.service());
-                        connection->set_timeout(_config->timeout_connect_ms(), [resolver]() {
-                            resolver->cancel();
-                        });
+                        connection->set_timeout(_config->timeout_connect_ms());
 
                         auto scope_lock = [connection]() {
                             return connection->handler_runner.continue_lock().operator bool();
                         };
 
-                        asio::ip::tcp::resolver::query query(_config->host(), std::to_string(_config->port()));
-
-                        auto connect_step = [this, connect_callback, fail_callback, connection, scope_lock, resolver](
-                                                const error_code& ec, asio::ip::tcp::resolver::iterator /*it*/) {
+                        auto connect_step = [this, connect_callback, fail_callback, connection, scope_lock](
+                                                const error_code& ec) {
                             try
                             {
                                 connection->cancel_timeout();
@@ -71,7 +65,7 @@ namespace network {
                                     return;
                                 if (!ec)
                                 {
-                                    connection->configurate(_config->host() + ":" + std::to_string(_config->port()));
+                                    connection->configurate(_config->socket_file());
 
                                     SRV_LOGC_TRACE("connected");
 
@@ -80,7 +74,6 @@ namespace network {
                                 }
                                 else
                                 {
-                                    resolver->cancel();
                                     if (fail_callback)
                                         fail_callback(ec.message());
                                 }
@@ -92,28 +85,10 @@ namespace network {
                                     fail_callback(e.what());
                             }
                         };
-                        auto resolve_step = [this, connect_callback, fail_callback, connection, scope_lock, resolver,
-                                             connect_step](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
-                            try
-                            {
-                                if (!scope_lock())
-                                    return;
-                                if (!ec)
-                                {
-                                    SRV_LOGC_TRACE("resolved");
-                                    asio::async_connect(connection->socket(), it, connect_step);
-                                }
-                                else if (fail_callback)
-                                    fail_callback(ec.message());
-                            }
-                            catch (const std::exception& e)
-                            {
-                                SRV_LOGC_ERROR(e.what());
-                                if (fail_callback)
-                                    fail_callback(e.what());
-                            }
-                        };
-                        resolver->async_resolve(query, resolve_step);
+
+                        connection->socket().async_connect(
+                            boost::asio::local::stream_protocol::endpoint(_config->socket_file()),
+                            connect_step);
                     }
                     catch (const std::exception& e)
                     {
@@ -134,12 +109,12 @@ namespace network {
             return false;
         }
 
-        event_loop& tcp_client_impl::loop()
+        event_loop& unix_local_client_impl::loop()
         {
             return _worker;
         }
 
-        void tcp_client_impl::stop_worker()
+        void unix_local_client_impl::stop_worker()
         {
             SRV_LOGC_TRACE(__FUNCTION__);
 

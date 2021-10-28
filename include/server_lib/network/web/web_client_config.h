@@ -2,8 +2,6 @@
 
 #include <server_lib/network/client_config.h>
 
-#include <limits>
-
 #include <boost/filesystem.hpp>
 
 namespace server_lib {

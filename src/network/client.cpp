@@ -1,6 +1,7 @@
 #include <server_lib/network/client.h>
 
 #include "transport/tcp_client_impl.h"
+#include "transport/unix_local_client_impl.h"
 
 #include <server_lib/asserts.h>
 
@@ -30,25 +31,42 @@ namespace network {
         return {};
     }
 
-    bool client::connect(
-        const tcp_client_config& config)
+    unix_local_client_config client::configurate_unix_local()
+    {
+        return {};
+    }
+
+    std::shared_ptr<transport_layer::client_impl_i> client::create_impl(const tcp_client_config& config)
+    {
+        SRV_ASSERT(config.valid());
+        auto impl = std::make_shared<transport_layer::tcp_client_impl>();
+        impl->config(config);
+        _protocol = config._protocol;
+        return impl;
+    }
+
+    std::shared_ptr<transport_layer::client_impl_i> client::create_impl(const unix_local_client_config& config)
+    {
+        SRV_ASSERT(config.valid());
+        auto impl = std::make_shared<transport_layer::unix_local_client_impl>();
+        impl->config(config);
+        _protocol = config._protocol;
+        return impl;
+    }
+
+    bool client::connect_impl(std::function<std::shared_ptr<transport_layer::client_impl_i>()>&& create_impl)
     {
         try
         {
             clear();
 
-            SRV_ASSERT(config.valid());
-
             SRV_LOGC_TRACE("attempts to connect");
 
-            auto transport_impl = std::make_shared<transport_layer::tcp_client_impl>();
-            transport_impl->config(config);
-            _transport_layer = transport_impl;
-            _protocol = config._protocol;
+            _impl = create_impl();
 
             auto connect_handler = std::bind(&client::on_connect_impl, this, std::placeholders::_1);
 
-            return _transport_layer->connect(connect_handler, _fail_callback);
+            return _impl->connect(connect_handler, _fail_callback);
         }
         catch (const std::exception& e)
         {
@@ -64,7 +82,7 @@ namespace network {
         {
             SRV_LOGC_TRACE("connected");
 
-            SRV_ASSERT(_transport_layer);
+            SRV_ASSERT(_impl);
             SRV_ASSERT(_protocol);
 
             auto conn = std::make_shared<connection>(raw_connection, _protocol);
@@ -94,9 +112,9 @@ namespace network {
 
     void client::post(common_callback_type&& callback)
     {
-        if (_transport_layer)
+        if (_impl)
         {
-            _transport_layer->loop().post(std::move(callback));
+            _impl->loop().post(std::move(callback));
         }
     }
 
@@ -121,7 +139,7 @@ namespace network {
             _connection.reset();
         }
 
-        _transport_layer.reset();
+        _impl.reset();
         _protocol.reset();
     }
 

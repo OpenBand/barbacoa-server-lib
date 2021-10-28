@@ -1,3 +1,5 @@
+#pragma once
+
 #include "connection_impl_i.h"
 
 #include <boost/asio.hpp>
@@ -153,7 +155,7 @@ namespace network {
 
             ////////////////////////////////////////////////////
 
-            void set_timeout(long ms, std::function<void(void)> timeout_callback)
+            void set_timeout(long ms, std::function<void(void)> timeout_callback = nullptr)
             {
                 namespace asio = boost::asio;
                 using error_code = boost::system::error_code;

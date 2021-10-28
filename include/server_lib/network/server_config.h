@@ -100,5 +100,22 @@ namespace network {
         }
     };
 
+    /**
+     * \ingroup network
+     *
+     * \brief This class configurates UNIX local socket server.
+     */
+    class unix_local_server_config : public base_unix_local_socket_config<unix_local_server_config>
+    {
+        friend class client;
+
+    protected:
+        unix_local_server_config() = default;
+
+    public:
+        unix_local_server_config(const unix_local_server_config&) = default;
+        ~unix_local_server_config() = default;
+    };
+
 } // namespace network
 } // namespace server_lib

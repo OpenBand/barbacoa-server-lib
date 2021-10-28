@@ -6,11 +6,11 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_client_connection_impl : public asio_connection_impl<boost::asio::ip::tcp::socket>
+        class unix_local_connection_impl : public asio_connection_impl<boost::asio::local::stream_protocol::socket>
         {
         public:
-            tcp_client_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
-                                       size_t chunk_size);
+            unix_local_connection_impl(const std::shared_ptr<boost::asio::io_service>& io_service,
+                                       size_t chunk_size, uint64_t id = 0);
 
             void configurate(const std::string& remote_endpoint) override;
             void close_socket(socket_type&) override;

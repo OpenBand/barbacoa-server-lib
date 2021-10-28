@@ -4,6 +4,8 @@
 
 #include <server_lib/asserts.h>
 
+#include <boost/filesystem.hpp>
+
 #include <string>
 #include <chrono>
 #include <limits>
@@ -12,11 +14,6 @@
 namespace server_lib {
 namespace network {
 
-    /**
-     * \ingroup network
-     *
-     * \brief Base class for client/server configurations.
-     */
     template <typename T>
     class base_config
     {
@@ -85,11 +82,6 @@ namespace network {
         uint8_t _worker_threads = 1;
     };
 
-    /**
-     * \ingroup network
-     *
-     * \brief This is the base configuration for stream connection.
-     */
     template <typename T>
     class base_stream_config : public base_config<T>
     {
@@ -118,6 +110,46 @@ namespace network {
     protected:
         /// Block size to read
         size_t _chunk_size = 4096;
+    };
+
+    template <typename T>
+    class base_unix_local_socket_config : public base_stream_config<T>
+    {
+        using base_class = base_stream_config<T>;
+
+    protected:
+        base_unix_local_socket_config() = default;
+
+    private:
+        T& set_worker_threads(uint8_t)
+        {
+            SRV_ERROR("Not supported for UNIX local socket client");
+            return this->self();
+        }
+
+    public:
+        T& set_socket_file(const std::string& socket_file)
+        {
+            namespace fs = boost::filesystem;
+
+            SRV_ASSERT(!socket_file.empty());
+            SRV_ASSERT(fs::is_regular_file(socket_file));
+            _socket_file = socket_file;
+            return this->self();
+        }
+
+        const std::string& socket_file() const
+        {
+            return _socket_file;
+        }
+
+        bool valid() const override
+        {
+            return base_class::valid() && this->_protocol && !_socket_file.empty();
+        }
+
+    protected:
+        std::string _socket_file;
     };
 
 } // namespace network
