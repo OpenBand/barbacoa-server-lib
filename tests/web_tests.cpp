@@ -729,8 +729,7 @@ namespace tests {
         web_server server;
         event_loop server_postpone_th;
 
-        server_postpone_th.start();
-        server_postpone_th.wait();
+        BOOST_REQUIRE_NO_THROW(server_postpone_th.start().wait());
 
         auto server_request_callback = [&](
                                            std::shared_ptr<web_request_i> request,

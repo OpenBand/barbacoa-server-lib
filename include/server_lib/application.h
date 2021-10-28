@@ -30,7 +30,7 @@ public:
     protected:
         main_loop(const std::string& name = {});
 
-        void start() override;
+        event_loop& start() override;
 
     public:
         void stop() override;

@@ -104,10 +104,10 @@ event_loop& event_loop::change_thread_name(const std::string& name)
     return *this;
 }
 
-void event_loop::start()
+event_loop& event_loop::start()
 {
     if (is_running())
-        return;
+        return *this;
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
@@ -154,6 +154,8 @@ void event_loop::start()
         stop();
         throw;
     }
+
+    return *this;
 }
 
 void event_loop::stop()

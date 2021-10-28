@@ -18,7 +18,7 @@ public:
      * Start loop
      *
      */
-    void start() override;
+    event_loop& start() override;
 
     /**
      * Stop loop

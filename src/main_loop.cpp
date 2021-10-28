@@ -13,7 +13,7 @@ application::main_loop::main_loop(const std::string& name)
         change_thread_name(name);
 }
 
-void application::main_loop::start()
+event_loop& application::main_loop::start()
 {
     SRV_ASSERT(is_main_thread(), "Only for MAIN thread allowed");
 
@@ -22,7 +22,7 @@ void application::main_loop::start()
         SRV_LOGC_TRACE("MAIN loop is starting");
     }
 
-    event_loop::start();
+    return event_loop::start();
 }
 
 void application::main_loop::stop()

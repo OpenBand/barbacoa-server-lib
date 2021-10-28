@@ -66,7 +66,7 @@ public:
      * Start loop
      *
      */
-    virtual void start();
+    virtual event_loop& start();
 
     /**
      * Stop loop

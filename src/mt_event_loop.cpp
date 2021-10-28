@@ -20,10 +20,10 @@ mt_event_loop::mt_event_loop(uint8_t nb_threads)
     _thread_ids.reserve(this->nb_threads());
 }
 
-void mt_event_loop::start()
+event_loop& mt_event_loop::start()
 {
     if (is_running())
-        return;
+        return *this;
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
@@ -89,6 +89,8 @@ void mt_event_loop::start()
         stop();
         throw;
     }
+
+    return *this;
 }
 
 void mt_event_loop::stop()
