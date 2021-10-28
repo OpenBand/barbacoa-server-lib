@@ -10,7 +10,16 @@ Let's free a developer for specific business tasks.
 
 # Examples
 
-```cpp (examples/pretty_simple.cpp)
+```cpp
+{{examples/simple_web_server.cpp}}
+```
+
+```cpp
+{{examples/simple_tcp_server.cpp}}
+```
+
+```cpp
+{{examples/simple_tcp_client.cpp}}
 ```
 
 # Requirements
