@@ -234,7 +234,7 @@ Use CMake
 
 * Boost, OpenSSL
 * [ssl-helpers](https://github.com/romualdo-bar/barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
-* [server-clib](https://github.com/romualdo-bar/barbacoa-server-clib.git) (POSIX C lib)
+* [server-clib](https://github.com/romualdo-bar/barbacoa-server-clib.git) (Extension for POSIX based platforms only)
 
 
 
