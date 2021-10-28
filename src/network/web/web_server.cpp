@@ -46,6 +46,8 @@ namespace network {
             void set_fail_handler(const app_fail_callback_type& callback)
             {
                 _fail_callback = callback;
+                this->on_start_error = std::bind(&this_type::on_start_fail_impl, this,
+                                                 std::placeholders::_1);
                 this->on_error = std::bind(&this_type::on_fail_impl, this,
                                            std::placeholders::_1, std::placeholders::_2);
             }
@@ -101,6 +103,12 @@ namespace network {
             }
 
         private:
+            void on_start_fail_impl(const std::string& err)
+            {
+                if (_fail_callback)
+                    _fail_callback({}, err);
+            }
+
             void on_fail_impl(std::shared_ptr<typename base_type::__http_request> request,
                               const error_code& ec)
             {

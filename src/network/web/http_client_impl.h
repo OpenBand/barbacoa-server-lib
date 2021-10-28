@@ -357,7 +357,11 @@ namespace network {
 
             using fail_callback_type = std::function<void(const error_code&)>;
 
-            fail_callback_type on_error;
+            fail_callback_type on_error = nullptr;
+
+            using fail_start_callback_type = std::function<void(const std::string&)>;
+
+            fail_start_callback_type on_start_error = nullptr;
 
         protected:
             std::unique_ptr<mt_event_loop> _workers;
@@ -390,8 +394,8 @@ namespace network {
                         catch (const std::exception& e)
                         {
                             SRV_LOGC_ERROR(e.what());
-                            if (on_error)
-                                on_error(make_error_code::make_error_code(errc::interrupted));
+                            if (on_start_error)
+                                on_start_error(e.what());
                         }
                     };
                     _workers->on_start(start_).start();

@@ -515,12 +515,16 @@ namespace network {
 
             std::map<std::string, request_callback_type> default_resource;
 
-            fail_callback_type on_error;
+            fail_callback_type on_error = nullptr;
+
+            using fail_start_callback_type = std::function<void(const std::string&)>;
+
+            fail_start_callback_type on_start_error = nullptr;
 
             // TODO: Upgrade
             std::function<void(std::unique_ptr<socket_type>&,
                                std::shared_ptr<typename server_base_impl<config_type, socket_type>::__http_request>)>
-                on_upgrade;
+                on_upgrade = nullptr;
 
         protected:
             std::unique_ptr<mt_event_loop> _workers;
@@ -570,8 +574,8 @@ namespace network {
                         catch (const std::exception& e)
                         {
                             SRV_LOGC_ERROR(e.what());
-                            if (on_error)
-                                on_error(nullptr, make_error_code::make_error_code(errc::interrupted));
+                            if (on_start_error)
+                                on_start_error(e.what());
                         }
                     };
                     _workers->on_start(std::move(callback)).start();
