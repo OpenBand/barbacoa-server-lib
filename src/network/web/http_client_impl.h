@@ -1,6 +1,6 @@
 #pragma once
 
-#include <server_lib/event_loop.h>
+#include <server_lib/mt_event_loop.h>
 
 #include <server_lib/network/web/web_client_config.h>
 
@@ -28,7 +28,6 @@ namespace network {
         namespace errc = boost::system::errc;
         using system_error = boost::system::system_error;
         namespace make_error_code = boost::system::errc;
-        using string_view = boost::string_ref; //TODO: C++17
     } // namespace web
 } // namespace network
 } // namespace server_lib
@@ -76,7 +75,7 @@ namespace network {
                 }
             };
 
-            class Response : public web_solo_response_i
+            class Response : public web_response_i
             {
                 friend class client_base_impl<config_type, socket_type>;
                 friend class client_impl<socket_type>;
@@ -89,35 +88,35 @@ namespace network {
                 {
                 }
 
-            public:
+            protected:
                 std::string _http_version, _status_code;
 
                 Content _content;
 
                 CaseInsensitiveMultimap _header;
 
-            public:
-                size_t size() const override
+            protected:
+                size_t content_size() const override
                 {
                     return _content.size();
                 }
 
-                std::string content() override
+                std::string load_content() override
                 {
                     return _content.string();
                 }
 
-                std::string status_code() const override
+                const std::string& status_code() const override
                 {
                     return _status_code;
                 }
 
-                std::string http_version() const override
+                const std::string& http_version() const override
                 {
                     return _http_version;
                 }
 
-                web_header header() const override
+                const web_header& header() const override
                 {
                     return _header;
                 }
@@ -195,84 +194,9 @@ namespace network {
             /// Set before calling request
             config_type config;
 
-#if 0
-        protected:
-
-            size_t concurrent_synchronous_requests = 0;
-            std::mutex concurrent_synchronous_requests_mutex;
-
-        public:
-
-            /// If you have your own asio::io_service, store its pointer here before calling request().
-            /// When using asynchronous requests, running the io_service is up to the programmer.
-            std::shared_ptr<asio::io_service> io_service;
-
-            /// Convenience function to perform synchronous request. The io_service is run within this function.
-            /// If reusing the io_service for other tasks, use the asynchronous request functions instead.
-            /// Do not use concurrently with the asynchronous request functions.
-            std::shared_ptr<Response> request(const std::string& method, const std::string& path = std::string("/"),
-                                              string_view content = "", const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
-            {
-                std::shared_ptr<Response> response;
-                error_code ec;
-                request(method, path, content, header, [&response, &ec](std::shared_ptr<Response> response_, const error_code& ec_) {
-                    response = response_;
-                    ec = ec_;
-                });
-
-                {
-                    std::unique_lock<std::mutex> lock(concurrent_synchronous_requests_mutex);
-                    ++concurrent_synchronous_requests;
-                }
-                io_service->run();
-                {
-                    std::unique_lock<std::mutex> lock(concurrent_synchronous_requests_mutex);
-                    --concurrent_synchronous_requests;
-                    if (!concurrent_synchronous_requests)
-                        io_service->reset();
-                }
-
-                if (ec)
-                    throw system_error(ec);
-
-                return response;
-            }
-
-            /// Convenience function to perform synchronous request. The io_service is run within this function.
-            /// If reusing the io_service for other tasks, use the asynchronous request functions instead.
-            /// Do not use concurrently with the asynchronous request functions.
-            std::shared_ptr<Response> request(const std::string& method, const std::string& path, std::istream& content,
-                                              const CaseInsensitiveMultimap& header = CaseInsensitiveMultimap())
-            {
-                std::shared_ptr<Response> response;
-                error_code ec;
-                request(method, path, content, header, [&response, &ec](std::shared_ptr<Response> response_, const error_code& ec_) {
-                    response = response_;
-                    ec = ec_;
-                });
-
-                {
-                    std::unique_lock<std::mutex> lock(concurrent_synchronous_requests_mutex);
-                    ++concurrent_synchronous_requests;
-                }
-                io_service->run();
-                {
-                    std::unique_lock<std::mutex> lock(concurrent_synchronous_requests_mutex);
-                    --concurrent_synchronous_requests;
-                    if (!concurrent_synchronous_requests)
-                        io_service->reset();
-                }
-
-                if (ec)
-                    throw system_error(ec);
-
-                return response;
-            }
-#endif
-
             /// Asynchronous request where setting and/or running client_impl's io_service is required.
             /// Do not use concurrently with the synchronous request functions.
-            void request(const std::string& method, const std::string& path, string_view content, const CaseInsensitiveMultimap& header,
+            void request(const std::string& method, const std::string& path, const std::string& content, const CaseInsensitiveMultimap& header,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback_)
             {
                 auto session = std::make_shared<Session>(config.max_response_streambuf_size(), get_connection(), create_request_header(method, path, header));
@@ -325,7 +249,7 @@ namespace network {
 
             /// Asynchronous request where setting and/or running client_impl's io_service is required.
             /// Do not use concurrently with the synchronous request functions.
-            void request(const std::string& method, const std::string& path, string_view content,
+            void request(const std::string& method, const std::string& path, const std::string& content,
                          std::function<void(std::shared_ptr<Response>, const error_code&)>&& request_callback)
             {
                 request(method, path, content, CaseInsensitiveMultimap(), std::move(request_callback));
@@ -414,12 +338,12 @@ namespace network {
             fail_callback_type on_error;
 
         protected:
-            std::unique_ptr<event_loop> _worker;
+            std::unique_ptr<mt_event_loop> _workers;
 
         public:
             bool is_running() const
             {
-                return _worker && _worker->is_running();
+                return _workers && _workers->is_running();
             }
 
             virtual bool start(const start_callback_type& start_callback)
@@ -430,8 +354,8 @@ namespace network {
 
                     SRV_LOGC_TRACE("attempts to start");
 
-                    _worker = std::make_unique<event_loop>();
-                    _worker->change_thread_name(config.worker_name());
+                    _workers = std::make_unique<mt_event_loop>(config.worker_threads());
+                    _workers->change_thread_name(config.worker_name());
 
                     auto start_ = [this, start_callback]() {
                         try
@@ -448,7 +372,7 @@ namespace network {
                                 on_error(make_error_code::make_error_code(errc::interrupted));
                         }
                     };
-                    _worker->on_start(start_).start();
+                    _workers->on_start(start_).start();
 
                     return true;
                 }
@@ -480,9 +404,9 @@ namespace network {
 
                 handler_runner->stop();
 
-                SRV_ASSERT(!_worker->is_run() || !_worker->is_this_loop(),
+                SRV_ASSERT(!_workers->is_run() || !_workers->is_this_loop(),
                            "Can't initiate thread stop in the same thread. It is the way to deadlock");
-                _worker->stop();
+                _workers->stop();
             }
 
             virtual ~client_base_impl()
@@ -838,14 +762,14 @@ namespace network {
         protected:
             std::shared_ptr<Connection> create_connection() override
             {
-                return std::make_shared<Connection>(handler_runner, config.timeout(), *_worker->service());
+                return std::make_shared<Connection>(handler_runner, config.timeout(), *_workers->service());
             }
 
             void connect(const std::shared_ptr<Session>& session) override
             {
                 if (!session->connection->socket->lowest_layer().is_open())
                 {
-                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker->service());
+                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_workers->service());
                     session->connection->set_timeout(config.timeout_connect());
                     resolver->async_resolve(*query, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
                         session->connection->cancel_timeout();

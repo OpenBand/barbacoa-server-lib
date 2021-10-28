@@ -67,13 +67,20 @@ namespace network {
                 return _max_request_streambuf_size;
             }
 
-        protected:
+        private:
             T& set_protocol(const unit_builder_i&)
             {
                 SRV_ERROR("Not supported for Web");
                 return this->self();
             }
+            template <typename Protocol>
+            T& set_protocol()
+            {
+                SRV_ERROR("Not supported for Web");
+                return this->self();
+            }
 
+        protected:
             /// Timeout on request handling. Defaults to 5 seconds.
             long _timeout_request_sec = 5;
             /// Timeout on content handling. Defaults to 300 seconds.

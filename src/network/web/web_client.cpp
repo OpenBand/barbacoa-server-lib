@@ -24,11 +24,11 @@ namespace network {
 
             virtual event_loop& loop() = 0;
 
-            virtual bool request(const std::string& method,
-                                 const std::string& path,
-                                 std::string&& content,
-                                 const web_header& header,
-                                 app_response_callback_type&& callback)
+            virtual bool request(const std::string&,
+                                 const std::string&,
+                                 const std::string&,
+                                 const web_header&,
+                                 app_response_callback_type&&)
                 = 0;
         };
 
@@ -66,9 +66,9 @@ namespace network {
 
             void stop() override
             {
-                if (this->_worker)
+                if (this->_workers)
                 {
-                    SRV_ASSERT(!this->_worker->is_run() || !this->_worker->is_this_loop(),
+                    SRV_ASSERT(!this->_workers->is_run() || !this->_workers->is_this_loop(),
                                "Can't initiate thread stop in the same thread. It is the way to deadlock");
                 }
 
@@ -77,30 +77,32 @@ namespace network {
 
             bool is_running() const override
             {
-                return this->is_running();
+                return base_type::is_running();
             }
 
             event_loop& loop() override
             {
-                SRV_ASSERT(this->_worker);
-                return *this->_worker;
+                SRV_ASSERT(this->_workers);
+                return *this->_workers;
             }
 
 
             bool request(const std::string& method,
                          const std::string& path,
-                         std::string&& content,
+                         const std::string& content,
                          const web_header& header,
                          app_response_callback_type&& callback) override
             {
                 try
                 {
+                    std::unique_lock<std::mutex> lock(_response_guard);
                     auto request_id = ++_next_request_id;
                     _response_callbacks.emplace(request_id, std::move(callback));
+                    lock.unlock();
                     auto callback_impl = std::bind(&this_type::on_response_impl,
                                                    this, request_id,
                                                    std::placeholders::_1, std::placeholders::_2);
-                    base_type::request(method, path, std::move(content), header, std::move(callback_impl));
+                    base_type::request(method, path, content, header, std::move(callback_impl));
 
                     return true;
                 }
@@ -123,22 +125,24 @@ namespace network {
                                   std::shared_ptr<typename base_type::Response> response,
                                   const error_code& ec)
             {
+                std::unique_lock<std::mutex> lock(_response_guard);
                 auto it = _response_callbacks.find(request_id);
                 if (_response_callbacks.end() != it)
                 {
-                    auto&& callback = it->second;
+                    auto callback = std::move(it->second);
+                    _response_callbacks.erase(it);
+                    lock.unlock();
                     if (callback)
                     {
                         if (!ec)
                         {
                             callback(response, {});
                         }
+                        else
                         {
                             callback({}, ec.message());
                         }
                     }
-
-                    _response_callbacks.erase(it);
                 }
             }
 
@@ -147,7 +151,11 @@ namespace network {
             app_start_callback_type _start_callback = nullptr;
             app_fail_callback_type _fail_callback = nullptr;
             std::map<size_t, app_response_callback_type> _response_callbacks;
+
+            std::mutex _response_guard;
         };
+
+        web_client::web_client() {}
 
         web_client::~web_client()
         {
@@ -184,7 +192,7 @@ namespace network {
                 impl->set_fail_handler(_fail_callback);
                 _impl.reset(impl.release());
 
-                SRV_ASSERT(impl->start());
+                SRV_ASSERT(_impl->start());
             }
             catch (const std::exception& e)
             {
@@ -206,7 +214,7 @@ namespace network {
                 impl->set_fail_handler(_fail_callback);
                 _impl.reset(impl.release());
 
-                SRV_ASSERT(impl->start());
+                SRV_ASSERT(_impl->start());
             }
             catch (const std::exception& e)
             {
@@ -218,30 +226,30 @@ namespace network {
 
         web_client& web_client::request(const std::string& path,
                                         const std::string& method,
-                                        std::string&& content,
+                                        const std::string& content,
                                         response_callback_type&& callback,
                                         const web_header& header)
         {
             SRV_ASSERT(is_running());
 
-            SRV_ASSERT(_impl->request(method, path, std::move(content), header, std::move(callback)));
+            SRV_ASSERT(_impl->request(method, path, content, header, std::move(callback)));
 
             return *this;
         }
 
         web_client& web_client::request(const std::string& path,
-                                        std::string&& content,
+                                        const std::string& content,
                                         response_callback_type&& callback,
                                         const web_header& header)
         {
-            return request(path, to_string(http_method::POST), std::move(content), std::move(callback), header);
+            return request(path, to_string(http_method::POST), content, std::move(callback), header);
         }
 
-        web_client& web_client::request(std::string&& content,
+        web_client& web_client::request(const std::string& content,
                                         response_callback_type&& callback,
                                         const web_header& header)
         {
-            return request("/", to_string(http_method::POST), std::move(content), std::move(callback), header);
+            return request("/", to_string(http_method::POST), content, std::move(callback), header);
         }
 
         bool web_client::wait(bool wait_until_stop)

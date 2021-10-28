@@ -44,14 +44,14 @@ namespace network {
 
             std::shared_ptr<Connection> create_connection() override
             {
-                return std::make_shared<Connection>(handler_runner, config.timeout(), *_worker->service(), context);
+                return std::make_shared<Connection>(handler_runner, config.timeout(), *_workers->service(), context);
             }
 
             void connect(const std::shared_ptr<Session>& session) override
             {
                 if (!session->connection->socket->lowest_layer().is_open())
                 {
-                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_worker->service());
+                    auto resolver = std::make_shared<asio::ip::tcp::resolver>(*_workers->service());
                     resolver->async_resolve(*query, [this, session, resolver](const error_code& ec, asio::ip::tcp::resolver::iterator it) {
                         auto lock = session->connection->handler_runner->continue_lock();
                         if (!lock)

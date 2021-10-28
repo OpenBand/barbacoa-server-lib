@@ -67,7 +67,7 @@ namespace network {
         /// return timeout in seconds
         auto timeout_connect() const
         {
-            return _timeout_connect_ms * 1000;
+            return _timeout_connect_ms / 1000;
         }
 
         auto timeout_connect_ms() const
@@ -75,9 +75,17 @@ namespace network {
             return _timeout_connect_ms;
         }
 
+    private:
+        T& set_worker_threads(uint8_t)
+        {
+            SRV_ERROR("Not supported for TCP client");
+            return this->self();
+        }
+
     protected:
         /// Port number to use
         unsigned short _port = 0;
+
         /// IPv4 address in dotted decimal form or IPv6 address in hexadecimal notation.
         /// If empty, the address will be any address.
         std::string _host = "localhost";

@@ -56,9 +56,22 @@ namespace network {
             return self();
         }
 
+        T& set_worker_threads(uint8_t worker_threads)
+        {
+            SRV_ASSERT(worker_threads > 0);
+
+            _worker_threads = worker_threads;
+            return this->self();
+        }
+
         const std::string& worker_name() const
         {
             return _worker_name;
+        }
+
+        uint8_t worker_threads() const
+        {
+            return _worker_threads;
         }
 
     protected:
@@ -66,6 +79,10 @@ namespace network {
 
         /// Set name for worker thread
         std::string _worker_name;
+
+        /// Number of threads that the server will use.
+        /// Defaults to 1 thread.
+        uint8_t _worker_threads = 1;
     };
 
     /**

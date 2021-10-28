@@ -39,7 +39,7 @@ namespace tests {
     bool waiting_for_asynch_test(bool& done,
                                  std::condition_variable& done_cond,
                                  std::mutex& done_cond_guard,
-                                 size_t sec_timeout = 10000000);
+                                 size_t sec_timeout = 10);
 } // namespace tests
 } // namespace server_lib
 

@@ -13,20 +13,20 @@ namespace network {
         public:
             virtual uint64_t id() const = 0; // TODO: create id
 
-            virtual size_t size() const = 0;
+            virtual size_t content_size() const = 0;
 
-            virtual std::string content() = 0;
+            virtual std::string load_content() = 0;
 
-            virtual std::string method() const = 0; //TODO: change to refs
-            virtual std::string path() const = 0;
-            virtual std::string query_string() const = 0;
-            virtual std::string http_version() const = 0;
+            virtual const std::string& method() const = 0;
+            virtual const std::string& path() const = 0;
+            virtual const std::string& query_string() const = 0;
+            virtual const std::string& http_version() const = 0;
 
-            virtual web_header header() const = 0;
+            virtual const web_header& header() const = 0;
 
-            virtual std::string path_match() const = 0;
+            virtual const std::string& path_match() const = 0;
 
-            virtual std::chrono::system_clock::time_point header_read_time() const = 0;
+            virtual const std::chrono::system_clock::time_point& header_read_time() const = 0;
 
             virtual std::string remote_endpoint_address() const = 0;
 
@@ -36,10 +36,10 @@ namespace network {
             virtual web_query parse_query_string() const = 0;
         };
 
-        class web_response_i
+        class web_server_response_i
         {
         public:
-            virtual size_t size() const = 0;
+            virtual size_t content_size() const = 0;
 
             virtual std::string content() const = 0;
 

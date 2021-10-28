@@ -91,7 +91,7 @@ namespace network {
 
             bool is_running() const override
             {
-                return this->is_running();
+                return base_type::is_running();
             }
 
             event_loop& loop() override
@@ -125,6 +125,8 @@ namespace network {
             app_fail_callback_type _fail_callback = nullptr;
             std::map<size_t, app_request_callback_type> _request_callbacks;
         };
+
+        web_server::web_server() {}
 
         web_server::~web_server()
         {

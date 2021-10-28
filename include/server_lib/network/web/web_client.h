@@ -18,7 +18,7 @@ namespace network {
         class web_client
         {
         public:
-            web_client() = default;
+            web_client();
 
             web_client(const web_client&) = delete;
 
@@ -33,7 +33,7 @@ namespace network {
 
             using start_callback_type = std::function<void()>;
             using response_callback_type = std::function<void(
-                std::shared_ptr<web_solo_response_i>,
+                std::shared_ptr<web_response_i>,
                 const std::string& /*error*/)>;
             using fail_callback_type = std::function<void(
                 const std::string&)>;
@@ -62,7 +62,7 @@ namespace network {
              */
             web_client& request(const std::string& path,
                                 const std::string& method,
-                                std::string&& content,
+                                const std::string& content,
                                 response_callback_type&& callback,
                                 const web_header& header = {});
 
@@ -77,7 +77,7 @@ namespace network {
              *
              */
             web_client& request(const std::string& path,
-                                std::string&& content,
+                                const std::string& content,
                                 response_callback_type&& callback,
                                 const web_header& header = {});
 
@@ -89,7 +89,7 @@ namespace network {
              * \param header
              *
              */
-            web_client& request(std::string&& content,
+            web_client& request(const std::string& content,
                                 response_callback_type&& callback,
                                 const web_header& header = {});
 

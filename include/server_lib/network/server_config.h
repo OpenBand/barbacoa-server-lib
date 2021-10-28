@@ -38,14 +38,6 @@ namespace network {
             return this->set_address(port);
         }
 
-        T& set_worker_threads(uint8_t worker_threads)
-        {
-            SRV_ASSERT(worker_threads > 0);
-
-            _worker_threads = worker_threads;
-            return this->self();
-        }
-
         T& disable_reuse_address()
         {
             _reuse_address = false;
@@ -67,11 +59,6 @@ namespace network {
             return _address;
         }
 
-        uint8_t worker_threads() const
-        {
-            return _worker_threads;
-        }
-
         bool reuse_address() const
         {
             return _reuse_address;
@@ -80,12 +67,10 @@ namespace network {
     protected:
         /// Port number to use
         unsigned short _port = 0;
+
         /// IPv4 address in dotted decimal form or IPv6 address in hexadecimal notation.
         /// If empty, the address will be any address.
         std::string _address = "0.0.0.0";
-        /// Number of threads that the server will use.
-        /// Defaults to 1 thread.
-        uint8_t _worker_threads = 1;
 
         /// Set to false to avoid binding the socket to an address that is already in use. Defaults to true.
         bool _reuse_address = true;

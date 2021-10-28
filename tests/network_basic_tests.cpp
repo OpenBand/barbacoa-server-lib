@@ -678,8 +678,9 @@ namespace tests {
                                         conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
                                     })
                                   .connect(
-                                      client->configurate_tcp().set_worker_name("!C-T").set_address(
-                                                                                           host, port)
+                                      client->configurate_tcp()
+                                          .set_worker_name("!C-T")
+                                          .set_address(host, port)
                                           .set_protocol(protocol)));
             }
         };

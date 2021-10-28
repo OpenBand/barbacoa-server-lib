@@ -18,7 +18,7 @@ namespace network {
         class web_server
         {
         public:
-            web_server() = default;
+            web_server();
 
             web_server(const web_server&) = delete;
 
@@ -34,7 +34,7 @@ namespace network {
             using start_callback_type = std::function<void()>;
             using request_callback_type = std::function<void(
                 std::shared_ptr<web_request_i>,
-                std::shared_ptr<web_response_i>)>;
+                std::shared_ptr<web_server_response_i>)>;
             using fail_callback_type = std::function<void(
                 std::shared_ptr<web_request_i>,
                 const std::string&)>;

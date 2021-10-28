@@ -8,17 +8,20 @@ namespace server_lib {
 namespace network {
     namespace web {
 
-        class web_solo_response_i
+        class web_response_i
         {
         public:
-            virtual size_t size() const = 0;
+            virtual size_t content_size() const = 0;
 
-            virtual std::string content() = 0;
+            ///acquire all data from inbound stream
+            virtual std::string load_content() = 0;
 
-            virtual std::string status_code() const = 0;
-            virtual std::string http_version() const = 0;
+            // TODO: acquire data partially (resumed downloads)
 
-            virtual web_header header() const = 0;
+            virtual const std::string& status_code() const = 0;
+            virtual const std::string& http_version() const = 0;
+
+            virtual const web_header& header() const = 0;
         };
 
     } // namespace web

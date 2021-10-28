@@ -180,7 +180,7 @@ namespace network {
             class field_value
             {
             public:
-                class SemicolonSeparatedAttributes
+                class semicolon_separated_attributes
                 {
                 public:
                     /// Parse Set-Cookie or Content-Disposition header field value. Attribute values are percent-decoded.
@@ -255,6 +255,7 @@ namespace network {
         {
             POST = 0,
             GET,
+            HEAD,
             PUT,
             DELETE
         };

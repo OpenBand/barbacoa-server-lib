@@ -27,7 +27,7 @@ namespace network {
             }
 
         public:
-            T& set_address(const std::string& host_port)
+            T& set_web_address(const std::string& host_port)
             {
                 SRV_ASSERT(!host_port.empty());
 
@@ -61,7 +61,7 @@ namespace network {
 
             auto timeout() const
             {
-                return _timeout_ms * 1000;
+                return _timeout_ms / 1000;
             }
 
             auto timeout_ms() const
@@ -79,19 +79,27 @@ namespace network {
                 return _proxy_server;
             }
 
-        protected:
+        private:
             T& set_protocol(const unit_builder_i&)
             {
                 SRV_ERROR("Not supported for Web");
                 return this->self();
             }
+            template <typename Protocol>
+            T& set_protocol()
+            {
+                SRV_ERROR("Not supported for Web");
+                return this->self();
+            }
 
+        protected:
             /// Set timeout on requests in seconds. Default value: 0 (no timeout).
             long _timeout_ms = 0;
 
             /// Maximum size of response stream buffer. Defaults to architecture maximum.
             /// Reaching this limit will result in a message_size error code.
             size_t _max_response_streambuf_size = std::numeric_limits<size_t>::max();
+
             /// Set proxy server (server:port)
             std::string _proxy_server;
         };
