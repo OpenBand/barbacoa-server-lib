@@ -25,7 +25,7 @@ int main(void)
                   auto port = 8282;
                   server.on_start([port]() {
                             std::cout << "Online at " << port << ". "
-                                      << "Test example: curl 'localhost:8282/my'"
+                                      << "Example to test: curl 'localhost:8282/my'"
                                       << ". Press ^C to stop"
                                       << "\n"
                                       << std::endl;
@@ -41,9 +41,12 @@ int main(void)
                                          { { "Content-Type", "text/plain" } });
                           response->close_connection_after_response();
                       })
-                      .on_fail([&](std::shared_ptr<request_type>, const std::string& e) {
-                          std::cerr << "Can't start Web server: " << e << std::endl;
-                          app.stop(1);
+                      .on_fail([&](std::shared_ptr<request_type> request, const std::string& e) {
+                          if (!request)
+                          {
+                              std::cerr << "Can't start Web server: " << e << std::endl;
+                              app.stop(1);
+                          }
                       })
                       .start(server.configurate().set_address(port));
               })

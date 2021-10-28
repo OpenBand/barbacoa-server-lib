@@ -1,6 +1,6 @@
 # Barbacoa Server Lib
 
-This library based on the experience of writing the really working live applications. 
+This library based on the practice experience of writing  production applications. 
 The main goal of this project is to make the process of writing server applications in C ++ **more productive**.
 
 Usually when people say "server", they mean a network server serving incoming connections on some protocol from the TCP/IP stack. 
@@ -10,16 +10,197 @@ Let's free a developer for specific business tasks.
 
 # Examples
 
-```cpp
-{{examples/simple_web_server.cpp}}
-```
+* Web server:
 
 ```cpp
-{{examples/simple_tcp_server.cpp}}
+    namespace web = server_lib::network::web;
+
+    using request_type = web::web_request_i;
+    using response_type = web::web_server_response_i;
+
+    web::web_server server;
+
+    auto&& app = server_lib::application::init();
+    return app.on_start([&]() {
+                  auto port = 8282;
+                  server.on_start([port]() {
+                            std::cout << "Online at " << port << ". "
+                                      << "Example to test: curl 'localhost:8282/my'"
+                                      << ". Press ^C to stop"
+                                      << "\n"
+                                      << std::endl;
+                        })
+                      .on_request("/my", "GET", [&](std::shared_ptr<request_type> request, std::shared_ptr<response_type> response) {
+                          std::string message("You are #");
+                          message += std::to_string(request->id());
+                          message += ". ";
+                          message += "Service has tested\n";
+
+                          response->post(web::http_status_code::success_ok,
+                                         message,
+                                         { { "Content-Type", "text/plain" } });
+                          response->close_connection_after_response();
+                      })
+                      .on_fail([&](std::shared_ptr<request_type> request, const std::string& e) {
+                          if (!request)
+                          {
+                              std::cerr << "Can't start Web server: " << e << std::endl;
+                              app.stop(1);
+                          }
+                      })
+                      .start(server.configurate().set_address(port));
+              })
+        .run();
 ```
 
+* TCP server:
+
 ```cpp
-{{examples/simple_tcp_client.cpp}}
+    using connection = server_lib::network::connection;
+    using unit = server_lib::network::unit;
+
+    using my_protocol = server_lib::network::msg_protocol;
+    const std::string protocol_message = "PING";
+    const std::string protocol_message_ack = "PONG";
+
+    server_lib::network::server server;
+    auto&& app = server_lib::application::init();
+    return app.on_start([&]() {
+                  auto port = 19999;
+                  server.on_start([port]() {
+                            std::cout << "Online at " << port << ". Press ^C to stop"
+                                      << "\n"
+                                      << std::endl;
+                        })
+                      .on_new_connection([&](const std::shared_ptr<connection>& conn) {
+                          conn->on_receive([&](connection& conn, unit& unit) {
+                                  auto data = unit.as_string();
+                                  std::cout << "#" << conn.id() << " "
+                                            << "(" << conn.remote_endpoint() << ") - "
+                                            << "received " << data.size() << " bytes: "
+                                            << ssl_helpers::to_printable(unit.as_string())
+                                            << std::endl;
+                                  if (protocol_message == data)
+                                      conn.send(conn.protocol().create(protocol_message_ack));
+                              })
+                              .on_disconnect([&](size_t conn_id) {
+                                  std::cout << "#" << conn_id << " - "
+                                            << " disconnected"
+                                            << "\n"
+                                            << std::endl;
+                              });
+                      })
+                      .on_fail([&](const std::string& e) {
+                          std::cerr << "Can't start TCP server: " << e << std::endl;
+                          app.stop(1);
+                      })
+                      .start(server.configurate_tcp()
+                                 .set_protocol<my_protocol>()
+                                 .set_address(port));
+              })
+        .run();
+```
+
+* TCP client:
+
+```cpp
+    using namespace std::chrono_literals;
+    using connection = server_lib::network::connection;
+    using unit = server_lib::network::unit;
+
+    using my_protocol = server_lib::network::msg_protocol;
+    const std::string protocol_message = "PING";
+
+    server_lib::solo_periodical_timer ping_timer;
+
+    server_lib::network::client client;
+    auto&& app = server_lib::application::init();
+    return app.on_start([&]() {
+                  auto port = 19999;
+                  client.on_connect([&, port](connection& conn) {
+                            std::cout << "Connected to " << port << ". Press ^C to stop"
+                                      << "\n"
+                                      << std::endl;
+                            conn.on_receive([&](connection& conn, unit& unit) {
+                                auto data = unit.as_string();
+                                std::cout << "Received " << data.size() << " bytes: "
+                                          << ssl_helpers::to_printable(unit.as_string())
+                                          << " from " << conn.remote_endpoint() << std::endl;
+                            });
+                            conn.on_disconnect([&]() {
+                                ping_timer.stop();
+                            });
+                            ping_timer.start(2s, [&]() {
+                                //'post' just to make all business logic in the same thread
+                                client.post([&]() {
+                                    conn.send(conn.protocol().create(protocol_message));
+                                });
+                            });
+                        })
+                      .on_fail([&](const std::string& e) {
+                          std::cerr << "Can't connect TCP client: " << e << std::endl;
+                          app.stop(1);
+                      })
+                      .connect(client.configurate_tcp()
+                                   .set_protocol<my_protocol>()
+                                   .set_address(port));
+              })
+        .run();
+```
+
+* Threads for business and logs:
+
+```cpp
+    server_lib::logger::instance().init_debug_log();
+
+    using namespace std::chrono_literals;
+
+    server_lib::event_loop task1;
+    server_lib::mt_event_loop task2(3);
+
+    task1.change_thread_name("task1");
+    task2.change_thread_name("task2");
+
+    auto&& app = server_lib::application::init();
+    return app
+        .on_start([&]() {
+            LOG_INFO("Application has started");
+
+            task1.start()
+                .post([]() {
+                    LOG_DEBUG("Task (one short)");
+                })
+                .repeat(1s,
+                        []() {
+                            LOG_DEBUG("Periodical task");
+                        });
+
+            task1.post(2s, []() {
+                LOG_DEBUG("Another task (one short)");
+            });
+
+            task2
+                .repeat(1s, []() {
+                    LOG_DEBUG("Periodical task for pull");
+                })
+                .repeat(500ms, []() {
+                    LOG_DEBUG("Another periodical task for pull");
+                })
+                .post(10s, [&]() {
+                    LOG_DEBUG("I'm stopping it now!");
+
+                    app.stop();
+                })
+                .start();
+        })
+        .on_exit([&](const int) {
+            LOG_INFO("Application has stopped");
+
+            //All entities will be destroyed here
+            task1.stop();
+            task2.stop();
+        })
+        .run();
 ```
 
 # Requirements

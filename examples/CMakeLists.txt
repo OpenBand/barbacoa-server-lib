@@ -42,6 +42,13 @@ target_link_libraries( app_block_pipe
                       server_lib
                       ${PLATFORM_SPECIFIC_LIBS})
 
+add_executable( thread_for_business_and_logs
+             "${CMAKE_CURRENT_SOURCE_DIR}/thread_for_business_and_logs.cpp" )
+add_dependencies( thread_for_business_and_logs server_lib )
+target_link_libraries( thread_for_business_and_logs
+                    server_lib
+                    ${PLATFORM_SPECIFIC_LIBS})
+
 if (UNIX)
    add_executable( crash_dump
                    "${CMAKE_CURRENT_SOURCE_DIR}/crash_dump.cpp"

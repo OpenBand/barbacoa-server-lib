@@ -192,6 +192,32 @@ public:
     }
 
     /**
+     * Callback that is invoked periodically after certain timeout
+     * in thread owned by this event_loop
+     *
+     * \param duration - Timeout (std::chrono::duration type)
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     * \return loop object
+     *
+     */
+    template <typename DurationType, typename Handler>
+    event_loop& repeat(DurationType&& duration, Handler&& callback)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum timer accuracy");
+
+        auto timer = std::make_shared<periodical_timer>(*this);
+        timer->start(duration, [timer, callback]() {
+            callback();
+        });
+
+        //All periodic timers will be destroyed when this thread stops
+        return *this;
+    }
+
+    /**
      * Waiting for callback with result endlessly
      *
      * \param initial_result - Result for case when callback can't be invoked
