@@ -20,16 +20,16 @@ namespace server_lib {
 namespace network {
     namespace web {
 
-        using ScopeRunner = server_lib::network::scope_runner;
-        using CaseInsensitiveMultimap = case_insensitive_multimap;
-        using HttpHeader = http_header;
-        using QueryString = query_string;
+        using __http_scope_runner = server_lib::network::scope_runner;
+        using __http_case_insensitive_multimap = case_insensitive_multimap;
+        using __http_header = http_header;
+        using __http_query_string = query_string;
 
-        class RequestMessage
+        class __http_request_message
         {
         public:
             /// Parse request line and header fields
-            static bool parse(std::istream& stream, std::string& method, std::string& path, std::string& query_string, std::string& version, CaseInsensitiveMultimap& header)
+            static bool parse(std::istream& stream, std::string& method, std::string& path, std::string& query_string, std::string& version, __http_case_insensitive_multimap& header)
             {
                 header.clear();
                 std::string line;
@@ -71,7 +71,7 @@ namespace network {
                         else
                             return false;
 
-                        header = HttpHeader::parse(stream);
+                        header = __http_header::parse(stream);
                     }
                     else
                         return false;
@@ -82,11 +82,11 @@ namespace network {
             }
         };
 
-        class ResponseMessage
+        class __http_response_message
         {
         public:
             /// Parse status line and header fields
-            static bool parse(std::istream& stream, std::string& version, std::string& status_code, CaseInsensitiveMultimap& header)
+            static bool parse(std::istream& stream, std::string& version, std::string& status_code, __http_case_insensitive_multimap& header)
             {
                 header.clear();
                 std::string line;
@@ -103,7 +103,7 @@ namespace network {
                     else
                         return false;
 
-                    header = HttpHeader::parse(stream);
+                    header = __http_header::parse(stream);
                 }
                 else
                     return false;

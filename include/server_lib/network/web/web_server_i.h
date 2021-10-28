@@ -11,7 +11,7 @@ namespace network {
         class web_request_i
         {
         public:
-            virtual uint64_t id() const = 0; // TODO: create id
+            virtual uint64_t id() const = 0;
 
             virtual size_t content_size() const = 0;
 

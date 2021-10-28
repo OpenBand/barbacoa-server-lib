@@ -92,6 +92,12 @@ namespace network {
                 return this->self();
             }
 
+        public:
+            T& set_worker_threads(uint8_t worker_threads)
+            {
+                return base_config<T>::set_worker_threads(worker_threads);
+            }
+
         protected:
             /// Set timeout on requests in seconds. Default value: 0 (no timeout).
             long _timeout_ms = 0;

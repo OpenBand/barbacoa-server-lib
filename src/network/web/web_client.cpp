@@ -33,11 +33,11 @@ namespace network {
         };
 
         template <typename socket_type>
-        class web_client_impl : public client_impl<socket_type>,
+        class web_client_impl : public http_client_impl<socket_type>,
                                 web_client_impl_i
         {
             using this_type = web_client_impl<socket_type>;
-            using base_type = client_impl<socket_type>;
+            using base_type = http_client_impl<socket_type>;
 
             using app_start_callback_type = web_client::start_callback_type;
             using app_fail_callback_type = web_client::fail_callback_type;
@@ -122,7 +122,7 @@ namespace network {
             }
 
             void on_response_impl(size_t request_id,
-                                  std::shared_ptr<typename base_type::Response> response,
+                                  std::shared_ptr<typename base_type::__http_response> response,
                                   const error_code& ec)
             {
                 std::unique_lock<std::mutex> lock(_response_guard);

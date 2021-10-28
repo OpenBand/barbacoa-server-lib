@@ -101,7 +101,7 @@ namespace network {
             }
 
         private:
-            void on_fail_impl(std::shared_ptr<typename base_type::Request> request,
+            void on_fail_impl(std::shared_ptr<typename base_type::__http_request> request,
                               const error_code& ec)
             {
                 if (_fail_callback)
@@ -109,8 +109,8 @@ namespace network {
             }
 
             void on_request_impl(size_t subscription_id,
-                                 std::shared_ptr<typename base_type::Response> response,
-                                 std::shared_ptr<typename base_type::Request> request)
+                                 std::shared_ptr<typename base_type::__http_response> response,
+                                 std::shared_ptr<typename base_type::__http_request> request)
             {
                 auto it = _request_callbacks.find(subscription_id);
                 if (_request_callbacks.end() != it)
