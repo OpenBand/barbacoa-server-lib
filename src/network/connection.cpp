@@ -63,7 +63,8 @@ namespace network {
         SRV_ASSERT(protocol);
 
         _protocol = std::make_unique<unit_builder_manager>();
-        _protocol->set_builder(protocol);
+        //initialize personal protocol state
+        _protocol->set_builder(std::shared_ptr<unit_builder_i>(protocol->clone()));
 
         _impl = std::make_unique<connection_impl>(*this, *_raw_connection);
         _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));

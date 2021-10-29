@@ -42,6 +42,7 @@ int main(void)
                             });
                             conn.on_disconnect([&]() {
                                 ping_timer.stop();
+                                app.stop(0);
                             });
                             ping_timer.start(2s, [&]() {
                                 //'post' just to make all business logic in the same thread

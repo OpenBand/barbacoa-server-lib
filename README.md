@@ -68,7 +68,10 @@ Let's free a developer for specific business tasks.
     return app.on_start([&]() {
                   auto port = 19999;
                   server.on_start([port]() {
-                            std::cout << "Online at " << port << ". Press ^C to stop"
+                            std::cout << "Online at " << port << ". "
+                                      << "Example to test: echo -n $'\\x02\\x48\\x69'|nc localhost 19999 -N"
+                                      << "\n\t or run simple_tcp_client."
+                                      << "\nPress ^C to stop"
                                       << "\n"
                                       << std::endl;
                         })
@@ -130,6 +133,7 @@ Let's free a developer for specific business tasks.
                             });
                             conn.on_disconnect([&]() {
                                 ping_timer.stop();
+                                app.stop(0);
                             });
                             ping_timer.start(2s, [&]() {
                                 //'post' just to make all business logic in the same thread

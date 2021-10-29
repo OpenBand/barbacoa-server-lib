@@ -28,7 +28,10 @@ int main(void)
     return app.on_start([&]() {
                   auto port = 19999;
                   server.on_start([port]() {
-                            std::cout << "Online at " << port << ". Press ^C to stop"
+                            std::cout << "Online at " << port << ". "
+                                      << "Example to test: echo -n $'\\x02\\x48\\x69'|nc localhost 19999 -N"
+                                      << "\n\t or run simple_tcp_client."
+                                      << "\nPress ^C to stop"
                                       << "\n"
                                       << std::endl;
                         })
