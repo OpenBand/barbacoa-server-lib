@@ -297,7 +297,7 @@ Now it was tested on 1.74.
 
 # Platforms
 
-This lib tested on Ubuntu 16.04-20.04, Windows 10. But there is no any platform-specific features at this library. And one could be compiling and launching library on any platform where Boost is working good enough
+This lib tested on Ubuntu 16.04-21.04, Windows 10. But there is no any platform-specific features at this library. And one could be compiling and launching library on any platform where Boost is working good enough
 
 # Building
 
@@ -320,8 +320,8 @@ Use CMake
 # Dependences
 
 * Boost, OpenSSL
-* [ssl-helpers](https://github.com/romualdo-bar/barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
-* [server-clib](https://github.com/romualdo-bar/barbacoa-server-clib.git) (Extension for POSIX based platforms only)
+* [ssl-helpers](../barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
+* [server-clib](../barbacoa-server-clib.git) (Extension for POSIX based platforms only)
 
 
 
