@@ -1,7 +1,12 @@
 #include "unix_local_client_impl.h"
+
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
 #include "unix_local_connection_impl.h"
 
 #include <server_lib/asserts.h>
+
+#include <boost/filesystem.hpp>
 
 #include "../../logger_set_internal_group.h"
 
@@ -11,6 +16,7 @@ namespace network {
 
         namespace asio = boost::asio;
         using error_code = boost::system::error_code;
+        namespace fs = boost::filesystem;
 
         unix_local_client_impl::~unix_local_client_impl()
         {
@@ -47,6 +53,8 @@ namespace network {
                         SRV_LOGC_TRACE("connecting");
 
                         SRV_ASSERT(_config);
+
+                        SRV_ASSERT(fs::exists(_config->socket_file()), "Socket not found");
 
                         auto connection = std::make_shared<unix_local_connection_impl>(_worker.service(),
                                                                                        _config->chunk_size());
@@ -126,3 +134,5 @@ namespace network {
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib
+
+#endif //SERVER_LIB_PLATFORM_LINUX

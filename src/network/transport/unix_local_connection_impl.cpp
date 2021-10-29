@@ -1,5 +1,7 @@
 #include "unix_local_connection_impl.h"
 
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
 #include <server_lib/asserts.h>
 
 #include "../../logger_set_internal_group.h"
@@ -34,3 +36,5 @@ namespace network {
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib
+
+#endif //SERVER_LIB_PLATFORM_LINUX

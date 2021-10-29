@@ -1,5 +1,9 @@
 #pragma once
 
+#include <server_lib/platform_config.h>
+
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
 #include "asio_connection_impl.h"
 
 namespace server_lib {
@@ -18,3 +22,5 @@ namespace network {
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib
+
+#endif

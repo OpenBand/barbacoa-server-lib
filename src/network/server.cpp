@@ -1,6 +1,7 @@
 #include <server_lib/network/server.h>
 
 #include "transport/tcp_server_impl.h"
+#include "transport/unix_local_server_impl.h"
 
 #include <server_lib/asserts.h>
 #include <server_lib/thread_sync_helpers.h>
@@ -27,22 +28,47 @@ namespace network {
         return {};
     }
 
-    server& server::start(const tcp_server_config& config)
+    unix_local_server_config server::configurate_unix_local()
+    {
+        return {};
+    }
+
+    std::shared_ptr<transport_layer::server_impl_i> server::create_impl(const tcp_server_config& config)
+    {
+        SRV_ASSERT(config.valid());
+
+        auto impl = std::make_shared<transport_layer::tcp_server_impl>();
+        impl->config(config);
+        _protocol = config.protocol();
+        return impl;
+    }
+
+    std::shared_ptr<transport_layer::server_impl_i> server::create_impl(const unix_local_server_config& config)
+    {
+        SRV_ASSERT(config.valid());
+
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+        auto impl = std::make_shared<transport_layer::unix_local_server_impl>();
+        impl->config(config);
+        _protocol = config.protocol();
+        return impl;
+#else
+        SRV_ERROR("Not implemented at current platform");
+        return {};
+#endif
+    }
+
+    server& server::start_impl(std::function<std::shared_ptr<transport_layer::server_impl_i>()>&& create_impl)
     {
         try
         {
             SRV_ASSERT(!is_running());
 
-            SRV_ASSERT(config.valid());
-
-            auto transport_impl = std::make_shared<transport_layer::tcp_server_impl>();
-            transport_impl->config(config);
-            _transport_layer = transport_impl;
-            _protocol = config._protocol;
+            _impl = create_impl();
 
             auto new_client_handler = std::bind(&server::on_new_client, this, std::placeholders::_1);
 
-            SRV_ASSERT(_transport_layer->start(_start_callback, new_client_handler, _fail_callback));
+            SRV_ASSERT(_impl->start(_start_callback, new_client_handler, _fail_callback));
         }
         catch (const std::exception& e)
         {
@@ -57,7 +83,7 @@ namespace network {
         if (!is_running())
             return false;
 
-        auto& loop = _transport_layer->loop();
+        auto& loop = _impl->loop();
         while (wait_until_stop && is_running())
         {
             loop.wait([]() {
@@ -97,9 +123,9 @@ namespace network {
 
         SRV_LOGC_TRACE(__FUNCTION__);
 
-        SRV_ASSERT(_transport_layer);
+        SRV_ASSERT(_impl);
 
-        _transport_layer->stop();
+        _impl->stop();
 
         std::unique_lock<std::mutex> lock(_connections_mutex);
         if (wait_for_removal)
@@ -117,22 +143,22 @@ namespace network {
         lock.unlock();
 
         _protocol.reset();
-        _transport_layer.reset();
+        _impl.reset();
 
         SRV_LOGC_TRACE("stopped");
     }
 
     bool server::is_running(void) const
     {
-        return _transport_layer && _transport_layer->is_running();
+        return _impl && _impl->is_running();
     }
 
     void server::post(common_callback_type&& callback)
     {
         if (is_running())
         {
-            SRV_ASSERT(_transport_layer);
-            _transport_layer->loop().post(std::move(callback));
+            SRV_ASSERT(_impl);
+            _impl->loop().post(std::move(callback));
         }
     }
 

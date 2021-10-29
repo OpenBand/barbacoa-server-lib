@@ -1,4 +1,7 @@
 #include "unix_local_server_impl.h"
+
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
 #include "unix_local_connection_impl.h"
 
 #include <server_lib/asserts.h>
@@ -13,6 +16,7 @@ namespace network {
 
         namespace asio = boost::asio;
         using error_code = boost::system::error_code;
+        namespace fs = boost::filesystem;
 
         unix_local_server_impl::unix_local_server_impl()
         {
@@ -58,9 +62,7 @@ namespace network {
                     {
                         SRV_LOGC_TRACE("starting");
 
-                        boost::filesystem::remove(_config->socket_file());
-
-                        using stream_protocol = boost::asio::local::stream_protocol;
+                        using stream_protocol = asio::local::stream_protocol;
                         _acceptor = std::unique_ptr<stream_protocol::acceptor>(new stream_protocol::acceptor(
                             *_workers->service(),
                             stream_protocol::endpoint(_config->socket_file())));
@@ -146,6 +148,8 @@ namespace network {
             {
                 error_code ec;
                 _acceptor->close(ec);
+
+                fs::remove(_config->socket_file());
             }
 
             SRV_ASSERT(!_workers->is_run() || !_workers->is_this_loop(),
@@ -168,3 +172,5 @@ namespace network {
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib
+
+#endif //SERVER_LIB_PLATFORM_LINUX

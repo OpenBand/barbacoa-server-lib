@@ -12,11 +12,15 @@ namespace network {
     namespace web {
         struct web_client_impl_i
         {
+            using app_start_callback_type = web_client::start_callback_type;
+            using app_fail_callback_type = web_client::fail_callback_type;
             using app_response_callback_type = web_client::response_callback_type;
 
             virtual ~web_client_impl_i() = default;
 
-            virtual bool start() = 0;
+            virtual bool start(const app_start_callback_type& start_callback,
+                               const app_fail_callback_type& fail_callback)
+                = 0;
 
             virtual void stop() = 0;
 
@@ -34,35 +38,21 @@ namespace network {
 
         template <typename socket_type>
         class web_client_impl : public http_client_impl<socket_type>,
-                                web_client_impl_i
+                                public web_client_impl_i
         {
             using this_type = web_client_impl<socket_type>;
             using base_type = http_client_impl<socket_type>;
-
-            using app_start_callback_type = web_client::start_callback_type;
-            using app_fail_callback_type = web_client::fail_callback_type;
 
             friend class web_client;
 
         public:
             using base_type::base_type;
 
-            void set_start_handler(const app_start_callback_type& callback)
+            bool start(const app_start_callback_type& start_callback,
+                       const app_fail_callback_type& fail_callback) override
             {
-                _start_callback = callback;
-            }
-
-            void set_fail_handler(const app_fail_callback_type& callback)
-            {
-                _fail_callback = callback;
-                this->on_start_error = std::bind(&this_type::on_start_fail_impl, this,
-                                                 std::placeholders::_1);
-                this->on_error = std::bind(&this_type::on_fail_impl, this,
-                                           std::placeholders::_1);
-            }
-
-            bool start() override
-            {
+                this->set_start_handler(start_callback);
+                this->set_fail_handler(fail_callback);
                 return base_type::start(_start_callback);
             }
 
@@ -117,6 +107,20 @@ namespace network {
             }
 
         private:
+            void set_start_handler(const app_start_callback_type& callback)
+            {
+                _start_callback = callback;
+            }
+
+            void set_fail_handler(const app_fail_callback_type& callback)
+            {
+                _fail_callback = callback;
+                this->on_start_error = std::bind(&this_type::on_start_fail_impl, this,
+                                                 std::placeholders::_1);
+                this->on_error = std::bind(&this_type::on_fail_impl, this,
+                                           std::placeholders::_1);
+            }
+
             void on_start_fail_impl(const std::string& err)
             {
                 if (_fail_callback)
@@ -188,41 +192,27 @@ namespace network {
             return { 443 };
         }
 
-        web_client& web_client::start(const web_client_config& config)
+        std::shared_ptr<web_client_impl_i> web_client::create_impl(const web_client_config& config)
         {
-            try
-            {
-                SRV_ASSERT(config.valid());
-                SRV_ASSERT(!_response_callback, "Response handler required");
-
-                auto impl = std::make_unique<web_client_impl<HTTP>>(config);
-                impl->set_start_handler(_start_callback);
-                impl->set_fail_handler(_fail_callback);
-                _impl.reset(impl.release());
-
-                SRV_ASSERT(_impl->start());
-            }
-            catch (const std::exception& e)
-            {
-                SRV_LOGC_ERROR(e.what());
-            }
-
-            return *this;
+            SRV_ASSERT(config.valid());
+            return std::make_shared<web_client_impl<HTTP>>(config);
         }
 
-        web_client& web_client::start(const websec_client_config& config)
+        std::shared_ptr<web_client_impl_i> web_client::create_impl(const websec_client_config& config)
+        {
+            SRV_ASSERT(config.valid());
+            return std::make_shared<web_client_impl<HTTPS>>(config);
+        }
+
+        web_client& web_client::start_impl(std::function<std::shared_ptr<web_client_impl_i>()>&& create_impl)
         {
             try
             {
-                SRV_ASSERT(config.valid());
                 SRV_ASSERT(!_response_callback, "Response handler required");
 
-                auto impl = std::make_unique<web_client_impl<HTTPS>>(config);
-                impl->set_start_handler(_start_callback);
-                impl->set_fail_handler(_fail_callback);
-                _impl.reset(impl.release());
+                _impl = create_impl();
 
-                SRV_ASSERT(_impl->start());
+                SRV_ASSERT(_impl->start(_start_callback, _fail_callback));
             }
             catch (const std::exception& e)
             {

@@ -1,5 +1,7 @@
 #include "network_common.h"
 
+#include <server_lib/platform_config.h>
+
 #if defined(SERVER_LIB_PLATFORM_LINUX)
 #include <sys/socket.h>
 #include <netinet/ip.h>

@@ -61,6 +61,11 @@ namespace network {
             return this->self();
         }
 
+        auto protocol() const
+        {
+            return _protocol;
+        }
+
         const std::string& worker_name() const
         {
             return _worker_name;
@@ -120,20 +125,12 @@ namespace network {
     protected:
         base_unix_local_socket_config() = default;
 
-    private:
-        T& set_worker_threads(uint8_t)
-        {
-            SRV_ERROR("Not supported for UNIX local socket client");
-            return this->self();
-        }
-
     public:
         T& set_socket_file(const std::string& socket_file)
         {
             namespace fs = boost::filesystem;
 
             SRV_ASSERT(!socket_file.empty());
-            SRV_ASSERT(fs::is_regular_file(socket_file));
             _socket_file = socket_file;
             return this->self();
         }

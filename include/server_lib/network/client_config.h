@@ -130,6 +130,13 @@ namespace network {
     protected:
         unix_local_client_config() = default;
 
+    private:
+        unix_local_client_config& set_worker_threads(uint8_t)
+        {
+            SRV_ERROR("Not supported for UNIX local socket client");
+            return *this;
+        }
+
     public:
         unix_local_client_config(const unix_local_client_config&) = default;
         ~unix_local_client_config() = default;

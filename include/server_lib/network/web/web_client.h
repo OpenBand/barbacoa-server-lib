@@ -24,13 +24,6 @@ namespace network {
 
             ~web_client();
 
-            /**
-             * Configurate
-             *
-             */
-            static web_client_config configurate();
-            static websec_client_config configurate_sec();
-
             using start_callback_type = std::function<void()>;
             using response_callback_type = std::function<void(
                 std::shared_ptr<web_response_i>,
@@ -39,16 +32,70 @@ namespace network {
                 const std::string&)>;
 
             /**
-             * Start the Web client
+             * Configurate Web client
              *
              */
-            web_client& start(const web_client_config&);
+            static web_client_config configurate();
 
             /**
-             * Start the encrypted Web client
+             * Configurate secure Web client
              *
              */
-            web_client& start(const websec_client_config&);
+            static websec_client_config configurate_sec();
+
+            /**
+             * Start Web client defined by configuration type
+             *
+             * \return this class
+             *
+             */
+            template <typename Config>
+            web_client& start(const Config& config)
+            {
+                return start_impl([this, &config]() {
+                    return create_impl(config);
+                });
+            }
+
+            /**
+             * Check if client started (ready to accept 'request')
+             *
+             */
+            bool is_running(void) const;
+
+            /**
+             * Waiting for Web client starting or stopping
+             *
+             * \param wait_until_stop if 'false' it waits only
+             * start process finishing
+             *
+             * \result if success
+             */
+            bool wait(bool wait_until_stop = false);
+
+            /**
+             * Stop client
+             *
+             */
+            void stop();
+
+            /**
+             * Set start callback
+             *
+             * \param callback
+             *
+             * \return this class
+             */
+            web_client& on_start(start_callback_type&& callback);
+
+            /**
+             * Set fail callback
+             *
+             * \param callback
+             *
+             * \return this class
+             */
+            web_client& on_fail(fail_callback_type&& callback);
 
             /**
              * Send request
@@ -59,6 +106,7 @@ namespace network {
              * \param callback
              * \param header
              *
+             * \return this class
              */
             web_client& request(const std::string& path,
                                 const std::string& method,
@@ -75,6 +123,7 @@ namespace network {
              * \param callback
              * \param header
              *
+             * \return this class
              */
             web_client& request(const std::string& path,
                                 const std::string& content,
@@ -88,31 +137,19 @@ namespace network {
              * \param callback
              * \param header
              *
+             * \return this class
              */
             web_client& request(const std::string& content,
                                 response_callback_type&& callback,
                                 const web_header& header = {});
 
-            /**
-             * Waiting for Web client starting or stopping
-             *
-             * \param wait_until_stop if 'false' it waits only
-             * start process finishing
-             *
-             * \result if success
-             */
-            bool wait(bool wait_until_stop = false);
-
-            web_client& on_start(start_callback_type&& callback);
-
-            web_client& on_fail(fail_callback_type&& callback);
-
-            void stop();
-
-            bool is_running(void) const;
-
         private:
-            std::unique_ptr<web_client_impl_i> _impl;
+            std::shared_ptr<web_client_impl_i> create_impl(const web_client_config&);
+            std::shared_ptr<web_client_impl_i> create_impl(const websec_client_config&);
+
+            web_client& start_impl(std::function<std::shared_ptr<web_client_impl_i>()>&&);
+
+            std::shared_ptr<web_client_impl_i> _impl;
 
             start_callback_type _start_callback = nullptr;
             response_callback_type _response_callback = nullptr;

@@ -11,9 +11,20 @@ namespace network {
     namespace web {
         struct web_server_impl_i
         {
+            using app_start_callback_type = web_server::start_callback_type;
+            using app_request_callback_type = web_server::request_callback_type;
+            using app_fail_callback_type = web_server::fail_callback_type;
+            using app_request_callbacks_type = std::map<std::string,
+                                                        std::map<std::string,
+                                                                 std::pair<size_t,
+                                                                           app_request_callback_type>>>;
+
             virtual ~web_server_impl_i() = default;
 
-            virtual bool start() = 0;
+            virtual bool start(const app_start_callback_type&,
+                               const app_fail_callback_type&,
+                               const app_request_callbacks_type&)
+                = 0;
 
             virtual void stop() = 0;
 
@@ -29,15 +40,44 @@ namespace network {
             using this_type = web_server_impl<socket_type>;
             using base_type = server_impl<socket_type>;
 
-            using app_start_callback_type = web_server::start_callback_type;
-            using app_request_callback_type = web_server::request_callback_type;
-            using app_fail_callback_type = web_server::fail_callback_type;
-
             friend class web_server;
 
         public:
             using base_type::base_type;
 
+            bool start(const app_start_callback_type& start_callback,
+                       const app_fail_callback_type& fail_callback,
+                       const app_request_callbacks_type& request_callbacks) override
+            {
+                this->set_start_handler(start_callback);
+                this->set_fail_handler(fail_callback);
+                this->set_request_handler(request_callbacks);
+                return base_type::start(_start_callback);
+            }
+
+            void stop() override
+            {
+                if (this->_workers)
+                {
+                    SRV_ASSERT(!this->_workers->is_run() || !this->_workers->is_this_loop(),
+                               "Can't initiate thread stop in the same thread. It is the way to deadlock");
+                }
+
+                base_type::stop();
+            }
+
+            bool is_running() const override
+            {
+                return base_type::is_running();
+            }
+
+            event_loop& loop() override
+            {
+                SRV_ASSERT(this->_workers);
+                return *this->_workers;
+            }
+
+        private:
             void set_start_handler(const app_start_callback_type& callback)
             {
                 _start_callback = callback;
@@ -75,34 +115,6 @@ namespace network {
                 }
             }
 
-            bool start() override
-            {
-                return base_type::start(_start_callback);
-            }
-
-            void stop() override
-            {
-                if (this->_workers)
-                {
-                    SRV_ASSERT(!this->_workers->is_run() || !this->_workers->is_this_loop(),
-                               "Can't initiate thread stop in the same thread. It is the way to deadlock");
-                }
-
-                base_type::stop();
-            }
-
-            bool is_running() const override
-            {
-                return base_type::is_running();
-            }
-
-            event_loop& loop() override
-            {
-                SRV_ASSERT(this->_workers);
-                return *this->_workers;
-            }
-
-        private:
             void on_start_fail_impl(const std::string& err)
             {
                 if (_fail_callback)
@@ -159,47 +171,29 @@ namespace network {
             return { 443 };
         }
 
-        web_server& web_server::start(const web_server_config& config)
+        std::shared_ptr<web_server_impl_i> web_server::create_impl(const web_server_config& config)
         {
-            try
-            {
-                SRV_ASSERT(!is_running());
-
-                SRV_ASSERT(config.valid());
-                SRV_ASSERT(!_request_callbacks.empty(), "Request handler required");
-
-                auto impl = std::make_unique<web_server_impl<HTTP>>(config);
-                impl->set_start_handler(_start_callback);
-                impl->set_fail_handler(_fail_callback);
-                impl->set_request_handler(_request_callbacks);
-                _impl.reset(impl.release());
-
-                SRV_ASSERT(_impl->start());
-            }
-            catch (const std::exception& e)
-            {
-                SRV_LOGC_ERROR(e.what());
-            }
-
-            return *this;
+            SRV_ASSERT(config.valid());
+            return std::make_unique<web_server_impl<HTTP>>(config);
         }
 
-        web_server& web_server::start(const websec_server_config& config)
+        std::shared_ptr<web_server_impl_i> web_server::create_impl(const websec_server_config& config)
+        {
+            SRV_ASSERT(config.valid());
+            return std::make_unique<web_server_impl<HTTPS>>(config);
+        }
+
+        web_server& web_server::start_impl(std::function<std::shared_ptr<web_server_impl_i>()>&& create_impl)
         {
             try
             {
                 SRV_ASSERT(!is_running());
 
-                SRV_ASSERT(config.valid());
                 SRV_ASSERT(!_request_callbacks.empty(), "Request handler required");
 
-                auto impl = std::make_unique<web_server_impl<HTTPS>>(config);
-                impl->set_start_handler(_start_callback);
-                impl->set_fail_handler(_fail_callback);
-                impl->set_request_handler(_request_callbacks);
-                _impl.reset(impl.release());
+                _impl = create_impl();
 
-                SRV_ASSERT(_impl->start());
+                SRV_ASSERT(_impl->start(_start_callback, _fail_callback, _request_callbacks));
             }
             catch (const std::exception& e)
             {

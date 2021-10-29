@@ -41,7 +41,7 @@ namespace network {
         SRV_ASSERT(config.valid());
         auto impl = std::make_shared<transport_layer::tcp_client_impl>();
         impl->config(config);
-        _protocol = config._protocol;
+        _protocol = config.protocol();
         return impl;
     }
 
@@ -50,7 +50,7 @@ namespace network {
         SRV_ASSERT(config.valid());
         auto impl = std::make_shared<transport_layer::unix_local_client_impl>();
         impl->config(config);
-        _protocol = config._protocol;
+        _protocol = config.protocol();
         return impl;
     }
 

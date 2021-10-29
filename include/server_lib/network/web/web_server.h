@@ -24,13 +24,6 @@ namespace network {
 
             ~web_server();
 
-            /**
-             * Configurate
-             *
-             */
-            static web_server_config configurate();
-            static websec_server_config configurate_sec();
-
             using start_callback_type = std::function<void()>;
             using request_callback_type = std::function<void(
                 std::shared_ptr<web_request_i>,
@@ -40,16 +33,36 @@ namespace network {
                 const std::string&)>;
 
             /**
-             * Start the Web server
+             * Configurate Web server
              *
              */
-            web_server& start(const web_server_config&);
+            static web_server_config configurate();
 
             /**
-             * Start the encrypted Web server
+             * Configurate secure Web server
              *
              */
-            web_server& start(const websec_server_config&);
+            static websec_server_config configurate_sec();
+
+            /**
+             * Start Web server defined by configuration type
+             *
+             * \return this class
+             *
+             */
+            template <typename Config>
+            web_server& start(const Config& config)
+            {
+                return start_impl([this, &config]() {
+                    return create_impl(config);
+                });
+            }
+
+            /**
+             * Check if server started (ready to accept requests)
+             *
+             */
+            bool is_running(void) const;
 
             /**
              * Waiting for Web server starting or stopping
@@ -61,8 +74,28 @@ namespace network {
              */
             bool wait(bool wait_until_stop = false);
 
+            /**
+             * Stop server
+             *
+             */
+            void stop();
+
+            /**
+             * Set start callback
+             *
+             * \param callback
+             *
+             * \return this class
+             */
             web_server& on_start(start_callback_type&& callback);
 
+            /**
+             * Set fail callback. For start problem or for particular request
+             *
+             * \param callback
+             *
+             * \return this class
+             */
             web_server& on_fail(fail_callback_type&& callback);
 
             /**
@@ -92,12 +125,13 @@ namespace network {
              */
             web_server& on_request(request_callback_type&& callback);
 
-            void stop();
-
-            bool is_running(void) const;
-
         private:
-            std::unique_ptr<web_server_impl_i> _impl;
+            std::shared_ptr<web_server_impl_i> create_impl(const web_server_config&);
+            std::shared_ptr<web_server_impl_i> create_impl(const websec_server_config&);
+
+            web_server& start_impl(std::function<std::shared_ptr<web_server_impl_i>()>&&);
+
+            std::shared_ptr<web_server_impl_i> _impl;
 
             start_callback_type _start_callback = nullptr;
             fail_callback_type _fail_callback = nullptr;

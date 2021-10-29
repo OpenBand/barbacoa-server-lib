@@ -107,7 +107,7 @@ namespace network {
      */
     class unix_local_server_config : public base_unix_local_socket_config<unix_local_server_config>
     {
-        friend class client;
+        friend class server;
 
     protected:
         unix_local_server_config() = default;
@@ -115,6 +115,17 @@ namespace network {
     public:
         unix_local_server_config(const unix_local_server_config&) = default;
         ~unix_local_server_config() = default;
+
+        /**
+         * Create file to set as socket_file in config
+         *
+         * \param folder_path - Destination for new file.
+         * By default /dev/shm (Linux) or system temporary folder
+         *
+         * \return  path
+         *
+         */
+        static std::string preserve_socket_file(const std::string& folder_path = {});
     };
 
 } // namespace network

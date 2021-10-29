@@ -28,6 +28,10 @@ namespace network {
 
         ~client();
 
+        using connect_callback_type = std::function<void(connection&)>;
+        using fail_callback_type = std::function<void(const std::string&)>;
+        using common_callback_type = std::function<void()>;
+
         /**
          * Configurate TCP client
          *
@@ -39,26 +43,6 @@ namespace network {
          *
          */
         static unix_local_client_config configurate_unix_local();
-
-        /**
-         * Connection callback
-         * Return connection object
-         *
-         */
-        using connect_callback_type = std::function<void(connection&)>;
-
-        /**
-         * Fail callback
-         * Return error if connection failed asynchronously
-         *
-         */
-        using fail_callback_type = std::function<void(const std::string&)>;
-
-        /**
-         * Common callback
-         *
-         */
-        using common_callback_type = std::function<void()>;
 
         /**
          * Start client defined by configuration type
@@ -74,10 +58,28 @@ namespace network {
             });
         }
 
+        /**
+         * Set connection callback (connection was established)
+         *
+         * \param callback
+         *
+         * \return this class
+         */
         client& on_connect(connect_callback_type&& callback);
 
+        /**
+         * Set fail callback (connection was failed)
+         *
+         * \param callback
+         *
+         * \return this class
+         */
         client& on_fail(fail_callback_type&& callback);
 
+        /**
+         * Invoke callback in connection worker thread
+         *
+         */
         void post(common_callback_type&& callback);
 
     private:
@@ -90,9 +92,10 @@ namespace network {
         void on_diconnect_impl(size_t);
         void clear();
 
+        std::shared_ptr<transport_layer::client_impl_i> _impl;
+
         connect_callback_type _connect_callback = nullptr;
         fail_callback_type _fail_callback = nullptr;
-        std::shared_ptr<transport_layer::client_impl_i> _impl;
         std::shared_ptr<unit_builder_i> _protocol;
         std::shared_ptr<connection> _connection;
     };

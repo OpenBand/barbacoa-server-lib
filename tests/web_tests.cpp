@@ -44,6 +44,9 @@ namespace tests {
 
         web_server server;
 
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
         auto server_start = [&]() {
             LOG_TRACE("********* server_start");
         };
@@ -77,7 +80,7 @@ namespace tests {
                           .on_fail(server_fail)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -120,7 +123,7 @@ namespace tests {
                           .on_fail(client_fail)
                           .start(
                               client.configurate()
-                                  .set_address(get_default_address(), get_default_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!C")
                                   .set_timeout(5s)
                                   .set_timeout_connect(1s)
@@ -139,6 +142,9 @@ namespace tests {
         using namespace web;
 
         web_server server;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
 
         auto server_request_callback = [](
                                            std::shared_ptr<web_request_i> request,
@@ -160,7 +166,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -202,7 +208,7 @@ namespace tests {
         BOOST_REQUIRE(client
                           .start(
                               client.configurate()
-                                  .set_address(get_default_address(), get_default_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!C")
                                   .set_timeout(5s)
                                   .set_timeout_connect(1s)
@@ -234,6 +240,9 @@ namespace tests {
 
         web_server server;
 
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
         auto server_request_callback = [](
                                            std::shared_ptr<web_request_i> request,
                                            std::shared_ptr<web_server_response_i> response) {
@@ -255,7 +264,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -297,7 +306,7 @@ namespace tests {
         BOOST_REQUIRE(client
                           .start(
                               client.configurate()
-                                  .set_address(get_default_address(), get_default_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!C")
                                   .set_timeout(5s)
                                   .set_timeout_connect(1s)
@@ -329,6 +338,9 @@ namespace tests {
 
         web_server server;
 
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
         auto server_request_callback = [](
                                            std::shared_ptr<web_request_i> request,
                                            std::shared_ptr<web_server_response_i> response) {
@@ -353,7 +365,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -405,7 +417,7 @@ namespace tests {
         BOOST_REQUIRE(client
                           .start(
                               client.configurate()
-                                  .set_address(get_default_address(), get_default_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!C")
                                   .set_timeout(std::chrono::seconds(REQUESTS))
                                   .set_timeout_connect(1s)
@@ -433,6 +445,9 @@ namespace tests {
         const std::string BAD_REQUEST = "Bad";
 
         web_server server;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
 
         auto server_request_callback = [&](
                                            std::shared_ptr<web_request_i> request,
@@ -471,7 +486,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -524,7 +539,7 @@ namespace tests {
         BOOST_REQUIRE(client
                           .start(
                               client.configurate()
-                                  .set_address(get_default_address(), get_default_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!C")
                                   .set_timeout(5s)
                                   .set_timeout_connect(1s)
@@ -544,6 +559,9 @@ namespace tests {
         using namespace web;
 
         web_server server;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
 
         auto server_request_callback = [](
                                            std::shared_ptr<web_request_i> request,
@@ -566,7 +584,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -609,7 +627,7 @@ namespace tests {
             BOOST_REQUIRE(client
                               ->start(
                                   client->configurate()
-                                      .set_address(get_default_address(), get_default_port())
+                                      .set_address(host, port)
                                       .set_worker_name("!C")
                                       .set_timeout(5s)
                                       .set_timeout_connect(1s)
@@ -637,6 +655,9 @@ namespace tests {
 
         web_server server;
 
+        std::string host = get_default_address();
+        auto port = get_free_port();
+
         auto server_request_callback = [](
                                            std::shared_ptr<web_request_i> request,
                                            std::shared_ptr<web_server_response_i> response) {
@@ -658,7 +679,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_worker_threads(5)
                                   .set_timeout_request(5s)
@@ -699,7 +720,7 @@ namespace tests {
 
         BOOST_REQUIRE(client.start(
                                 client.configurate()
-                                    .set_address(get_default_address(), get_default_port())
+                                    .set_address(host, port)
                                     .set_worker_name("!C")
                                     .set_worker_threads(3)
                                     .set_timeout(5s)
@@ -728,6 +749,9 @@ namespace tests {
 
         web_server server;
         event_loop server_postpone_th;
+
+        std::string host = get_default_address();
+        auto port = get_free_port();
 
         BOOST_REQUIRE_NO_THROW(server_postpone_th.start().wait());
 
@@ -773,7 +797,7 @@ namespace tests {
                           .on_request(RESOURCE_PATH, server_request_callback)
                           .start(
                               server.configurate()
-                                  .set_address(get_default_address(), get_free_port())
+                                  .set_address(host, port)
                                   .set_worker_name("!S")
                                   .set_timeout_request(5s)
                                   .set_timeout_content(10s)
@@ -813,7 +837,7 @@ namespace tests {
 
         BOOST_REQUIRE(client.start(
                                 client.configurate()
-                                    .set_address(get_default_address(), get_default_port())
+                                    .set_address(host, port)
                                     .set_worker_name("!C")
                                     .set_timeout(5s)
                                     .set_timeout_connect(1s)

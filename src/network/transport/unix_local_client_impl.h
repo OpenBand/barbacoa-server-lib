@@ -1,5 +1,9 @@
 #pragma once
 
+#include <server_lib/platform_config.h>
+
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+
 #include "client_impl_i.h"
 
 #include <server_lib/network/client_config.h>
@@ -36,3 +40,5 @@ namespace network {
     } // namespace transport_layer
 } // namespace network
 } // namespace server_lib
+
+#endif //SERVER_LIB_PLATFORM_LINUX
