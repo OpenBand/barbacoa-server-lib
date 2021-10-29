@@ -18,6 +18,7 @@ int main(void)
 #endif
 
     using namespace std::chrono_literals;
+
     using connection = server_lib::network::connection;
     using unit = server_lib::network::unit;
 

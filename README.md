@@ -30,24 +30,28 @@ Let's free a developer for specific business tasks.
                                       << "\n"
                                       << std::endl;
                         })
-                      .on_request("/my", "GET", [&](std::shared_ptr<request_type> request, std::shared_ptr<response_type> response) {
-                          std::string message("You are #");
-                          message += std::to_string(request->id());
-                          message += ". ";
-                          message += "Service has tested\n";
+                      .on_request("/my", "GET",
+                                  [&](std::shared_ptr<request_type> request,
+                                      std::shared_ptr<response_type> response) {
+                                      std::string message("You are #");
+                                      message += std::to_string(request->id());
+                                      message += ". ";
+                                      message += "Service has tested\n";
 
-                          response->post(web::http_status_code::success_ok,
-                                         message,
-                                         { { "Content-Type", "text/plain" } });
-                          response->close_connection_after_response();
-                      })
-                      .on_fail([&](std::shared_ptr<request_type> request, const std::string& e) {
-                          if (!request)
-                          {
-                              std::cerr << "Can't start Web server: " << e << std::endl;
-                              app.stop(1);
-                          }
-                      })
+                                      response->post(web::http_status_code::success_ok,
+                                                     message,
+                                                     { { "Content-Type", "text/plain" } });
+                                      response->close_connection_after_response();
+                                  })
+                      .on_fail(
+                          [&](std::shared_ptr<request_type> request,
+                              const std::string& e) {
+                              if (!request)
+                              {
+                                  std::cerr << "Can't start Web server: " << e << std::endl;
+                                  app.stop(1);
+                              }
+                          })
                       .start(server.configurate().set_address(port));
               })
         .run();
@@ -69,7 +73,8 @@ Let's free a developer for specific business tasks.
                   auto port = 19999;
                   server.on_start([port]() {
                             std::cout << "Online at " << port << ". "
-                                      << "Example to test: echo -n $'\\x02\\x48\\x69'|nc localhost 19999 -N"
+                                      << "Example to test: "
+                                      << "echo -n $'\\x02\\x48\\x69'|nc localhost 19999 -N"
                                       << "\n\t or run simple_tcp_client."
                                       << "\nPress ^C to stop"
                                       << "\n"
@@ -212,7 +217,7 @@ Let's free a developer for specific business tasks.
 
 ```cpp
     using namespace std::chrono_literals;
-    
+
     using connection = server_lib::network::connection;
     using unit = server_lib::network::unit;
 
@@ -230,7 +235,9 @@ Let's free a developer for specific business tasks.
     auto&& app = server_lib::application::init();
     return app.on_start([&]() {
                   auto notify = [&](const std::shared_ptr<connection>& client) {
-                      client->send(client->protocol().create(std::to_string(100 - progress_left.load()) + "%\n"));
+                      client->send(
+                          client->protocol()
+                              .create(std::to_string(100 - progress_left.load()) + "%\n"));
                   };
                   server.on_start([&, notify]() {
                             std::cout << "Online at " << socket_file << ". "
@@ -255,18 +262,19 @@ Let's free a developer for specific business tasks.
                                     app.stop();
                             });
                         })
-                      .on_new_connection([&, notify](const std::shared_ptr<connection>& conn) {
-                          conn->on_disconnect([&](uint64_t conn_id) {
-                              std::lock_guard<std::mutex> lock(clients_guard);
-                              clients.erase(conn_id);
-                          });
-                          {
-                              std::lock_guard<std::mutex> lock(clients_guard);
-                              clients.emplace(conn->id(), conn);
-                          }
-                          // notify new connection to refresh it progress
-                          notify(conn);
-                      })
+                      .on_new_connection(
+                          [&, notify](const std::shared_ptr<connection>& conn) {
+                              conn->on_disconnect([&](uint64_t conn_id) {
+                                  std::lock_guard<std::mutex> lock(clients_guard);
+                                  clients.erase(conn_id);
+                              });
+                              {
+                                  std::lock_guard<std::mutex> lock(clients_guard);
+                                  clients.emplace(conn->id(), conn);
+                              }
+                              // notify new connection to refresh it progress
+                              notify(conn);
+                          })
                       .on_fail([&](const std::string& e) {
                           std::cerr << "Can't start server: " << e << std::endl;
                           app.stop(1);

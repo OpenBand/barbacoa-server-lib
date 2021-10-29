@@ -30,24 +30,28 @@ int main(void)
                                       << "\n"
                                       << std::endl;
                         })
-                      .on_request("/my", "GET", [&](std::shared_ptr<request_type> request, std::shared_ptr<response_type> response) {
-                          std::string message("You are #");
-                          message += std::to_string(request->id());
-                          message += ". ";
-                          message += "Service has tested\n";
+                      .on_request("/my", "GET",
+                                  [&](std::shared_ptr<request_type> request,
+                                      std::shared_ptr<response_type> response) {
+                                      std::string message("You are #");
+                                      message += std::to_string(request->id());
+                                      message += ". ";
+                                      message += "Service has tested\n";
 
-                          response->post(web::http_status_code::success_ok,
-                                         message,
-                                         { { "Content-Type", "text/plain" } });
-                          response->close_connection_after_response();
-                      })
-                      .on_fail([&](std::shared_ptr<request_type> request, const std::string& e) {
-                          if (!request)
-                          {
-                              std::cerr << "Can't start Web server: " << e << std::endl;
-                              app.stop(1);
-                          }
-                      })
+                                      response->post(web::http_status_code::success_ok,
+                                                     message,
+                                                     { { "Content-Type", "text/plain" } });
+                                      response->close_connection_after_response();
+                                  })
+                      .on_fail(
+                          [&](std::shared_ptr<request_type> request,
+                              const std::string& e) {
+                              if (!request)
+                              {
+                                  std::cerr << "Can't start Web server: " << e << std::endl;
+                                  app.stop(1);
+                              }
+                          })
                       .start(server.configurate().set_address(port));
               })
         .run();

@@ -21,6 +21,7 @@ int main(void)
 #endif
 
     using namespace std::chrono_literals;
+
     using connection = server_lib::network::connection;
     using unit = server_lib::network::unit;
 
@@ -38,7 +39,9 @@ int main(void)
     auto&& app = server_lib::application::init();
     return app.on_start([&]() {
                   auto notify = [&](const std::shared_ptr<connection>& client) {
-                      client->send(client->protocol().create(std::to_string(100 - progress_left.load()) + "%\n"));
+                      client->send(
+                          client->protocol()
+                              .create(std::to_string(100 - progress_left.load()) + "%\n"));
                   };
                   server.on_start([&, notify]() {
                             std::cout << "Online at " << socket_file << ". "
@@ -63,18 +66,19 @@ int main(void)
                                     app.stop();
                             });
                         })
-                      .on_new_connection([&, notify](const std::shared_ptr<connection>& conn) {
-                          conn->on_disconnect([&](uint64_t conn_id) {
-                              std::lock_guard<std::mutex> lock(clients_guard);
-                              clients.erase(conn_id);
-                          });
-                          {
-                              std::lock_guard<std::mutex> lock(clients_guard);
-                              clients.emplace(conn->id(), conn);
-                          }
-                          // notify new connection to refresh it progress
-                          notify(conn);
-                      })
+                      .on_new_connection(
+                          [&, notify](const std::shared_ptr<connection>& conn) {
+                              conn->on_disconnect([&](uint64_t conn_id) {
+                                  std::lock_guard<std::mutex> lock(clients_guard);
+                                  clients.erase(conn_id);
+                              });
+                              {
+                                  std::lock_guard<std::mutex> lock(clients_guard);
+                                  clients.emplace(conn->id(), conn);
+                              }
+                              // notify new connection to refresh it progress
+                              notify(conn);
+                          })
                       .on_fail([&](const std::string& e) {
                           std::cerr << "Can't start server: " << e << std::endl;
                           app.stop(1);
