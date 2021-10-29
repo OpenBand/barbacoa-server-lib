@@ -320,8 +320,8 @@ Use CMake
 # Dependences
 
 * Boost, OpenSSL
-* [ssl-helpers](../barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
-* [server-clib](../barbacoa-server-clib.git) (Extension for POSIX based platforms only)
+* [ssl-helpers](https://github.com/Andrei-Masilevich/barbacoa-ssl-helpers.git) (OpenSSL C++ extension)
+* [server-clib](https://github.com/Andrei-Masilevich/barbacoa-server-clib.git) (Extension for POSIX based platforms only)
 
 
 
