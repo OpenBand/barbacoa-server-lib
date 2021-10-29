@@ -125,7 +125,7 @@ namespace network {
                         if (_new_connection_callback)
                             _new_connection_callback(connection);
                     }
-                    else if (_fail_callback)
+                    else if (ec != asio::error::operation_aborted && _fail_callback)
                         _fail_callback(ec.message());
                 }
                 catch (const std::exception& e)

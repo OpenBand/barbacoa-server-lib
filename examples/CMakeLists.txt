@@ -50,11 +50,18 @@ target_link_libraries( thread_for_business_and_logs
                     ${PLATFORM_SPECIFIC_LIBS})
 
 if (UNIX)
-   add_executable( crash_dump
+    add_executable( crash_dump
                    "${CMAKE_CURRENT_SOURCE_DIR}/crash_dump.cpp"
                    "${CMAKE_CURRENT_SOURCE_DIR}/err_emulator.cpp" )
-   add_dependencies( crash_dump server_lib )
-   target_link_libraries( crash_dump
+    add_dependencies( crash_dump server_lib )
+    target_link_libraries( crash_dump
                           server_lib
                           ${PLATFORM_SPECIFIC_LIBS})
+
+    add_executable( progress_bar
+                  "${CMAKE_CURRENT_SOURCE_DIR}/progress_bar.cpp" )
+    add_dependencies( progress_bar server_lib )
+    target_link_libraries( progress_bar
+                         server_lib
+                         ${PLATFORM_SPECIFIC_LIBS})
 endif() # UNIX
