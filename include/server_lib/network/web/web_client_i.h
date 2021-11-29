@@ -13,7 +13,7 @@ namespace network {
         public:
             virtual size_t content_size() const = 0;
 
-            ///acquire all data from inbound stream
+            /// Acquire all data from inbound stream.
             virtual std::string load_content() = 0;
 
             // TODO: acquire data partially (resumed downloads)

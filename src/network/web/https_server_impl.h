@@ -41,7 +41,7 @@ namespace network {
             {
                 if (_set_session_id_context)
                 {
-                    // Creating _session_id_context from address:port but reversed due to small SSL_MAX_SSL_SESSION_ID_LENGTH
+                    // Create _session_id_context from address:port but reversed due to small SSL_MAX_SSL_SESSION_ID_LENGTH
                     _session_id_context = std::to_string(_config.port()) + ':';
                     _session_id_context.append(_config.address().rbegin(), _config.address().rend());
                     SSL_CTX_set_session_id_context(_context.native_handle(), reinterpret_cast<const unsigned char*>(_session_id_context.data()),

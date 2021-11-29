@@ -65,7 +65,7 @@ namespace tests {
             server_connection.reset();
 
             client_th.post([&] {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -98,7 +98,7 @@ namespace tests {
             {
                 conn.disconnect();
 
-                //It should not broke connection. But nothing will be sent
+                // It should not broke connection. But nothing will be sent
                 BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(pong_cmd)));
             }
         };
@@ -174,7 +174,7 @@ namespace tests {
 
             conn.disconnect();
 
-            //It should not broke connection. But nothing will be sent
+            // It should not broke connection. But nothing will be sent
             BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(ping_cmd)));
         };
 
@@ -212,7 +212,7 @@ namespace tests {
             LOG_TRACE("********* client_disconnect_callback");
 
             client_th.post([&] {
-                // done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -321,7 +321,7 @@ namespace tests {
             LOG_TRACE("********* client_disconnect_callback");
 
             client_th.post([&] {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -381,7 +381,7 @@ namespace tests {
             LOG_TRACE("********* client_fail_callback: " << err);
 
             client_th.post([&] {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -490,7 +490,7 @@ namespace tests {
             conn.disconnect();
 
             client_th.post([&] {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -508,11 +508,12 @@ namespace tests {
         auto client_run = [&]() {
             LOG_TRACE("********* client run");
 
+            // First attempt will be aborted immediately.
             LOG_TRACE("********* ATTEMPT #1");
-            //first attempt will be aborted immediately
             BOOST_REQUIRE(client.connect(*config));
+
+            // Second attempt will be aborted asynchronously if it was connected successfully.
             LOG_TRACE("********* ATTEMPT #2");
-            //second attempt will be aborted asynchronously if it was connected successfully
             BOOST_REQUIRE(client.on_connect([&](connection& conn) {
                                     conn.on_disconnect(client_disconnect_callback);
                                     client_th.post([&] {
@@ -575,7 +576,7 @@ namespace tests {
             LOG_TRACE("********* server_fail: " << err);
 
             test_th.post([&] {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -649,7 +650,7 @@ namespace tests {
             if (waiting_clients.load() < 1)
             {
                 client_th.post([&] {
-                    //done test
+                    // Finish test
                     std::unique_lock<std::mutex> lck(done_test_cond_guard);
                     done_test = true;
                     done_test_cond.notify_one();
@@ -681,7 +682,7 @@ namespace tests {
             {
                 conn.disconnect();
 
-                //It should not broke connection. But nothing will be sent
+                // It should not broke connection. But nothing will be sent
                 BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(pong_cmd)));
             }
         };
@@ -779,7 +780,7 @@ namespace tests {
 
             connection->on_receive(server_recieve_callback);
 
-            //client will initiate conversation
+            // Client will initiate conversation
         };
 
         auto client_recieve_callback = [&](connection& conn, unit& unit) {
@@ -826,9 +827,9 @@ namespace tests {
                                                         .set_worker_threads(2))
                                                 .wait(true));
 
-                              //server has stopped here and this thread become unfrozen
+                              // Server has stopped here and this thread become unfrozen.
                               server_launcher_th.post([&]() {
-                                  //done test
+                                  // Finish test
                                   std::unique_lock<std::mutex> lck(done_test_cond_guard);
                                   done_test = true;
                                   done_test_cond.notify_one();

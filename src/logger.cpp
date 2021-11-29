@@ -335,7 +335,7 @@ void logger::write(log_message& msg)
         {
             for (const auto& appender : _appenders)
             {
-                appender(msg); //can throw exception
+                appender(msg); // can throw exception
             }
         }
     }

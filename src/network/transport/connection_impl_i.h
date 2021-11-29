@@ -8,9 +8,9 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        struct connection_impl_i
+        struct __connection_impl_i
         {
-            virtual ~connection_impl_i() = default;
+            virtual ~__connection_impl_i() = default;
 
             virtual uint64_t id() const = 0;
 

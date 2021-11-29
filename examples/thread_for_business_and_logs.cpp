@@ -51,7 +51,7 @@ int main(void)
         .on_exit([&](const int) {
             LOG_INFO("Application has stopped");
 
-            //All entities will be destroyed here
+            // All entities will be destroyed here.
             task1.stop();
             task2.stop();
         })

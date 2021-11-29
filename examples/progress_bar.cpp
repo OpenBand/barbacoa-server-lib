@@ -51,17 +51,17 @@ int main(void)
                                       << std::endl;
 
                             progress_timer.start(1s, [&]() {
-                                // do smth., change progress
+                                // Do smth., change progress.
                                 std::atomic_fetch_sub<int>(&progress_left, 1);
 
-                                // notify current connections
+                                // Notify current connections.
                                 std::lock_guard<std::mutex> lock(clients_guard);
                                 for (auto&& item : clients)
                                 {
                                     notify(item.second);
                                 }
 
-                                //stop application when 100% reached
+                                // Stop application when 100% reached.
                                 if (progress_left.load() < 1)
                                     app.stop();
                             });
@@ -76,7 +76,7 @@ int main(void)
                                   std::lock_guard<std::mutex> lock(clients_guard);
                                   clients.emplace(conn->id(), conn);
                               }
-                              // notify new connection to refresh it progress
+                              // Notify new connection to refresh it progress.
                               notify(conn);
                           })
                       .on_fail([&](const std::string& e) {
@@ -88,7 +88,7 @@ int main(void)
                                  .set_socket_file(socket_file));
               })
         .on_exit([&](const int) {
-            //to prevent EOF errors (for pure logs)
+            // Prevent EOF errors (for pure logs)
             server.stop(true);
         })
         .run();

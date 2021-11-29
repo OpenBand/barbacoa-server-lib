@@ -169,7 +169,7 @@ void event_loop::stop()
     {
         _is_running = false;
 
-        _loop_maintainer = boost::none; //finishing 'infinite loop'
+        _loop_maintainer = boost::none; // finishing 'infinite loop'
         _pservice->stop();
 
         if (_thread && _thread->joinable())

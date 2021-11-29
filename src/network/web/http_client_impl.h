@@ -62,6 +62,7 @@ namespace network {
                 {
                     return _streambuf.size();
                 }
+
                 /// Convenience function to return std::string. The stream buffer is consumed.
                 std::string string()
                 {

@@ -12,7 +12,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
         struct server_impl_i;
-        struct connection_impl_i;
+        struct __connection_impl_i;
     } // namespace transport_layer
 
     /**
@@ -123,7 +123,7 @@ namespace network {
 
         server& start_impl(std::function<std::shared_ptr<transport_layer::server_impl_i>()>&&);
 
-        void on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>&);
+        void on_new_client(const std::shared_ptr<transport_layer::__connection_impl_i>&);
         void on_client_disconnected(size_t);
 
         std::shared_ptr<transport_layer::server_impl_i> _impl;

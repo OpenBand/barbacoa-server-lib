@@ -112,7 +112,7 @@ namespace tests {
             LOG_TRACE(response->header());
             LOG_TRACE(response->load_content());
 
-            //done test
+            // Finish test
             std::unique_lock<std::mutex> lck(done_test_cond_guard);
             done_test = true;
             done_test_cond.notify_one();
@@ -198,7 +198,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -296,7 +296,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -349,7 +349,7 @@ namespace tests {
             BOOST_REQUIRE(request);
             BOOST_REQUIRE(response);
 
-            //payload emulation to force client timeout
+            // Payload emulation to force client timeout
             std::this_thread::sleep_for(1s);
 
             LOG_TRACE(request->header());
@@ -407,7 +407,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -529,7 +529,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -613,7 +613,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -709,7 +709,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -776,7 +776,7 @@ namespace tests {
                 server_postpone_th.post([request_id, response]() {
                     LOG_TRACE("# " << request_id << " - process");
 
-                    //emulate hight worth request
+                    // Emulate hight worth request
                     std::this_thread::sleep_for(200ms);
 
                     response->post(http_status_code::success_ok);
@@ -784,7 +784,7 @@ namespace tests {
             }
             else
             {
-                //emulate low worth request
+                // Emulate low worth request
                 std::this_thread::sleep_for(10ms);
 
                 response->post(http_status_code::success_ok);
@@ -826,7 +826,7 @@ namespace tests {
 
             if (requests_left < 1)
             {
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();

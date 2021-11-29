@@ -15,7 +15,7 @@ namespace network {
     {
     public:
         connection_impl(connection& self,
-                        transport_layer::connection_impl_i& raw_connection_ref)
+                        transport_layer::__connection_impl_i& raw_connection_ref)
             : _self(self)
             , _raw_connection_ref(raw_connection_ref)
         {
@@ -25,9 +25,9 @@ namespace network {
         {
             try
             {
-                transport_layer::connection_impl_i::read_request request = { sz,
-                                                                             std::bind(&connection_impl::on_raw_receive, this,
-                                                                                       std::placeholders::_1) };
+                transport_layer::__connection_impl_i::read_request request = { sz,
+                                                                               std::bind(&connection_impl::on_raw_receive, this,
+                                                                                         std::placeholders::_1) };
                 _raw_connection_ref.async_read(request);
             }
             catch (const std::exception& e)
@@ -41,7 +41,7 @@ namespace network {
         }
 
     private:
-        void on_raw_receive(const transport_layer::connection_impl_i::read_result& result)
+        void on_raw_receive(const transport_layer::__connection_impl_i::read_result& result)
         {
             if (!result.success)
             {
@@ -52,10 +52,10 @@ namespace network {
         }
 
         connection& _self;
-        transport_layer::connection_impl_i& _raw_connection_ref;
+        transport_layer::__connection_impl_i& _raw_connection_ref;
     };
 
-    connection::connection(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection,
+    connection::connection(const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection,
                            const std::shared_ptr<unit_builder_i>& protocol)
         : _raw_connection(raw_connection)
     {
@@ -150,7 +150,7 @@ namespace network {
         {
             SRV_ASSERT(!buffer.empty());
 
-            transport_layer::connection_impl_i::write_request request = { std::vector<char> { buffer.begin(), buffer.end() }, nullptr };
+            transport_layer::__connection_impl_i::write_request request = { std::vector<char> { buffer.begin(), buffer.end() }, nullptr };
             _raw_connection->async_write(request);
         }
         catch (const std::exception& e)

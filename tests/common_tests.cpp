@@ -30,7 +30,7 @@ namespace tests {
     {
         print_current_test_name();
 
-        // memory leaks detection
+        // Memory leaks detection
     }
 #endif
 
@@ -252,7 +252,7 @@ namespace tests {
             testing_observable.notify(&test_sink_i::on_test2, 111, test_int_value);
             testing_observable.notify(&test_sink_i::on_test2, 111, test_str_value);
 
-            //type protection
+            // Type protection
             auto wrong_callback = []() {
             };
             testing_observable.notify(wrong_callback);
@@ -357,7 +357,7 @@ namespace tests {
                  testing_observable.notify(&test_sink_i::on_test3, test_str_value);
                  testing_observable.notify(&test_sink_i::on_test4, test_int_value, test_str_value);
 
-                 //done test
+                 // Finish test
                  std::unique_lock<std::mutex> lck(done_cond_guard);
                  done = true;
                  done_cond.notify_one();
@@ -373,7 +373,7 @@ namespace tests {
         }
         BOOST_REQUIRE(done);
 
-        //push events in queue
+        // Push events in queue
         auto waiting_for_loop_ready = []() {
             return true;
         };
@@ -443,8 +443,8 @@ namespace tests {
 
         LOG_INFO("Next case");
 
-        //event loop can't stop itself (stop will emit deadlock)
-        //it will be done by creator or external loop
+        // Event loop can't stop itself (stop will emit deadlock)
+        // it will be done by creator or external loop.
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
@@ -459,7 +459,7 @@ namespace tests {
 
                 BOOST_REQUIRE_NO_THROW(loop.stop());
 
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -468,7 +468,7 @@ namespace tests {
             });
         };
         BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
-        //external_stopper is stopping by destructor
+        // Loop external_stopper is stopping by destructor
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
@@ -492,7 +492,7 @@ namespace tests {
 
         BOOST_REQUIRE(loop1.wait_result(false, payload, std::chrono::milliseconds(1500)));
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(!loop1.wait_result(false, payload, std::chrono::milliseconds(500)));
 
         server_lib::event_loop loop2;
@@ -500,7 +500,7 @@ namespace tests {
         loop2.change_thread_name("!L2");
         loop2.start();
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(!loop2.wait_result(false, payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
@@ -561,7 +561,7 @@ namespace tests {
 
         BOOST_REQUIRE(loop1.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(1500)) == AnyResult(VAL1_PAYLOAD_DONE, VAL2_PAYLOAD_DONE));
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(loop1.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(500)) == AnyResult(VAL1_FAIL));
 
         server_lib::event_loop loop2;
@@ -569,7 +569,7 @@ namespace tests {
         loop2.change_thread_name("!L2");
         loop2.start();
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(loop2.wait_result(AnyResult(VAL1_FAIL), payload, std::chrono::milliseconds(500)) == AnyResult(VAL1_FAIL));
 
         loop2.stop();
@@ -593,7 +593,7 @@ namespace tests {
 
         BOOST_REQUIRE_THROW(loop1.wait_result(false, payload, std::chrono::milliseconds(1500)), std::logic_error);
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE_NO_THROW(loop1.wait_result(false, payload, std::chrono::milliseconds(500)));
 
         server_lib::event_loop loop2;
@@ -601,7 +601,7 @@ namespace tests {
         loop2.change_thread_name("!L2");
         loop2.start();
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE_NO_THROW(loop2.wait_result(false, payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
@@ -623,7 +623,7 @@ namespace tests {
 
         BOOST_REQUIRE(loop1.wait(payload, std::chrono::milliseconds(1500)));
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(!loop1.wait(payload, std::chrono::milliseconds(500)));
 
         server_lib::event_loop loop2;
@@ -631,7 +631,7 @@ namespace tests {
         loop2.change_thread_name("!L2");
         loop2.start();
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE(!loop2.wait(payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
@@ -654,7 +654,7 @@ namespace tests {
 
         BOOST_REQUIRE_THROW(loop1.wait(payload, std::chrono::milliseconds(1500)), std::logic_error);
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE_NO_THROW(loop1.wait(payload, std::chrono::milliseconds(500)));
 
         server_lib::event_loop loop2;
@@ -662,7 +662,7 @@ namespace tests {
         loop2.change_thread_name("!L2");
         loop2.start();
 
-        //timeout check
+        // Check timeout
         BOOST_REQUIRE_NO_THROW(loop2.wait(payload, std::chrono::milliseconds(500)));
 
         loop2.stop();
@@ -677,8 +677,8 @@ namespace tests {
 
         LOG_INFO("Next case");
 
-        //event loop can't stop itself (stop will emit deadlock)
-        //it will be done by creator or external loop
+        // Event loop can't stop itself (stop will emit deadlock)
+        // it will be done by creator or external loop
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
@@ -693,7 +693,7 @@ namespace tests {
 
                 BOOST_REQUIRE_NO_THROW(loop.stop());
 
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -702,7 +702,7 @@ namespace tests {
             });
         };
         BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
-        //external_stopper is stopping by destructor
+        // Loop external_stopper is stopping by destructor
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
@@ -721,7 +721,7 @@ namespace tests {
             external_stopper.post([&]() {
                 BOOST_REQUIRE_NO_THROW(loop.stop());
 
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -738,9 +738,9 @@ namespace tests {
                 stop_action();
         };
 
-        waiting_posts = 20; //total posts
+        waiting_posts = 20; // total posts
 
-        for (size_t ci = 0; ci < 10; ++ci) //first half
+        for (size_t ci = 0; ci < 10; ++ci) // first half
         {
             loop.post(test_action);
         }
@@ -753,7 +753,7 @@ namespace tests {
                                                                }
                                                            })
                                    .start());
-        //external_stopper is stopping by destructor
+        // Loop external_stopper is stopping by destructor
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
@@ -767,8 +767,8 @@ namespace tests {
 
         LOG_INFO("Next case");
 
-        //event loop can't stop itself (stop will emit deadlock)
-        //it will be done by creator or external loop
+        // Event loop can't stop itself (stop will emit deadlock)
+        // it will be done by creator or external loop
 
         bool done_test = false;
         std::mutex done_test_cond_guard;
@@ -783,7 +783,7 @@ namespace tests {
 
                 BOOST_REQUIRE_NO_THROW(loop.stop());
 
-                //done test
+                // Finish test
                 std::unique_lock<std::mutex> lck(done_test_cond_guard);
                 done_test = true;
                 done_test_cond.notify_one();
@@ -792,7 +792,7 @@ namespace tests {
             });
         };
         BOOST_REQUIRE_NO_THROW(loop.on_start(stop_action).start());
-        //external_stopper is stopping by destructor
+        // Loop external_stopper is stopping by destructor
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }

@@ -65,7 +65,7 @@ int main(void)
 #endif
 
         // As a rule bug's places are application logic job run
-        //in separate thread
+        // in separate thread
         if (emit_fail[1].load())
         {
             LOGC_INFO("Emulate memory fail in separated loop (job #1)");
@@ -80,7 +80,7 @@ int main(void)
 #endif
 
         // As a rule bug's places are application logic job run
-        //in separate thread
+        // in separate thread
         if (emit_fail[2].load())
         {
             LOGC_INFO("Emulate memory fail in separted thread (joinable) (job #2)");
@@ -95,7 +95,7 @@ int main(void)
 #endif
 
         // As a rule bug's places are application logic job run
-        //in separate thread
+        // in separate thread
         if (emit_fail[3].load())
         {
             LOGC_INFO("Emulate memory fail in separted thread (detached) (job #3)");
@@ -223,7 +223,7 @@ int main(void)
 
         stop_all_thread_jobs = true;
 
-        // was started manually. Therefore it should stopped manually.
+        // Was started manually. Therefore it should stopped manually.
         separated_loop.stop();
         LOGC_TRACE("Separated loop has stopped");
 
@@ -277,7 +277,7 @@ int main(void)
         mail_loop_job();
 #else
     auto all_jobs = [&]() {
-        mail_loop_job(); //it should be a little job (or empty) to prevent suspending at exit!
+        mail_loop_job(); // it should be a little job (or empty) to prevent suspending at exit!
         separated_loop_job();
         separted_thread_joinable_job();
         separted_thread_detached_job();

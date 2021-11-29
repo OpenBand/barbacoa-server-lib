@@ -105,8 +105,8 @@ void mt_event_loop::stop()
         _is_running = false;
 
         _waiting_threads = 0;
-        _loop_maintainer = boost::none; //finishing 'infinite loop'
-        //it will stop all threads (exit from all 'run()' functions)
+        _loop_maintainer = boost::none; // finishing 'infinite loop'
+        // It will stop all threads (exit from all 'run()' functions)
         _pservice->stop();
 
         if (_thread && _thread->joinable())

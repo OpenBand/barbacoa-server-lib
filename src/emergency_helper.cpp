@@ -37,9 +37,9 @@ namespace emergency {
 
     bool save_raw_stdump_s(const char* raw_dump_file_path)
     {
-        //Dumps are binary serialized arrays of void*, so you could read them by using
-        //'od -tx8 -An stacktrace_dump_failename' Linux command
-        //or using boost::stacktrace::stacktrace::from_dump functions.
+        // Dumps are binary serialized arrays of void*, so you could read them by using
+        // 'od -tx8 -An stacktrace_dump_failename' Linux command
+        // or using boost::stacktrace::stacktrace::from_dump functions.
         return boost::stacktrace::safe_dump_to(raw_dump_file_path) > 0;
     }
 

@@ -23,6 +23,7 @@ namespace network {
                 return case_insensitive_equal(str1, str2);
             }
         };
+
         // Based on https://stackoverflow.com/questions/2590677/how-do-i-combine-hash-values-in-c0x/2595226#2595226
         class __case_insensitive_hash
         {
@@ -39,7 +40,7 @@ namespace network {
 
         using case_insensitive_multimap = std::unordered_multimap<std::string, std::string, __case_insensitive_hash, __case_insensitive_equal>;
 
-        /// web_percent encoding and decoding
+        /// Web encoding and decoding
         class web_percent
         {
         public:
@@ -250,7 +251,7 @@ namespace network {
 
         using web_header = case_insensitive_multimap;
 
-        /// most probable HTTP methods:
+        /// Most probable HTTP methods
         enum class http_method
         {
             POST = 0,

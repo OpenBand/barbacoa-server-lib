@@ -7,7 +7,7 @@ namespace emergency {
 
     bool test_file_for_write(const char*);
 
-    //*_s functions async-signal-safe
+    // *_s functions are async-signal-safe
     bool save_raw_stdump_s(const char* raw_dump_file_path);
 
     std::string load_raw_stdump(const char* raw_dump_file_path, bool remove = true);

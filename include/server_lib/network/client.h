@@ -10,8 +10,8 @@
 namespace server_lib {
 namespace network {
     namespace transport_layer {
-        struct client_impl_i;
-        struct connection_impl_i;
+        struct __client_impl_i;
+        struct __connection_impl_i;
     } // namespace transport_layer
 
     /**
@@ -83,16 +83,16 @@ namespace network {
         void post(common_callback_type&& callback);
 
     private:
-        std::shared_ptr<transport_layer::client_impl_i> create_impl(const tcp_client_config&);
-        std::shared_ptr<transport_layer::client_impl_i> create_impl(const unix_local_client_config&);
+        std::shared_ptr<transport_layer::__client_impl_i> create_impl(const tcp_client_config&);
+        std::shared_ptr<transport_layer::__client_impl_i> create_impl(const unix_local_client_config&);
 
-        bool connect_impl(std::function<std::shared_ptr<transport_layer::client_impl_i>()>&&);
+        bool connect_impl(std::function<std::shared_ptr<transport_layer::__client_impl_i>()>&&);
 
-        void on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>&);
+        void on_connect_impl(const std::shared_ptr<transport_layer::__connection_impl_i>&);
         void on_diconnect_impl(size_t);
         void clear();
 
-        std::shared_ptr<transport_layer::client_impl_i> _impl;
+        std::shared_ptr<transport_layer::__client_impl_i> _impl;
 
         connect_callback_type _connect_callback = nullptr;
         fail_callback_type _fail_callback = nullptr;

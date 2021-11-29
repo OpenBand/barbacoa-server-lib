@@ -19,7 +19,7 @@ namespace network {
             std::function<void()>&& failed_case);
 
         template <typename SocketType>
-        class asio_connection_impl : public connection_impl_i,
+        class asio_connection_impl : public __connection_impl_i,
                                      public std::enable_shared_from_this<asio_connection_impl<SocketType>>
         {
         protected:
@@ -39,8 +39,6 @@ namespace network {
             }
 
         public:
-            ////////////////////////////////////////////////////
-
             uint64_t id() const override
             {
                 return _id;
@@ -54,7 +52,7 @@ namespace network {
 
                     std::unique_ptr<socket_type> socket(_socket.release());
 
-                    //this connection should be recreated
+                    // This connection should be recreated
                     _socket = nullptr;
 
                     auto self = this->shared_from_this();
@@ -153,8 +151,6 @@ namespace network {
                                               }));
             }
 
-            ////////////////////////////////////////////////////
-
             void set_timeout(long ms, std::function<void(void)> timeout_callback = nullptr)
             {
                 namespace asio = boost::asio;
@@ -195,8 +191,6 @@ namespace network {
             }
 
             scope_runner handler_runner;
-
-            ////////////////////////////////////////////////////
 
             virtual void configurate(const std::string& remote_endpoint) = 0;
             virtual void close_socket(socket_type&) = 0;

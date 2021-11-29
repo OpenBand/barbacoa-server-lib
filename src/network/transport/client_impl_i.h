@@ -10,16 +10,16 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        struct client_impl_i
+        struct __client_impl_i
         {
-            virtual ~client_impl_i() = default;
+            virtual ~__client_impl_i() = default;
 
             /**
              * Async connection callback
              * Return connection object if client connected successfully
              *
              */
-            using connect_callback_type = std::function<void(const std::shared_ptr<connection_impl_i>&)>;
+            using connect_callback_type = std::function<void(const std::shared_ptr<__connection_impl_i>&)>;
 
             /**
              * Fail callback

@@ -33,7 +33,7 @@ namespace network {
                 return this->self();
             }
 
-            ///Set timeout for request waiting (and connecting if timeout_connect = 0)
+            /// Set timeout for request waiting (and connecting if timeout_connect = 0)
             template <typename DurationType>
             T& set_timeout(DurationType&& duration)
             {

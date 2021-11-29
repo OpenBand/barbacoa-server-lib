@@ -12,7 +12,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class tcp_client_impl : public client_impl_i
+        class tcp_client_impl : public __client_impl_i
         {
         public:
             tcp_client_impl() = default;

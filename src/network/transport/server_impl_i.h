@@ -16,7 +16,7 @@ namespace network {
 
             using start_callback_type = std::function<void()>;
             using fail_callback_type = std::function<void(const std::string&)>;
-            using new_connection_callback_type = std::function<void(const std::shared_ptr<connection_impl_i>&)>;
+            using new_connection_callback_type = std::function<void(const std::shared_ptr<__connection_impl_i>&)>;
 
             virtual bool start(const start_callback_type& start_callback,
                                const new_connection_callback_type& new_connection_callback,

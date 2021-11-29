@@ -18,7 +18,7 @@ int main(void)
             std::cerr << "Make payload in main loop (CERR)" << std::endl;
         };
 
-        ml.post(write_iostream); //alternative method to run smth. in main loop
+        ml.post(write_iostream); // alternative method to run smth. in main loop
         loop_timer->start(std::chrono::seconds(2), write_iostream);
     };
 

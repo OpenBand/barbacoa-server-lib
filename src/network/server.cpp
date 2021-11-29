@@ -162,7 +162,7 @@ namespace network {
         }
     }
 
-    void server::on_new_client(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
+    void server::on_new_client(const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection)
     {
         if (!is_running())
         {

@@ -1,4 +1,4 @@
 #pragma once
 
-//for backward compatibility
+// For backward compatibility
 #include "change_current_dir.h"

@@ -59,7 +59,7 @@ public:
     void stop(int exit_code)
     {
         _exit_code = exit_code;
-        _main_el.stop(); //makes 'run' exit
+        _main_el.stop(); // makes 'run' exit
     }
 
 private:
@@ -90,7 +90,7 @@ private:
     application_main_loop _main_el;
     std::thread _signal_thread;
     std::atomic_bool _signal_thread_initiated;
-    std::atomic_bool _signal_thread_terminating; //if it is start terminating at least
+    std::atomic_bool _signal_thread_terminating; // if it is start terminating at least
     std::atomic_int _exit_code;
 
     std::condition_variable _wait_started_condition;

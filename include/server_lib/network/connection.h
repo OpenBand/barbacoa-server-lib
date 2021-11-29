@@ -8,7 +8,7 @@
 namespace server_lib {
 namespace network {
     namespace transport_layer {
-        struct connection_impl_i;
+        struct __connection_impl_i;
     }
 
     class connection_impl;
@@ -22,7 +22,7 @@ namespace network {
         friend class connection_impl;
 
     public:
-        connection(const std::shared_ptr<transport_layer::connection_impl_i>&,
+        connection(const std::shared_ptr<transport_layer::__connection_impl_i>&,
                    const std::shared_ptr<unit_builder_i>&);
 
         ~connection();
@@ -63,7 +63,7 @@ namespace network {
         void call_disconnection_handler();
 
         std::unique_ptr<connection_impl> _impl;
-        std::shared_ptr<transport_layer::connection_impl_i> _raw_connection;
+        std::shared_ptr<transport_layer::__connection_impl_i> _raw_connection;
         std::unique_ptr<unit_builder_manager> _protocol;
 
         std::string _send_buffer;

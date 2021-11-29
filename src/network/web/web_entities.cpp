@@ -12,6 +12,8 @@ namespace network {
                 return "POST";
             case http_method::GET:
                 return "GET";
+            case http_method::HEAD:
+                return "HEAD";
             case http_method::PUT:
                 return "PUT";
             case http_method::DELETE:

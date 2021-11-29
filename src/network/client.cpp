@@ -36,7 +36,7 @@ namespace network {
         return {};
     }
 
-    std::shared_ptr<transport_layer::client_impl_i> client::create_impl(const tcp_client_config& config)
+    std::shared_ptr<transport_layer::__client_impl_i> client::create_impl(const tcp_client_config& config)
     {
         SRV_ASSERT(config.valid());
         auto impl = std::make_shared<transport_layer::tcp_client_impl>();
@@ -45,7 +45,7 @@ namespace network {
         return impl;
     }
 
-    std::shared_ptr<transport_layer::client_impl_i> client::create_impl(const unix_local_client_config& config)
+    std::shared_ptr<transport_layer::__client_impl_i> client::create_impl(const unix_local_client_config& config)
     {
         SRV_ASSERT(config.valid());
         auto impl = std::make_shared<transport_layer::unix_local_client_impl>();
@@ -54,7 +54,7 @@ namespace network {
         return impl;
     }
 
-    bool client::connect_impl(std::function<std::shared_ptr<transport_layer::client_impl_i>()>&& create_impl)
+    bool client::connect_impl(std::function<std::shared_ptr<transport_layer::__client_impl_i>()>&& create_impl)
     {
         try
         {
@@ -76,7 +76,7 @@ namespace network {
         return false;
     }
 
-    void client::on_connect_impl(const std::shared_ptr<transport_layer::connection_impl_i>& raw_connection)
+    void client::on_connect_impl(const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection)
     {
         try
         {

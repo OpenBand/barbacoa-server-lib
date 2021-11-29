@@ -897,7 +897,7 @@ namespace network {
                     auto it = session->request->_header.find("Upgrade");
                     if (it != session->request->_header.end())
                     {
-                        // remove connection from connections
+                        // Remove connection from connections
                         {
                             std::unique_lock<std::mutex> lock(*connections_mutex);
                             auto it = connections->find(session->connection.get());
@@ -909,6 +909,7 @@ namespace network {
                         return;
                     }
                 }
+
                 // Find path- and method-match, and call write
                 for (auto& regex_method : resource)
                 {

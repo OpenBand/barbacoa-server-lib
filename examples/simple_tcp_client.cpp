@@ -46,7 +46,7 @@ int main(void)
                                 app.stop(0);
                             });
                             ping_timer.start(2s, [&]() {
-                                //'post' just to make all business logic in the same thread
+                                // Do 'post' just to make all business logic in the same thread.
                                 client.post([&]() {
                                     conn.send(conn.protocol().create(protocol_message));
                                 });

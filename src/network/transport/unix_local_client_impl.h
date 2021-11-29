@@ -16,7 +16,7 @@ namespace server_lib {
 namespace network {
     namespace transport_layer {
 
-        class unix_local_client_impl : public client_impl_i
+        class unix_local_client_impl : public __client_impl_i
         {
         public:
             unix_local_client_impl() = default;

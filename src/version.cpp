@@ -45,7 +45,7 @@ version version::from_string(const std::string& input_str)
     std::stringstream s { input_str };
     s >> major_ >> dot_a >> hardfork >> dot_b >> revision;
 
-    // We'll accept either m.h.v or m_h_v as canonical version strings
+    // We'll accept either m.h.v or m_h_v as canonical version strings.
     SRV_ASSERT((dot_a == '.' || dot_a == '_') && dot_a == dot_b,
                "Input string does not contain proper dotted decimal format");
     SRV_ASSERT(major_ <= 0xFF, "Major version is out of range");

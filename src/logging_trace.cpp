@@ -5,7 +5,7 @@
 namespace server_lib {
 
 namespace {
-    //There is no pretty formatting functions (xprintf) that are async-signal-safe
+    // There is no pretty formatting functions (xprintf) that are async-signal-safe
     void __print_trace_s(char* buff, size_t sz, const char* text, int out_fd)
     {
         memset(buff, 0, sz);

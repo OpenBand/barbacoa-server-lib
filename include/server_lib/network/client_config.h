@@ -38,7 +38,7 @@ namespace network {
             return this->set_address(port);
         }
 
-        ///Set timeout for connection waiting
+        /// Set timeout for connection waiting
         template <typename DurationType>
         T& set_timeout_connect(DurationType&& duration)
         {
@@ -64,7 +64,7 @@ namespace network {
             return _host;
         }
 
-        /// return timeout in seconds
+        /// Return timeout in seconds
         auto timeout_connect() const
         {
             return _timeout_connect_ms / 1000;
@@ -141,7 +141,7 @@ namespace network {
         unix_local_client_config(const unix_local_client_config&) = default;
         ~unix_local_client_config() = default;
 
-        ///Set timeout for connection waiting
+        /// Set timeout for connection waiting
         template <typename DurationType>
         unix_local_client_config& set_timeout_connect(DurationType&& duration)
         {
@@ -152,7 +152,7 @@ namespace network {
             return *this;
         }
 
-        /// return timeout in seconds
+        /// Return timeout in seconds
         auto timeout_connect() const
         {
             return _timeout_connect_ms / 1000;

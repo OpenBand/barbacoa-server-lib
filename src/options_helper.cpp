@@ -97,8 +97,8 @@ namespace impl {
 } // namespace impl
 
 std::string options::get_approximate_relative_time_string(const int64_t& event_time,
-                                                                 const int64_t& relative_to_time,
-                                                                 const std::string& default_ago /*= " ago"*/)
+                                                          const int64_t& relative_to_time,
+                                                          const std::string& default_ago /*= " ago"*/)
 {
     SRV_ASSERT(relative_to_time >= event_time);
     std::string ago = default_ago;
@@ -245,8 +245,8 @@ options::path options::get_config_file_path(const bpo::variables_map& options, c
 }
 
 void options::create_config_file_if_not_exist(std::ostream& stream,
-                                                     const path& config_ini_path,
-                                                     const bpo::options_description& cfg_options)
+                                              const path& config_ini_path,
+                                              const bpo::options_description& cfg_options)
 {
     if (!config_ini_path.is_absolute())
         stream << "config-file path " << config_ini_path << " should be absolute and exist"
@@ -266,13 +266,13 @@ void options::create_config_file_if_not_exist(std::ostream& stream,
 }
 
 void options::load_config_file(std::ostream& stream,
-                                      const path& config_ini_path,
-                                      const bpo::options_description& cfg_options,
-                                      bpo::variables_map& options)
+                               const path& config_ini_path,
+                               const bpo::options_description& cfg_options,
+                               bpo::variables_map& options)
 {
     stream << "Load configuration from " << config_ini_path.generic_string() << "\n";
 
-    // get the basic options
+    // Get the basic options
     bpo::store(bpo::parse_config_file<char>(config_ini_path.generic_string().c_str(), cfg_options, true), options);
 }
 
