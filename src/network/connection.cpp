@@ -69,6 +69,7 @@ namespace network {
         _impl = std::make_unique<connection_impl>(*this, *_raw_connection);
         _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));
 
+        // TODO: BUG! Remove from here. It should be after new connection will notify
         _impl->async_read(_raw_connection->chunk_size());
 
         SRV_LOGC_TRACE("created");

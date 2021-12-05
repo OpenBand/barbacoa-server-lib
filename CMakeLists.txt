@@ -34,6 +34,7 @@ set(SERVER_LIB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/mt_event_loop.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/application_impl.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/application.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/application_config.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/options_helper.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/log_files_watchdog.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/signal_helper.cpp"

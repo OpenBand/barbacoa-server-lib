@@ -2,38 +2,6 @@
 
 namespace server_lib {
 
-application_config& application::config::enable_stdump(const std::string& path_to_dump_file)
-{
-    SRV_ASSERT(!path_to_dump_file.empty(), "Path required");
-    _path_to_stdump_file = path_to_dump_file;
-    return *this;
-}
-
-application_config& application::config::enable_corefile(bool disable_excl_policy)
-{
-    _enable_corefile = true;
-    _corefile_disable_excl_policy = disable_excl_policy;
-    return *this;
-}
-
-application_config& application::config::corefile_fail_thread_only()
-{
-    _corefile_fail_thread_only = true;
-    return *this;
-}
-
-application_config& application::config::lock_io()
-{
-    _lock_io = true;
-    return *this;
-}
-
-application_config& application::config::make_daemon()
-{
-    _daemon = true;
-    return *this;
-}
-
 application::application()
 {
     SRV_ASSERT(event_loop::is_main_thread(), "Only for main thread allowed");
@@ -49,7 +17,7 @@ application& application::init(const application_config& config)
 {
     auto& app_impl = application_impl::instance();
     app_impl.set_config(config);
-    auto& app = application_impl::app_instance();
+    auto& app = instance();
     return app.init();
 }
 
@@ -57,7 +25,7 @@ application& application::init()
 {
     auto& app_impl = application_impl::instance();
     app_impl.init();
-    return application_impl::app_instance();
+    return instance();
 }
 
 int application::run()

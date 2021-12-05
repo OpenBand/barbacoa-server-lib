@@ -679,6 +679,8 @@ namespace tests {
             LOG_TRACE("********* client run");
 
             BOOST_REQUIRE(client.on_connect([&](connection& conn) {
+                                    LOG_TRACE("********* client_connect_callback: " << conn.remote_endpoint());
+
                                     conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
 
                                     BOOST_REQUIRE_NO_THROW(conn.send(conn.protocol().create(ping_cmd)));

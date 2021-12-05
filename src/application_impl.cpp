@@ -198,31 +198,11 @@ namespace {
 
 } // namespace
 
-class __internal_application_manager
-{
-public:
-    static application_impl singleton_app_impl;
-    static application singleton_app;
-};
-
-application_impl __internal_application_manager::singleton_app_impl;
-application __internal_application_manager::singleton_app;
-
 application_impl::application_impl()
 {
     SRV_ASSERT(event_loop::is_main_thread(), "Only for main thread allowed");
     _exit_code = 0;
     cleanup();
-}
-
-application_impl& application_impl::instance()
-{
-    return __internal_application_manager::singleton_app_impl;
-}
-
-application& application_impl::app_instance()
-{
-    return __internal_application_manager::singleton_app;
 }
 
 void application_impl::set_config(const application_config& config)
@@ -260,13 +240,13 @@ void application_impl::init()
 
     _main_el.change_thread_name(executable_name);
 
-    if (config()._enable_corefile)
+    if (config().is_enable_corefile())
     {
-        SRV_ASSERT(__enable_corefile(config()._corefile_disable_excl_policy), "Incompatible with current corefile creation system");
+        SRV_ASSERT(__enable_corefile(config().is_corefile_disable_excl_policy()), "Incompatible with current corefile creation system");
     }
 
-    if (!config()._path_to_stdump_file.empty())
-        __init_stdump_generation(config()._path_to_stdump_file);
+    if (!config().path_to_stdump_file().empty())
+        __init_stdump_generation(config().path_to_stdump_file());
 
     sig_callback = [this](int signo) { application_impl::process_signal(signo); };
     atexit_callback = [this]() { application_impl::process_atexit(); };
@@ -274,20 +254,20 @@ void application_impl::init()
 
     srv_c_app_init_default_signals_should_register();
 
-    if (config()._daemon)
+    if (config().is_daemon())
     {
         srv_c_app_mt_init_daemon(__atexit_callback_wrapper,
                                  __sig_callback_wrapper,
                                  __fail_callback_wrapper,
-                                 config()._corefile_fail_thread_only ? TRUE : FALSE);
+                                 config().is_corefile_fail_thread_only() ? TRUE : FALSE);
     }
     else
     {
         srv_c_app_mt_init(__atexit_callback_wrapper,
                           __sig_callback_wrapper,
                           __fail_callback_wrapper,
-                          config()._corefile_fail_thread_only ? TRUE : FALSE,
-                          config()._lock_io ? TRUE : FALSE);
+                          config().is_corefile_fail_thread_only() ? TRUE : FALSE,
+                          config().is_lock_io() ? TRUE : FALSE);
     }
 }
 
@@ -423,7 +403,7 @@ void application_impl::process_fail()
     SRV_TRACE_SIGNAL(__FUNCTION__);
 
     auto& app = instance();
-    if (!app.config()._corefile_fail_thread_only)
+    if (!app.config().is_corefile_fail_thread_only())
     {
         if (logger::check_instance())
             logger::instance().lock(); //some logger configurations can make application suspended in forked thread

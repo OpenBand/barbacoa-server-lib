@@ -9,17 +9,14 @@
 
 namespace server_lib {
 
-class application_impl
+class application_impl : public singleton<application_impl>
 {
-    friend class __internal_application_manager;
+    friend class singleton<application_impl>;
 
 protected:
     application_impl();
 
 public:
-    static application_impl& instance();
-    static application& app_instance();
-
     const application_config& config() const
     {
         return _config;

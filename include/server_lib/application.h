@@ -1,6 +1,8 @@
 #pragma once
 
 #include <server_lib/event_loop.h>
+#include <server_lib/singleton.h>
+
 
 namespace server_lib {
 
@@ -10,32 +12,14 @@ namespace server_lib {
  * This is the multythread model class for application lifetime control,
  * careful signal processing and main thread management
 */
-class application
+class application : private singleton<application>
 {
+    friend class singleton<application>;
+
 protected:
     application();
 
-    friend class __internal_application_manager;
-
 public:
-    /**
-     * \ingroup common
-     *
-     * \brief This class wrap main thread to provide event_loop features.
-     */
-    class main_loop : public event_loop
-    {
-        friend class application_impl;
-
-    protected:
-        main_loop(const std::string& name = {});
-
-        event_loop& start() override;
-
-    public:
-        void stop() override;
-    };
-
     /**
      * \ingroup common
      *
@@ -102,6 +86,37 @@ public:
          */
         config& make_daemon();
 
+    protected:
+        const std::string& path_to_stdump_file() const
+        {
+            return _path_to_stdump_file;
+        }
+
+        bool is_enable_corefile() const
+        {
+            return _enable_corefile;
+        }
+
+        bool is_corefile_fail_thread_only() const
+        {
+            return _corefile_fail_thread_only;
+        }
+
+        bool is_corefile_disable_excl_policy() const
+        {
+            return _corefile_disable_excl_policy;
+        }
+
+        bool is_lock_io() const
+        {
+            return _lock_io;
+        }
+
+        bool is_daemon() const
+        {
+            return _daemon;
+        }
+
     private:
         //default configuration
         std::string _path_to_stdump_file;
@@ -110,6 +125,24 @@ public:
         bool _corefile_disable_excl_policy = false;
         bool _lock_io = false;
         bool _daemon = false;
+    };
+
+    /**
+     * \ingroup common
+     *
+     * \brief This class wrap main thread to provide event_loop features.
+     */
+    class main_loop : public event_loop
+    {
+        friend class application_impl;
+
+    protected:
+        main_loop(const std::string& name = {});
+
+        event_loop& start() override;
+
+    public:
+        void stop() override;
     };
 
     enum class control_signal
@@ -239,7 +272,7 @@ public:
     void stop(int exit_code = 0);
 };
 
-using application_main_loop = application::main_loop;
 using application_config = application::config;
+using application_main_loop = application::main_loop;
 
 } // namespace server_lib

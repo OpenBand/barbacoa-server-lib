@@ -1,10 +1,11 @@
+#include <server_lib/asserts.h>
 #include <server_lib/application.h>
 
 #include "logger_set_internal_group.h"
 
 namespace server_lib {
 
-application::main_loop::main_loop(const std::string& name)
+application_main_loop::main_loop(const std::string& name)
     : event_loop(false)
 {
     SRV_ASSERT(is_main_thread(), "Invalid MAIN loop creation");
@@ -13,7 +14,7 @@ application::main_loop::main_loop(const std::string& name)
         change_thread_name(name);
 }
 
-event_loop& application::main_loop::start()
+event_loop& application_main_loop::start()
 {
     SRV_ASSERT(is_main_thread(), "Only for MAIN thread allowed");
 
@@ -25,7 +26,7 @@ event_loop& application::main_loop::start()
     return event_loop::start();
 }
 
-void application::main_loop::stop()
+void application_main_loop::stop()
 {
     if (is_running())
     {
