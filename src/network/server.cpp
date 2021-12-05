@@ -172,7 +172,7 @@ namespace network {
         SRV_ASSERT(raw_connection);
         SRV_ASSERT(_protocol);
 
-        auto conn = std::make_shared<connection>(raw_connection, _protocol);
+        auto conn = connection::create(raw_connection, _protocol);
         auto client_disconnected_handler = std::bind(&server::on_client_disconnected, this, std::placeholders::_1);
         conn->on_disconnect(client_disconnected_handler);
         std::unique_lock<std::mutex> lock(_connections_mutex);
@@ -184,6 +184,8 @@ namespace network {
 
         if (_new_connection_callback)
             _new_connection_callback(conn);
+
+        conn->async_read();
     }
 
     void server::on_client_disconnected(size_t conection_id)

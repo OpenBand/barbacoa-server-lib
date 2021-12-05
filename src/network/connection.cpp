@@ -69,9 +69,6 @@ namespace network {
         _impl = std::make_unique<connection_impl>(*this, *_raw_connection);
         _raw_connection->set_disconnect_handler(std::bind(&connection::on_diconnected, this));
 
-        // TODO: BUG! Remove from here. It should be after new connection will notify
-        _impl->async_read(_raw_connection->chunk_size());
-
         SRV_LOGC_TRACE("created");
     }
 
@@ -182,29 +179,24 @@ namespace network {
 
     connection& connection::on_disconnect(const disconnect_callback_type& callback)
     {
-        _disconnection_callback = callback;
-        return *this;
+        return this->on_disconnect([callback](size_t /*id*/) { callback(); });
     }
 
-    void connection::on_diconnected()
+    std::shared_ptr<connection> connection::create(
+        const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection,
+        const std::shared_ptr<unit_builder_i>& protocol)
     {
-        SRV_LOGC_TRACE("has been disconnected");
+        std::shared_ptr<connection> conn;
+        conn.reset(new connection(raw_connection, protocol));
+        return conn;
+    }
 
-        {
-            std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+    void connection::async_read()
+    {
+        SRV_ASSERT(_impl);
+        SRV_ASSERT(_raw_connection);
 
-            _send_buffer.clear();
-        }
-
-        auto hold_self = shared_from_this();
-
-        for (auto&& callback : _disconnection_callbacks)
-        {
-            callback(hold_self->id());
-        }
-
-        if (_disconnection_callback)
-            _disconnection_callback();
+        _impl->async_read(_raw_connection->chunk_size());
     }
 
     void connection::on_raw_receive(const std::vector<char>& result)
@@ -239,7 +231,25 @@ namespace network {
             }
         }
 
-        _impl->async_read(_raw_connection->chunk_size());
+        async_read();
+    }
+
+    void connection::on_diconnected()
+    {
+        SRV_LOGC_TRACE("has been disconnected");
+
+        {
+            std::lock_guard<std::mutex> lock(_send_buffer_mutex);
+
+            _send_buffer.clear();
+        }
+
+        auto hold_self = shared_from_this();
+
+        for (auto&& callback : _disconnection_callbacks)
+        {
+            callback(hold_self->id());
+        }
     }
 
 } // namespace network

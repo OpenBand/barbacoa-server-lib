@@ -121,6 +121,8 @@ void mt_event_loop::stop()
     }
     catch (const std::exception& e)
     {
+        SRV_LOGC_ERROR(e.what());
+
         SRV_THROW();
     }
 

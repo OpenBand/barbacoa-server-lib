@@ -85,12 +85,14 @@ namespace network {
             SRV_ASSERT(_impl);
             SRV_ASSERT(_protocol);
 
-            auto conn = std::make_shared<connection>(raw_connection, _protocol);
+            auto conn = connection::create(raw_connection, _protocol);
             conn->on_disconnect(std::bind(&client::on_diconnect_impl, this, std::placeholders::_1));
             _connection = conn;
 
             if (_connect_callback)
                 _connect_callback(*_connection);
+
+            conn->async_read();
         }
         catch (const std::exception& e)
         {

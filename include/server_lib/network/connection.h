@@ -19,12 +19,16 @@ namespace network {
      */
     class connection : public std::enable_shared_from_this<connection>
     {
+        friend class server;
+        friend class client;
+        // To hide transport_layer::__connection_impl_i only
         friend class connection_impl;
 
-    public:
+    protected:
         connection(const std::shared_ptr<transport_layer::__connection_impl_i>&,
                    const std::shared_ptr<unit_builder_i>&);
 
+    public:
         ~connection();
 
         using receive_callback_type = std::function<void(connection&, unit&)>;
@@ -56,6 +60,13 @@ namespace network {
 
         connection& on_disconnect(const disconnect_callback_type&);
 
+    protected:
+        static std::shared_ptr<connection> create(
+            const std::shared_ptr<transport_layer::__connection_impl_i>&,
+            const std::shared_ptr<unit_builder_i>&);
+
+        void async_read();
+
     private:
         void on_raw_receive(const std::vector<char>& result);
         void on_diconnected();
@@ -71,7 +82,6 @@ namespace network {
 
         receive_callback_type _receive_callback = nullptr;
         std::vector<disconnect_with_id_callback_type> _disconnection_callbacks;
-        disconnect_callback_type _disconnection_callback = nullptr;
     };
 
 } // namespace network

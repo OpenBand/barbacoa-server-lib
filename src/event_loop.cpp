@@ -223,6 +223,8 @@ void event_loop::run()
     }
     catch (const std::exception& e)
     {
+        SRV_LOGC_ERROR(e.what());
+
         SRV_THROW();
     }
 }
