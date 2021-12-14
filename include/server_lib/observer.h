@@ -58,7 +58,7 @@ public:
      * o.notify(&observer_i::on_foo_event);
      * \endcode
      */
-    template <typename F, typename... Arg>
+    template <typename F>
     void notify(F&& f)
     {
         static_assert(std::is_member_function_pointer<F>::value,
@@ -82,7 +82,7 @@ public:
         static_assert(std::is_member_function_pointer<F>::value,
                       "Notify function is not a member function.");
 
-        auto memf = std::bind(f, std::placeholders::_1, args...); //copy arguments!
+        auto memf = std::bind(f, std::placeholders::_1, args...);
         notify_impl(memf);
     }
 
