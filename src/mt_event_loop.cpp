@@ -58,8 +58,7 @@ event_loop& mt_event_loop::start()
 
             _is_run = true;
 
-            if (_start_callback)
-                _start_callback();
+            notify_start();
         });
 
         _thread.reset(new std::thread([this]() {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <server_lib/application.h>
+#include <server_lib/simple_observer.h>
 
 #include <thread>
 #include <atomic>
@@ -93,10 +94,10 @@ private:
     std::condition_variable _wait_started_condition;
     std::mutex _wait_started_condition_lock;
 
-    start_callback_type _start_callback = nullptr;
-    exit_callback_type _exit_callback = nullptr;
-    fail_callback_type _fail_callback = nullptr;
-    control_callback_type _control_callback = nullptr;
+    simple_observable<start_callback_type> _start_observer;
+    simple_observable<exit_callback_type> _exit_observer;
+    simple_observable<fail_callback_type> _fail_observer;
+    simple_observable<control_callback_type> _control_observer;
 };
 
 } // namespace server_lib

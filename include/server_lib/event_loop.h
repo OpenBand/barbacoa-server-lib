@@ -15,6 +15,8 @@
 namespace server_lib {
 
 DECLARE_PTR(event_loop);
+class start_observable_type;
+class stop_observable_type;
 
 /**
  * \ingroup common
@@ -303,13 +305,13 @@ public:
 protected:
     void run();
     void reset();
+    void notify_start();
+    void notify_stop();
 
 protected:
     const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
     std::atomic_bool _is_run;
-    callback_type _start_callback = nullptr;
-    callback_type _stop_callback = nullptr;
     std::atomic<std::thread::id> _id;
     std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;
@@ -318,6 +320,10 @@ protected:
     std::string _thread_name = "io_service loop";
     std::atomic_uint64_t _queue_size;
     std::unique_ptr<std::thread> _thread;
+
+private:
+    std::unique_ptr<start_observable_type> _start_observer;
+    std::unique_ptr<stop_observable_type> _stop_observer;
 };
 
 } // namespace server_lib

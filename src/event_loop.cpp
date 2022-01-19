@@ -1,5 +1,5 @@
 #include <server_lib/event_loop.h>
-#include <server_lib/asserts.h>
+#include <server_lib/simple_observer.h>
 
 #include <boost/utility/in_place_factory.hpp>
 
@@ -11,6 +11,14 @@
 #include "logger_set_internal_group.h"
 
 namespace server_lib {
+
+class start_observable_type : public simple_observable<event_loop::callback_type>
+{
+};
+
+class stop_observable_type : public simple_observable<event_loop::callback_type>
+{
+};
 
 #if !defined(SERVER_LIB_PLATFORM_LINUX)
 static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
@@ -52,12 +60,24 @@ event_loop::~event_loop()
     }
 }
 
+void event_loop::notify_start()
+{
+    SRV_ASSERT(_start_observer);
+    _start_observer->notify();
+}
+
+void event_loop::notify_stop()
+{
+    SRV_ASSERT(_stop_observer);
+    _stop_observer->notify();
+}
+
 void event_loop::reset()
 {
     _is_running = false;
     _is_run = false;
-    _start_callback = nullptr;
-    _stop_callback = nullptr;
+    _start_observer = std::make_unique<start_observable_type>();
+    _stop_observer = std::make_unique<stop_observable_type>();
     _id = std::this_thread::get_id();
     _native_thread_id = 0l;
 
@@ -126,8 +146,7 @@ event_loop& event_loop::start()
 
             _is_run = true;
 
-            if (_start_callback)
-                _start_callback();
+            notify_start();
         });
 
         if (_run_in_separate_thread)
@@ -187,13 +206,15 @@ void event_loop::stop()
 
 event_loop& event_loop::on_start(callback_type&& callback)
 {
-    _start_callback = callback;
+    SRV_ASSERT(_start_observer);
+    _start_observer->subscribe(std::forward<callback_type>(callback));
     return *this;
 }
 
 event_loop& event_loop::on_stop(callback_type&& callback)
 {
-    _stop_callback = callback;
+    SRV_ASSERT(_stop_observer);
+    _stop_observer->subscribe(std::forward<callback_type>(callback));
     return *this;
 }
 
@@ -218,8 +239,7 @@ void event_loop::run()
 
         SRV_LOGC_TRACE("Event loop has stopped");
 
-        if (_stop_callback)
-            _stop_callback();
+        notify_stop();
     }
     catch (const std::exception& e)
     {

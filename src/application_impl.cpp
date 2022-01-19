@@ -284,28 +284,28 @@ void application_impl::on_start(start_callback_type&& callback)
 {
     SRV_ASSERT(!_main_el.is_running(), "Call before running");
 
-    _start_callback = callback;
+    _start_observer.subscribe(std::forward<start_callback_type>(callback));
 }
 
 void application_impl::on_exit(exit_callback_type&& callback)
 {
     SRV_ASSERT(!_main_el.is_running(), "Call before running");
 
-    _exit_callback = callback;
+    _exit_observer.subscribe(std::forward<exit_callback_type>(callback));
 }
 
 void application_impl::on_fail(fail_callback_type&& callback)
 {
     SRV_ASSERT(!_main_el.is_running(), "Call before running");
 
-    _fail_callback = callback;
+    _fail_observer.subscribe(std::forward<fail_callback_type>(callback));
 }
 
 void application_impl::on_control(control_callback_type&& callback)
 {
     SRV_ASSERT(!_main_el.is_running(), "Call before running");
 
-    _control_callback = callback;
+    _control_observer.subscribe(std::forward<control_callback_type>(callback));
 }
 
 void application_impl::wait()
@@ -497,8 +497,7 @@ void application_impl::run_impl()
     // Stuck into main loop
     _main_el.on_start([this]() {
                 SRV_LOGC_TRACE("Application has started");
-                if (_start_callback)
-                    _start_callback();
+                _start_observer.notify();
                 _wait_started_condition.notify_all();
             })
         .start();
@@ -524,8 +523,7 @@ void application_impl::run_impl()
         _signal_thread.join();
 
         // It was not called from signal thread because main loop has not run
-        if (_exit_callback)
-            _exit_callback(0);
+        _exit_observer.notify(0);
     }
 
     SRV_LOGC_INFO("Application has stopped");
@@ -542,12 +540,11 @@ void application_impl::run_impl()
 
 void application_impl::process_fail(const int signo, const char* dump_file_path)
 {
-    if (_fail_callback)
+    if (_fail_observer.is_any_subscriber())
     {
         SRV_LOGC_TRACE(__FUNCTION__ << "(" << dump_file_path << ")");
 
-        auto fail_callback = _fail_callback;
-        fail_callback(signo, dump_file_path);
+        _fail_observer.notify(signo, dump_file_path);
     }
 }
 
@@ -557,11 +554,10 @@ void application_impl::process_exit(const int signo)
     {
         SRV_LOGC_TRACE(__FUNCTION__);
 
-        if (_exit_callback)
+        if (_exit_observer.is_any_subscriber())
         {
-            auto exit_callback = _exit_callback;
-            _main_el.wait([exit_callback, signo]() {
-                exit_callback(signo);
+            _main_el.wait([this, signo]() {
+                _exit_observer.notify(signo);
             });
         }
 
@@ -571,12 +567,13 @@ void application_impl::process_exit(const int signo)
 
 void application_impl::process_control(control_signal signal)
 {
-    if (_control_callback)
+    if (_control_observer.is_any_subscriber())
     {
         SRV_LOGC_TRACE(__FUNCTION__);
 
-        auto control_callback = _control_callback;
-        _main_el.post([control_callback, signal]() { control_callback(signal); });
+        _main_el.post([this, signal]() {
+            _control_observer.notify(signal);
+        });
     }
     else
     {

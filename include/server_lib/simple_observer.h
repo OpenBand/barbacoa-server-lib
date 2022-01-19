@@ -25,14 +25,22 @@ class simple_observable
     using mutex_type = protected_mutex<std::mutex>;
 
 public:
+    simple_observable() = default;
+
+    simple_observable(const simple_observable& other)
+    {
+        std::lock_guard<mutex_type> lck(other._guard_for_observers);
+        _observers = other._observers;
+    }
+
     void subscribe(callback&& sink)
     {
-        subscribe_impl(sink, nullptr);
+        subscribe_impl(std::forward<callback>(sink), nullptr);
     }
 
     void subscribe(callback&& sink, event_loop& loop)
     {
-        subscribe_impl(sink, &loop);
+        subscribe_impl(std::forward<callback>(sink), &loop);
     }
 
     void notify()
@@ -62,11 +70,17 @@ public:
         notify_impl(call_, false);
     }
 
-protected:
-    void subscribe_impl(const callback& sink, event_loop* ploop)
+    bool is_any_subscriber() const
     {
         std::lock_guard<mutex_type> lck(_guard_for_observers);
-        _observers.emplace_back(sink, ploop);
+        return !_observers.empty();
+    }
+
+protected:
+    void subscribe_impl(callback&& sink, event_loop* ploop)
+    {
+        std::lock_guard<mutex_type> lck(_guard_for_observers);
+        _observers.emplace_back(std::move(sink), ploop);
     }
 
     template <typename Callback_>
@@ -113,7 +127,7 @@ protected:
     }
 
 private:
-    mutex_type _guard_for_observers;
+    mutable mutex_type _guard_for_observers;
     std::vector<std::pair<callback, event_loop*>> _observers;
 };
 
