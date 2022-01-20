@@ -22,7 +22,8 @@ template <typename Callback>
 class simple_observable
 {
     using callback = Callback;
-    using mutex_type = protected_mutex<std::mutex>;
+    using mutex_type = std::mutex;
+    using callback_storage_type = std::vector<std::pair<callback, event_loop*>>;
 
 public:
     simple_observable() = default;
@@ -70,6 +71,7 @@ public:
         notify_impl(call_, false);
     }
 
+    // TODO: Use shared_lock for C++17 here
     bool is_any_subscriber() const
     {
         std::lock_guard<mutex_type> lck(_guard_for_observers);
@@ -104,8 +106,11 @@ protected:
     template <typename Call>
     void notify_impl(Call call, bool async_allowed = true)
     {
-        std::lock_guard<mutex_type> lck(_guard_for_observers);
-        for (auto&& item : _observers)
+        callback_storage_type observers;
+        std::unique_lock<mutex_type> lck(_guard_for_observers);
+        observers = _observers;
+        lck.unlock();
+        for (auto&& item : observers)
         {
             callback& sink = item.first;
 
@@ -128,7 +133,7 @@ protected:
 
 private:
     mutable mutex_type _guard_for_observers;
-    std::vector<std::pair<callback, event_loop*>> _observers;
+    callback_storage_type _observers;
 };
 
 } // namespace server_lib
