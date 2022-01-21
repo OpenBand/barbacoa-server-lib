@@ -18,11 +18,12 @@ namespace server_lib {
  * Unsubscribe is not supported.
  *
  */
-template <typename Callback>
+template <typename Callback, typename MutexType = protected_mutex<std::mutex>>
 class simple_observable
 {
+protected:
     using callback = Callback;
-    using mutex_type = std::mutex;
+    using mutex_type = MutexType;
     using callback_storage_type = std::vector<std::pair<callback, event_loop*>>;
 
 public:
@@ -46,29 +47,29 @@ public:
 
     void notify()
     {
-        auto call_ = [this](callback sink) {
+        notify_impl([this](callback sink) {
             this->call_void(sink);
-        };
-        notify_impl(call_);
+        },
+                    true);
     }
 
     template <typename... Arg>
     void notify(const Arg&... args)
     {
-        auto call_ = [this, args...](callback sink) {
+        notify_impl([this, args...](callback sink) {
             this->call_with_args(sink, args...);
-        };
-        notify_impl(call_);
+        },
+                    true);
     }
 
     template <typename... Arg>
-    void notify(Arg&&... args)
+    void notify(Arg&... args)
     {
-        auto call_ = [&](callback sink) {
-            this->call_with_args(sink, std::forward<decltype(args)>(args)...);
-        };
         // Check if notification in the same thread
-        notify_impl(call_, false);
+        notify_impl([&](callback sink) {
+            this->call_with_args(sink, args...);
+        },
+                    false);
     }
 
     // TODO: Use shared_lock for C++17 here
@@ -98,42 +99,97 @@ protected:
     }
 
     template <typename Callback_, typename... Arg>
-    void call_with_args(Callback_ sink, Arg&&... args)
+    void call_with_args(Callback_ sink, Arg&... args)
     {
-        sink(std::forward<decltype(args)>(args)...);
+        sink(args...);
     }
 
     template <typename Call>
-    void notify_impl(Call call, bool async_allowed = true)
+    void notify_impl(Call call, bool async_allowed)
     {
-        callback_storage_type observers;
-        std::unique_lock<mutex_type> lck(_guard_for_observers);
-        observers = _observers;
-        lck.unlock();
-        for (auto&& item : observers)
+        std::lock_guard<mutex_type> lck(_guard_for_observers);
+        for (auto&& item : _observers)
         {
-            callback& sink = item.first;
-
-            event_loop* p_el = item.second;
-            if (p_el && !p_el->is_this_loop())
-            {
-                SRV_ASSERT(async_allowed, "Async mode is not allowed");
-
-                auto pending = [call, sink]() {
-                    call(sink);
-                };
-                p_el->post(pending);
-            }
-            else
-            {
-                call(sink);
-            }
+            notify_item_impl(call, async_allowed, item.first, item.second);
         }
     }
 
-private:
+    template <typename Call>
+    void notify_item_impl(Call call, bool async_allowed, callback& sink, event_loop* p_el)
+    {
+        if (p_el && !p_el->is_this_loop())
+        {
+            SRV_ASSERT(async_allowed, "Async mode is not allowed");
+
+            auto pending = [call, sink]() {
+                call(sink);
+            };
+            p_el->post(pending);
+        }
+        else
+        {
+            call(sink);
+        }
+    }
+
+protected:
     mutable mutex_type _guard_for_observers;
     callback_storage_type _observers;
+};
+
+// Use if observable object could be destroyed in callback and
+// notify is invoked rare
+template <typename Callback, typename MutexType = std::mutex>
+class protected_observable : public simple_observable<Callback, MutexType>
+{
+    using base_type = simple_observable<Callback, MutexType>;
+    using callback = typename base_type::callback;
+    using mutex_type = typename base_type::mutex_type;
+    using callback_storage_type = typename base_type::callback_storage_type;
+
+public:
+    using base_type::base_type;
+
+    void notify()
+    {
+        protected_notify_impl([this](callback sink) {
+            this->call_void(sink);
+        },
+                              true);
+    }
+
+    template <typename... Arg>
+    void notify(const Arg&... args)
+    {
+        protected_notify_impl([this, args...](callback sink) {
+            this->call_with_args(sink, args...);
+        },
+                              true);
+    }
+
+    template <typename... Arg>
+    void notify(Arg&... args)
+    {
+        // Check if notification in the same thread
+        protected_notify_impl([&](callback sink) {
+            this->call_with_args(sink, args...);
+        },
+                              false);
+    }
+
+protected:
+    template <typename Call>
+    void protected_notify_impl(Call call, bool async_allowed)
+    {
+        callback_storage_type observers;
+        std::unique_lock<mutex_type> lck(this->_guard_for_observers);
+        observers = this->_observers;
+        lck.unlock();
+        for (auto&& item : observers)
+        {
+            this->notify_item_impl(call, async_allowed, item.first, item.second);
+        }
+    }
 };
 
 } // namespace server_lib

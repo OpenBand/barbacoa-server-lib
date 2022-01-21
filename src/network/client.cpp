@@ -65,8 +65,9 @@ namespace network {
             _impl = create_impl();
 
             auto connect_handler = std::bind(&client::on_connect_impl, this, std::placeholders::_1);
+            auto fail_handler = std::bind(&client::on_fail_impl, this, std::placeholders::_1);
 
-            return _impl->connect(connect_handler, _fail_callback);
+            return _impl->connect(connect_handler, fail_handler);
         }
         catch (const std::exception& e)
         {
@@ -89,34 +90,13 @@ namespace network {
             conn->on_disconnect(std::bind(&client::on_diconnect_impl, this, std::placeholders::_1));
             _connection = conn;
 
-            if (_connect_callback)
-                _connect_callback(*_connection);
+            _connect_observer.notify(*_connection);
 
             conn->async_read();
         }
         catch (const std::exception& e)
         {
             SRV_LOGC_ERROR(e.what());
-        }
-    }
-
-    client& client::on_connect(connect_callback_type&& callback)
-    {
-        _connect_callback = std::forward<connect_callback_type>(callback);
-        return *this;
-    }
-
-    client& client::on_fail(fail_callback_type&& callback)
-    {
-        _fail_callback = std::forward<fail_callback_type>(callback);
-        return *this;
-    }
-
-    void client::post(common_callback_type&& callback)
-    {
-        if (_impl)
-        {
-            _impl->loop().post(std::move(callback));
         }
     }
 
@@ -129,6 +109,31 @@ namespace network {
             SRV_ASSERT(_connection->id() == connection_id);
 
             _connection.reset();
+        }
+    }
+
+    void client::on_fail_impl(const std::string& err)
+    {
+        _fail_observer.notify(err);
+    }
+
+    client& client::on_connect(connect_callback_type&& callback)
+    {
+        _connect_observer.subscribe(std::forward<connect_callback_type>(callback));
+        return *this;
+    }
+
+    client& client::on_fail(fail_callback_type&& callback)
+    {
+        _fail_observer.subscribe(std::forward<fail_callback_type>(callback));
+        return *this;
+    }
+
+    void client::post(common_callback_type&& callback)
+    {
+        if (_impl)
+        {
+            _impl->loop().post(std::move(callback));
         }
     }
 

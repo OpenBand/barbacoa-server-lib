@@ -381,32 +381,34 @@ namespace tests {
         BOOST_REQUIRE(callback_invoked);
     }
 
-    BOOST_AUTO_TEST_CASE(simple_observer_with_moved_args_check)
+    BOOST_AUTO_TEST_CASE(simple_observer_with_ref_args_check)
     {
         print_current_test_name();
 
-        using callback_type = std::function<void(std::string&&, std::string &&)>;
+        using callback_type = std::function<void(std::string&, std::string&)>;
         using observer_type = simple_observable<callback_type>;
 
         observer_type observer;
 
-        const std::string arg1_val("moved string A");
-        const std::string arg2_val("moved string B");
+        const std::string arg1_val("ref string A");
+        const std::string arg2_val("ref string B");
 
         bool callback_invoked = false;
-        auto callback = [&](std::string&& arg1, std::string&& arg2) {
-            BOOST_REQUIRE_EQUAL(arg1, arg1_val);
-            BOOST_REQUIRE_EQUAL(arg2, arg2_val);
+        auto callback = [&](std::string& arg1, std::string& arg2) {
+            arg1 = arg1_val;
+            arg2 = arg2_val;
             callback_invoked = true;
         };
 
         observer.subscribe(callback);
 
-        auto arg1(arg1_val);
-        auto arg2(arg2_val);
-        observer.notify(std::move(arg1), std::move(arg2));
+        std::string arg1;
+        std::string arg2;
+        observer.notify(std::ref(arg1), std::ref(arg2));
 
         BOOST_REQUIRE(callback_invoked);
+        BOOST_REQUIRE_EQUAL(arg1, arg1_val);
+        BOOST_REQUIRE_EQUAL(arg2, arg2_val);
     }
 
     BOOST_AUTO_TEST_SUITE_END()

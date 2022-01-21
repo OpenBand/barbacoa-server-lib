@@ -2,6 +2,7 @@
 
 #include <server_lib/network/connection.h>
 #include <server_lib/network/client_config.h>
+#include <server_lib/simple_observer.h>
 
 #include <string>
 #include <functional>
@@ -90,12 +91,13 @@ namespace network {
 
         void on_connect_impl(const std::shared_ptr<transport_layer::__connection_impl_i>&);
         void on_diconnect_impl(size_t);
+        void on_fail_impl(const std::string&);
         void clear();
 
         std::shared_ptr<transport_layer::__client_impl_i> _impl;
 
-        connect_callback_type _connect_callback = nullptr;
-        fail_callback_type _fail_callback = nullptr;
+        simple_observable<connect_callback_type> _connect_observer;
+        simple_observable<fail_callback_type> _fail_observer;
         std::shared_ptr<unit_builder_i> _protocol;
         std::shared_ptr<connection> _connection;
     };

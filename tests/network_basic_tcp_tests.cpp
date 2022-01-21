@@ -515,14 +515,11 @@ namespace tests {
             // Second attempt will be aborted asynchronously if it was connected successfully.
             LOG_TRACE("********* ATTEMPT #2");
             BOOST_REQUIRE(client.on_connect([&](connection& conn) {
-                                    conn.on_disconnect(client_disconnect_callback);
+                                    conn.on_disconnect(client_disconnect_callback).on_receive(client_recieve_callback);
                                     client_th.post([&] {
                                         LOG_TRACE("********* ATTEMPT #3");
                                         //last attempt will be allowed
-                                        BOOST_REQUIRE(client.on_connect([&](connection& conn) {
-                                                                conn.on_receive(client_recieve_callback).on_disconnect(client_disconnect_callback);
-                                                            })
-                                                          .connect(*config));
+                                        BOOST_REQUIRE(client.connect(*config));
                                     });
                                 })
                               .connect(*config));

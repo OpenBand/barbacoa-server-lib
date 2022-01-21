@@ -12,11 +12,11 @@
 
 namespace server_lib {
 
-class start_observable_type : public simple_observable<event_loop::callback_type>
+class start_observable_type : public protected_observable<event_loop::callback_type>
 {
 };
 
-class stop_observable_type : public simple_observable<event_loop::callback_type>
+class stop_observable_type : public protected_observable<event_loop::callback_type>
 {
 };
 
