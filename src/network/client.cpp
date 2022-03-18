@@ -90,7 +90,7 @@ namespace network {
             conn->on_disconnect(std::bind(&client::on_diconnect_impl, this, std::placeholders::_1));
             _connection = conn;
 
-            _connect_observer.notify(*_connection);
+            _connect_observer.notify(_connection);
 
             conn->async_read();
         }

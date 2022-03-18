@@ -1,6 +1,7 @@
 #pragma once
 
 #include <server_lib/network/unit_builder_i.h>
+#include <server_lib/simple_observer.h>
 
 #include <string>
 #include <mutex>
@@ -13,6 +14,9 @@ namespace network {
 
     class connection_impl;
     class unit_builder_manager;
+    class connection;
+
+    using pconnection = std::shared_ptr<connection>;
 
     /**
      * Wrapper for network connection (used by both server and client) for unit
@@ -31,7 +35,7 @@ namespace network {
     public:
         ~connection();
 
-        using receive_callback_type = std::function<void(connection&, unit&)>;
+        using receive_callback_type = std::function<void(const pconnection&, unit&)>;
         using disconnect_with_id_callback_type = std::function<void(size_t /*id*/)>;
         using disconnect_callback_type = std::function<void()>;
 
@@ -54,14 +58,14 @@ namespace network {
             return post(unit).commit();
         }
 
-        connection& on_receive(const receive_callback_type&);
+        connection& on_receive(receive_callback_type&&);
 
-        connection& on_disconnect(const disconnect_with_id_callback_type&);
+        connection& on_disconnect(disconnect_with_id_callback_type&&);
 
-        connection& on_disconnect(const disconnect_callback_type&);
+        connection& on_disconnect(disconnect_callback_type&&);
 
     protected:
-        static std::shared_ptr<connection> create(
+        static pconnection create(
             const std::shared_ptr<transport_layer::__connection_impl_i>&,
             const std::shared_ptr<unit_builder_i>&);
 
@@ -80,8 +84,9 @@ namespace network {
         std::string _send_buffer;
         std::mutex _send_buffer_mutex;
 
-        receive_callback_type _receive_callback = nullptr;
-        std::vector<disconnect_with_id_callback_type> _disconnection_callbacks;
+        simple_observable<receive_callback_type> _receive_observer;
+        simple_observable<disconnect_with_id_callback_type> _disconnect_with_id_observer;
+        simple_observable<disconnect_callback_type> _disconnect_observer;
     };
 
 } // namespace network

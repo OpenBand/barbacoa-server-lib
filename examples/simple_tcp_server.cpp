@@ -16,8 +16,9 @@ int main(void)
     server_lib::logger::instance().init_debug_log();
 #endif
 
-    using connection = server_lib::network::connection;
-    using unit = server_lib::network::unit;
+    using server_lib::network::connection;
+    using server_lib::network::pconnection;
+    using server_lib::network::unit;
 
     using my_protocol = server_lib::network::msg_protocol;
     const std::string protocol_message = "PING";
@@ -36,17 +37,17 @@ int main(void)
                                       << "\n"
                                       << std::endl;
                         })
-                      .on_new_connection([&](const std::shared_ptr<connection>& conn) {
-                          conn->on_receive([&](connection& conn, unit& unit) {
-                                  auto data = unit.as_string();
-                                  std::cout << "#" << conn.id() << " "
-                                            << "(" << conn.remote_endpoint() << ") - "
-                                            << "received " << data.size() << " bytes: "
-                                            << ssl_helpers::to_printable(unit.as_string())
-                                            << std::endl;
-                                  if (protocol_message == data)
-                                      conn.send(conn.protocol().create(protocol_message_ack));
-                              })
+                      .on_new_connection([&](const pconnection& pconn) {
+                          pconn->on_receive([&](const pconnection& pconn, unit& unit) {
+                                   auto data = unit.as_string();
+                                   std::cout << "#" << pconn->id() << " "
+                                             << "(" << pconn->remote_endpoint() << ") - "
+                                             << "received " << data.size() << " bytes: "
+                                             << ssl_helpers::to_printable(unit.as_string())
+                                             << std::endl;
+                                   if (protocol_message == data)
+                                       pconn->send(pconn->protocol().create(protocol_message_ack));
+                               })
                               .on_disconnect([&](size_t conn_id) {
                                   std::cout << "#" << conn_id << " - "
                                             << " disconnected"

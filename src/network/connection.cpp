@@ -165,28 +165,29 @@ namespace network {
         return *this;
     }
 
-    connection& connection::on_receive(const receive_callback_type& callback)
+    connection& connection::on_receive(receive_callback_type&& callback)
     {
-        _receive_callback = callback;
+        _receive_observer.subscribe(std::forward<receive_callback_type>(callback));
         return *this;
     }
 
-    connection& connection::on_disconnect(const disconnect_with_id_callback_type& callback)
+    connection& connection::on_disconnect(disconnect_with_id_callback_type&& callback)
     {
-        _disconnection_callbacks.emplace_back(callback);
+        _disconnect_with_id_observer.subscribe(std::forward<disconnect_with_id_callback_type>(callback));
         return *this;
     }
 
-    connection& connection::on_disconnect(const disconnect_callback_type& callback)
+    connection& connection::on_disconnect(disconnect_callback_type&& callback)
     {
-        return this->on_disconnect([callback](size_t /*id*/) { callback(); });
+        _disconnect_observer.subscribe(std::forward<disconnect_callback_type>(callback));
+        return *this;
     }
 
-    std::shared_ptr<connection> connection::create(
+    pconnection connection::create(
         const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection,
         const std::shared_ptr<unit_builder_i>& protocol)
     {
-        std::shared_ptr<connection> conn;
+        pconnection conn;
         conn.reset(new connection(raw_connection, protocol));
         return conn;
     }
@@ -225,10 +226,7 @@ namespace network {
             auto unit = _protocol->get_front();
             _protocol->pop_front();
 
-            if (_receive_callback)
-            {
-                _receive_callback(*hold_self, unit);
-            }
+            _receive_observer.notify(hold_self, unit);
         }
 
         async_read();
@@ -246,10 +244,8 @@ namespace network {
 
         auto hold_self = shared_from_this();
 
-        for (auto&& callback : _disconnection_callbacks)
-        {
-            callback(hold_self->id());
-        }
+        _disconnect_with_id_observer.notify(hold_self->id());
+        _disconnect_observer.notify();
     }
 
 } // namespace network

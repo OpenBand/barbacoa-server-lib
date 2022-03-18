@@ -29,7 +29,7 @@ namespace network {
 
         ~client();
 
-        using connect_callback_type = std::function<void(connection&)>;
+        using connect_callback_type = std::function<void(const pconnection&)>;
         using fail_callback_type = std::function<void(const std::string&)>;
         using common_callback_type = std::function<void()>;
 
@@ -99,7 +99,7 @@ namespace network {
         simple_observable<connect_callback_type> _connect_observer;
         simple_observable<fail_callback_type> _fail_observer;
         std::shared_ptr<unit_builder_i> _protocol;
-        std::shared_ptr<connection> _connection;
+        pconnection _connection;
     };
 
 } // namespace network
