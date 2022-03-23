@@ -40,6 +40,10 @@ namespace tests {
                                  std::condition_variable& done_cond,
                                  std::mutex& done_cond_guard,
                                  size_t sec_timeout = 10);
+
+    std::string to_printable(const std::string&,
+                             char replace = '.',
+                             const std::string& exclude = "\t\n\r\x0b\x0c");
 } // namespace tests
 } // namespace server_lib
 

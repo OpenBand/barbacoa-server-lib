@@ -2,6 +2,7 @@
 
 #include <server_lib/network/connection.h>
 #include <server_lib/network/server_config.h>
+#include <server_lib/simple_observer.h>
 
 #include <string>
 #include <functional>
@@ -123,7 +124,9 @@ namespace network {
 
         server& start_impl(std::function<std::shared_ptr<transport_layer::server_impl_i>()>&&);
 
+        void on_start_impl();
         void on_new_client(const std::shared_ptr<transport_layer::__connection_impl_i>&);
+        void on_fail_impl(const std::string&);
         void on_client_disconnected(size_t);
 
         std::shared_ptr<transport_layer::server_impl_i> _impl;
@@ -132,9 +135,9 @@ namespace network {
         std::unordered_map<size_t, std::shared_ptr<connection>> _connections;
         std::mutex _connections_mutex;
 
-        common_callback_type _start_callback = nullptr;
-        new_connection_callback_type _new_connection_callback = nullptr;
-        fail_callback_type _fail_callback = nullptr;
+        simple_observable<common_callback_type> _start_observer;
+        simple_observable<new_connection_callback_type> _new_connection_observer;
+        simple_observable<fail_callback_type> _fail_observer;
     };
 
 } // namespace network

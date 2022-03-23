@@ -23,12 +23,6 @@ namespace tests {
     {
         print_current_test_name();
 
-        event_loop server_th;
-        event_loop client_th;
-
-        server_th.change_thread_name("!S");
-        client_th.change_thread_name("!C");
-
         msg_protocol protocol;
 
         server server;
@@ -64,12 +58,10 @@ namespace tests {
 
             server_connection.reset();
 
-            client_th.post([&] {
-                // Finish test
-                std::unique_lock<std::mutex> lck(done_test_cond_guard);
-                done_test = true;
-                done_test_cond.notify_one();
-            });
+            // Finish test
+            std::unique_lock<std::mutex> lck(done_test_cond_guard);
+            done_test = true;
+            done_test_cond.notify_one();
         };
 
         auto server_new_connection_callback = [&](const pconnection& pconn) {
@@ -120,21 +112,17 @@ namespace tests {
                                       .set_protocol(protocol)));
         };
 
-        server_th.on_start([&]() {
-                     BOOST_REQUIRE(server.on_start(
-                                             [&]() {
-                                                 client_th.on_start([&]() { client_run(); }).start();
-                                             })
-                                       .on_new_connection(
-                                           server_new_connection_callback)
-                                       .start(
-                                           server.configurate_tcp()
-                                               .set_worker_name("!S-T")
-                                               .set_address(host, port)
-                                               .set_protocol(protocol))
-                                       .wait());
-                 })
-            .start();
+        server.on_start(
+                  [&]() {
+                      client_run();
+                  })
+            .on_new_connection(
+                server_new_connection_callback)
+            .start(
+                server.configurate_tcp()
+                    .set_worker_name("!S-T")
+                    .set_address(host, port)
+                    .set_protocol(protocol));
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }
@@ -142,12 +130,6 @@ namespace tests {
     BOOST_AUTO_TEST_CASE(tcp_connection_close_by_server_check)
     {
         print_current_test_name();
-
-        event_loop server_th;
-        event_loop client_th;
-
-        server_th.change_thread_name("!S");
-        client_th.change_thread_name("!C");
 
         msg_protocol protocol;
 
@@ -211,12 +193,10 @@ namespace tests {
         auto client_disconnect_callback = [&](size_t) {
             LOG_TRACE("********* client_disconnect_callback");
 
-            client_th.post([&] {
-                // Finish test
-                std::unique_lock<std::mutex> lck(done_test_cond_guard);
-                done_test = true;
-                done_test_cond.notify_one();
-            });
+            // Finish test
+            std::unique_lock<std::mutex> lck(done_test_cond_guard);
+            done_test = true;
+            done_test_cond.notify_one();
         };
 
         auto client_run = [&]() {
@@ -230,21 +210,17 @@ namespace tests {
                                       .set_protocol(protocol)));
         };
 
-        server_th.on_start([&]() {
-                     BOOST_REQUIRE(server.on_start(
-                                             [&]() {
-                                                 client_th.on_start([&]() { client_run(); }).start();
-                                             })
-                                       .on_new_connection(
-                                           server_new_connection_callback)
-                                       .start(
-                                           server.configurate_tcp()
-                                               .set_worker_name("!S-T")
-                                               .set_address(host, port)
-                                               .set_protocol(protocol))
-                                       .wait());
-                 })
-            .start();
+        server.on_start(
+                  [&]() {
+                      client_run();
+                  })
+            .on_new_connection(
+                server_new_connection_callback)
+            .start(
+                server.configurate_tcp()
+                    .set_worker_name("!S-T")
+                    .set_address(host, port)
+                    .set_protocol(protocol));
 
         BOOST_REQUIRE(waiting_for_asynch_test(done_test, done_test_cond, done_test_cond_guard));
     }

@@ -66,9 +66,11 @@ namespace network {
 
             _impl = create_impl();
 
+            auto start_handler = std::bind(&server::on_start_impl, this);
             auto new_client_handler = std::bind(&server::on_new_client, this, std::placeholders::_1);
+            auto fail_handler = std::bind(&server::on_fail_impl, this, std::placeholders::_1);
 
-            SRV_ASSERT(_impl->start(_start_callback, new_client_handler, _fail_callback));
+            SRV_ASSERT(_impl->start(start_handler, new_client_handler, fail_handler));
         }
         catch (const std::exception& e)
         {
@@ -98,19 +100,19 @@ namespace network {
 
     server& server::on_start(common_callback_type&& callback)
     {
-        _start_callback = std::forward<common_callback_type>(callback);
+        _start_observer.subscribe(std::forward<common_callback_type>(callback));
         return *this;
     }
 
     server& server::on_new_connection(new_connection_callback_type&& callback)
     {
-        _new_connection_callback = std::forward<new_connection_callback_type>(callback);
+        _new_connection_observer.subscribe(std::forward<new_connection_callback_type>(callback));
         return *this;
     }
 
     server& server::on_fail(fail_callback_type&& callback)
     {
-        _fail_callback = std::forward<fail_callback_type>(callback);
+        _fail_observer.subscribe(std::forward<fail_callback_type>(callback));
         return *this;
     }
 
@@ -162,6 +164,11 @@ namespace network {
         }
     }
 
+    void server::on_start_impl()
+    {
+        _start_observer.notify();
+    }
+
     void server::on_new_client(const std::shared_ptr<transport_layer::__connection_impl_i>& raw_connection)
     {
         if (!is_running())
@@ -182,10 +189,14 @@ namespace network {
 
         SRV_LOGC_TRACE("new client connection #" << raw_connection->id() << ", total " << sz);
 
-        if (_new_connection_callback)
-            _new_connection_callback(conn);
+        _new_connection_observer.notify(conn);
 
         conn->async_read();
+    }
+
+    void server::on_fail_impl(const std::string& error)
+    {
+        _fail_observer.notify(error);
     }
 
     void server::on_client_disconnected(size_t conection_id)

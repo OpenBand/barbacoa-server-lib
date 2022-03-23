@@ -175,10 +175,10 @@ namespace {
                     char elf_header[4];
                     SRV_ASSERT(core && core.read(elf_header, sizeof(elf_header)), "File is not readable");
 
+                    core.close();
+
                     auto elf_hex = ssl_helpers::to_hex(std::string(elf_header, sizeof(elf_header)));
                     SRV_ASSERT(elf_hex == "7f454c46", "Wrong file type");
-
-                    core.close();
 
                     auto tm = ssl_helpers::to_iso_string(fs::last_write_time(prev_core));
                     auto renamed = prev_core;

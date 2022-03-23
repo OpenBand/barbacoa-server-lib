@@ -101,6 +101,7 @@ namespace network {
                                 if (!ec)
                                 {
                                     SRV_LOGC_TRACE("resolved");
+
                                     asio::async_connect(connection->socket(), it, connect_step);
                                 }
                                 else if (fail_callback)

@@ -6,6 +6,8 @@
 #include <sstream>
 
 #include <cstring>
+#include <set>
+
 
 namespace server_lib {
 namespace tests {
@@ -70,5 +72,53 @@ namespace tests {
         }
         return done;
     }
+
+#if 1 // Copy & Paste from git@github.com:Andrei-Masilevich/barbacoa-ssl-helpers.git
+    namespace {
+        class printable_index
+        {
+        public:
+            printable_index(const char* data)
+            {
+                const char* pch = data;
+                while (*pch)
+                {
+                    _index.emplace(*pch);
+                    pch++;
+                }
+            }
+
+            bool operator()(char ch)
+            {
+                auto it = _index.find(ch);
+                return _index.end() != it;
+            }
+
+        private:
+            std::set<char> _index;
+
+            // Python string.printable:
+        } __printable_bytes = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                              "!\"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~ \t\n\r\x0b\x0c";
+    } // namespace
+
+    std::string to_printable(const std::string& data, char replace, const std::string& exclude)
+    {
+        // TODO: for better performance use ASCII index comparison algorithm instead that
+        // but this must have enough performance for most cases
+
+        std::string converted(data.begin(), data.end());
+        printable_index indexed_exclude(exclude.c_str()); //suppose this list is short enough
+
+        std::replace_if(
+            converted.begin(), converted.end(), [&](char ch) {
+                return !__printable_bytes(ch) || indexed_exclude(ch);
+            },
+            replace);
+
+        return converted;
+    }
+#endif
+
 } // namespace tests
 } // namespace server_lib
