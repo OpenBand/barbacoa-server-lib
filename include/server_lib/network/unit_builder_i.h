@@ -34,19 +34,7 @@ namespace network {
          * Create unit.
          *
          */
-        virtual unit create(const std::string&) const
-        {
-            return {};
-        }
-
-        /**
-         * Create unit.
-         *
-        */
-        virtual unit create(const char* buff, const size_t sz) const
-        {
-            return create(std::string { buff, sz });
-        }
+        virtual unit create(const std::string&) const = 0;
 
         /**
          * Take data as parameter which is consumed to build the unit

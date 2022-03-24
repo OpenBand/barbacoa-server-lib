@@ -27,7 +27,9 @@ namespace network {
     public:
         void set_builder(const std::shared_ptr<unit_builder_i> builder);
 
-        unit_builder_i& builder();
+        const unit_builder_i& builder() const;
+
+        std::string create_network_string(const std::string& input) const;
 
         /**
          * Add data to unit builder data is used to build

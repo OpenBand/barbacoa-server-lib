@@ -113,17 +113,18 @@ namespace network {
         return _raw_connection->remote_endpoint();
     }
 
-    unit_builder_i& connection::protocol()
+    const unit_builder_i& connection::protocol() const
     {
         SRV_ASSERT(_protocol);
         return _protocol->builder();
     }
 
-    connection& connection::post(const unit& unit)
+    connection& connection::post(const std::string& unit)
     {
+        SRV_ASSERT(_protocol);
         std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
-        _send_buffer += unit.to_network_string();
+        _send_buffer += _protocol->create_network_string(unit);
 
         lock.unlock();
 

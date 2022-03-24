@@ -32,11 +32,11 @@ int main(void)
     auto&& app = server_lib::application::init();
     return app.on_start([&]() {
                   auto port = 19999;
-                  client.on_connect([&, port](const pconnection& pconn) {
+                  client.on_connect([&, port](pconnection pconn) {
                             std::cout << "Connected to " << port << ". Press ^C to stop"
                                       << "\n"
                                       << std::endl;
-                            pconn->on_receive([&](const pconnection& pconn, unit& unit) {
+                            pconn->on_receive([&](pconnection pconn, unit unit) {
                                 auto data = unit.as_string();
                                 std::cout << "Received " << data.size() << " bytes: "
                                           << ssl_helpers::to_printable(unit.as_string())
@@ -49,7 +49,7 @@ int main(void)
                             ping_timer.start(2s, [&]() {
                                 // Do 'post' just to make all business logic in the same thread.
                                 client.post([&]() {
-                                    pconn->send(pconn->protocol().create(protocol_message));
+                                    pconn->send(protocol_message);
                                 });
                             });
                         })

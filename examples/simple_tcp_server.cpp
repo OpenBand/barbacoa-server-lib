@@ -37,8 +37,8 @@ int main(void)
                                       << "\n"
                                       << std::endl;
                         })
-                      .on_new_connection([&](const pconnection& pconn) {
-                          pconn->on_receive([&](const pconnection& pconn, unit& unit) {
+                      .on_new_connection([&](pconnection pconn) {
+                          pconn->on_receive([&](pconnection pconn, unit unit) {
                                    auto data = unit.as_string();
                                    std::cout << "#" << pconn->id() << " "
                                              << "(" << pconn->remote_endpoint() << ") - "
@@ -46,7 +46,7 @@ int main(void)
                                              << ssl_helpers::to_printable(unit.as_string())
                                              << std::endl;
                                    if (protocol_message == data)
-                                       pconn->send(pconn->protocol().create(protocol_message_ack));
+                                       pconn->send(protocol_message_ack);
                                })
                               .on_disconnect([&](size_t conn_id) {
                                   std::cout << "#" << conn_id << " - "

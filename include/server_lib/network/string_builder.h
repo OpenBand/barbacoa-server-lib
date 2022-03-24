@@ -20,6 +20,8 @@ namespace network {
 
         ~string_builder() override = default;
 
+        unit create(const std::string& data) const override;
+
         unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override

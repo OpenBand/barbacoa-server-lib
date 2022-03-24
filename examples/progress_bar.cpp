@@ -39,9 +39,7 @@ int main(void)
     auto&& app = server_lib::application::init();
     return app.on_start([&]() {
                   auto notify = [&](const std::shared_ptr<connection>& client) {
-                      client->send(
-                          client->protocol()
-                              .create(std::to_string(100 - progress_left.load()) + "%\n"));
+                      client->send(std::to_string(100 - progress_left.load()) + "%\n");
                   };
                   server.on_start([&, notify]() {
                             std::cout << "Online at " << socket_file << ". "

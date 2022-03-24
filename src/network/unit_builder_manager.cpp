@@ -16,10 +16,16 @@ namespace network {
         _builder = builder;
     }
 
-    unit_builder_i& unit_builder_manager::builder()
+    const unit_builder_i& unit_builder_manager::builder() const
     {
         SRV_ASSERT(_builder);
         return *_builder;
+    }
+
+    std::string unit_builder_manager::create_network_string(const std::string& input) const
+    {
+        auto unit = _builder->create(input);
+        return unit.to_network_string();
     }
 
     unit_builder_manager&

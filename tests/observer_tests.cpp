@@ -404,7 +404,7 @@ namespace tests {
 
         std::string arg1;
         std::string arg2;
-        observer.notify(std::ref(arg1), std::ref(arg2));
+        observer.notify_ref(arg1, arg2);
 
         BOOST_REQUIRE(callback_invoked);
         BOOST_REQUIRE_EQUAL(arg1, arg1_val);

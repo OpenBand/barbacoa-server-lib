@@ -29,7 +29,7 @@ namespace network {
 
         ~client();
 
-        using connect_callback_type = std::function<void(const pconnection&)>;
+        using connect_callback_type = std::function<void(pconnection)>;
         using fail_callback_type = std::function<void(const std::string&)>;
         using common_callback_type = std::function<void()>;
 

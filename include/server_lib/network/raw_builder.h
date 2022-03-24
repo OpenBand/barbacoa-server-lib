@@ -30,11 +30,6 @@ namespace network {
             return { buff };
         }
 
-        unit create(const char* buff, const size_t sz) const override
-        {
-            return { buff, sz };
-        }
-
         unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override

@@ -32,7 +32,7 @@ namespace network {
 
         using common_callback_type = std::function<void()>;
         using fail_callback_type = std::function<void(const std::string&)>;
-        using new_connection_callback_type = std::function<void(const std::shared_ptr<connection>&)>;
+        using new_connection_callback_type = std::function<void(pconnection)>;
 
         /**
          * Configurate TCP server

@@ -56,18 +56,14 @@ namespace tests {
         // Setup App server
         //
 
-        auto server_recieve_callback = [&](const pconnection& pconn, unit& unit) {
+        auto server_recieve_callback = [&](pconnection pconn, unit unit) {
             LOG_TRACE("********* server_on_receive");
 
             LOG_TRACE("***** recieve unit: " << print_unit(unit));
 
             BOOST_REQUIRE_EQUAL(unit.as_string(), ping_cmd);
 
-            auto unit_ = app_protocol.create(pong_cmd);
-
-            LOG_TRACE("***** send unit: " << print_unit(unit_));
-
-            BOOST_REQUIRE_NO_THROW(server_connection->send(unit_));
+            BOOST_REQUIRE_NO_THROW(server_connection->send(pong_cmd));
         };
 
         server.on_start([&]() {
@@ -82,7 +78,7 @@ namespace tests {
                   done_test = true;
                   done_test_cond.notify_one();
               })
-            .on_new_connection([&](const pconnection& pconn) {
+            .on_new_connection([&](pconnection pconn) {
                 BOOST_REQUIRE(pconn);
 
                 LOG_TRACE("********* server_new_connection_callback: " << pconn->id());
@@ -107,7 +103,7 @@ namespace tests {
         //
 
         pconnection proxy_in_connection, proxy_out_connection;
-        std::queue<unit> proxy_in_buffer;
+        std::queue<std::string> proxy_in_buffer;
         std::mutex proxy_in_buffer_guard;
 
         auto release_buffer = [&]() {
@@ -138,14 +134,14 @@ namespace tests {
                                     done_test = true;
                                     done_test_cond.notify_one();
                                 })
-                        .on_new_connection([&](const pconnection& pconn) {
+                        .on_new_connection([&](pconnection pconn) {
                             BOOST_REQUIRE(pconn);
 
                             LOG_TRACE("********* proxy_server_new_connection_callback: " << pconn->id());
 
                             proxy_in_connection = pconn;
 
-                            proxy_in_connection->on_receive([&](const pconnection&, unit& unit) {
+                            proxy_in_connection->on_receive([&](pconnection, unit unit) {
                                                    proxy_th.post([&, unit]() {
                                                        LOG_TRACE("********* proxy_server_on_receive");
                                                        if (proxy_out_connection)
@@ -156,14 +152,14 @@ namespace tests {
 
                                                            LOG_TRACE("***** proxy unit: " << print_unit(unit));
 
-                                                           proxy_out_connection->send(unit);
+                                                           proxy_out_connection->send(unit.as_string());
                                                        }
                                                        else
                                                        {
                                                            LOG_TRACE("*** proxy push_buffer");
 
                                                            std::lock_guard<std::mutex> lck(proxy_in_buffer_guard);
-                                                           proxy_in_buffer.push(unit);
+                                                           proxy_in_buffer.push(unit.as_string());
                                                        }
                                                    });
                                                })
@@ -171,15 +167,15 @@ namespace tests {
                                     LOG_TRACE("********* proxy_server_on_disconnect");
                                 });
 
-                            BOOST_REQUIRE(proxy_client.on_connect([&](const pconnection& pconn) {
+                            BOOST_REQUIRE(proxy_client.on_connect([&](pconnection pconn) {
                                                           LOG_TRACE("********* proxy_client_on_connect");
 
                                                           BOOST_REQUIRE(pconn);
 
                                                           proxy_out_connection = pconn;
 
-                                                          proxy_out_connection->on_receive([&](const pconnection& pconn, unit& unit) {
-                                                                                  proxy_th.post([&, unit]() {
+                                                          proxy_out_connection->on_receive([&](pconnection pconn, unit unit_) {
+                                                                                  proxy_th.post([&, unit = unit_]() {
                                                                                       LOG_TRACE("********* proxy_client_on_receive");
 
                                                                                       BOOST_REQUIRE(proxy_in_connection);
@@ -188,7 +184,7 @@ namespace tests {
 
                                                                                       LOG_TRACE("***** proxy unit: " << print_unit(unit));
 
-                                                                                      proxy_in_connection->send(unit);
+                                                                                      proxy_in_connection->send(unit.as_string());
                                                                                   });
                                                                               })
                                                               .on_disconnect([&]() {
@@ -221,10 +217,10 @@ namespace tests {
         // Setup App client
         //
 
-        BOOST_REQUIRE(client.on_connect([&](const pconnection& pconn) {
+        BOOST_REQUIRE(client.on_connect([&](pconnection pconn) {
                                 LOG_TRACE("********* client_on_connect");
 
-                                pconn->on_receive([&](const pconnection& pconn, unit& unit) {
+                                pconn->on_receive([&](pconnection pconn, unit unit) {
                                     LOG_TRACE("********* client_on_receive");
 
                                     LOG_TRACE("***** recieve unit: " << print_unit(unit));
@@ -237,11 +233,7 @@ namespace tests {
                                     done_test_cond.notify_one();
                                 });
 
-                                auto unit_to_send = app_protocol.create(ping_cmd);
-
-                                LOG_TRACE("***** send unit: " << print_unit(unit_to_send));
-
-                                BOOST_REQUIRE_NO_THROW(pconn->send(unit_to_send));
+                                BOOST_REQUIRE_NO_THROW(pconn->send(ping_cmd));
                             })
                           .connect(
                               client.configurate_tcp()

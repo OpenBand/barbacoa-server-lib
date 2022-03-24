@@ -1,6 +1,7 @@
 #pragma once
 
 #include <server_lib/network/unit_builder_i.h>
+#include <server_lib/asserts.h>
 
 namespace server_lib {
 namespace network {
@@ -20,6 +21,12 @@ namespace network {
         using integer_type = unit::integer_type;
 
         static std::string pack(const integer_type);
+
+        unit create(const std::string& data) const override
+        {
+            SRV_ERROR("Can't be created from string in this context");
+            return {};
+        }
 
         unit_builder_i& operator<<(std::string& network_data) override;
 

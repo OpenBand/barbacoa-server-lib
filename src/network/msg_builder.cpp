@@ -16,7 +16,7 @@ namespace network {
         auto sz = msg.size();
         SRV_ASSERT(sz <= static_cast<size_type>(std::numeric_limits<size_type>::max()));
 
-        msg_unit << unit { integer_builder::pack(static_cast<size_type>(sz)) } << unit { msg };
+        msg_unit << unit { integer_builder::pack(static_cast<size_type>(sz)) } << _msg_builder.create(msg);
         return msg_unit;
     }
 

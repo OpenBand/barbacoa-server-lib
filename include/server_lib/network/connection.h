@@ -35,7 +35,7 @@ namespace network {
     public:
         ~connection();
 
-        using receive_callback_type = std::function<void(const pconnection&, unit&)>;
+        using receive_callback_type = std::function<void(pconnection, unit)>;
         using disconnect_with_id_callback_type = std::function<void(size_t /*id*/)>;
         using disconnect_callback_type = std::function<void()>;
 
@@ -47,13 +47,13 @@ namespace network {
 
         std::string remote_endpoint() const;
 
-        unit_builder_i& protocol();
+        const unit_builder_i& protocol() const;
 
-        connection& post(const unit& unit);
+        connection& post(const std::string& unit);
 
         connection& commit();
 
-        connection& send(const unit& unit)
+        connection& send(const std::string& unit)
         {
             return post(unit).commit();
         }

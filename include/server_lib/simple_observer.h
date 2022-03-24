@@ -63,7 +63,7 @@ public:
     }
 
     template <typename... Arg>
-    void notify(Arg&... args)
+    void notify_ref(Arg&... args)
     {
         // Check if notification in the same thread
         notify_impl([&](callback sink) {
