@@ -119,12 +119,18 @@ namespace network {
         return _protocol->builder();
     }
 
-    connection& connection::post(const std::string& unit)
+    connection& connection::post(const std::string& input)
     {
         SRV_ASSERT(_protocol);
+
+        return post(_protocol->builder().create(input));
+    }
+
+    connection& connection::post(const unit& unit)
+    {
         std::unique_lock<std::mutex> lock(_send_buffer_mutex);
 
-        _send_buffer += _protocol->create_network_string(unit);
+        _send_buffer += unit.to_network_string();
 
         lock.unlock();
 

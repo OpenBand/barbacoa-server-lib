@@ -22,12 +22,6 @@ namespace network {
         return *_builder;
     }
 
-    std::string unit_builder_manager::create_network_string(const std::string& input) const
-    {
-        auto unit = _builder->create(input);
-        return unit.to_network_string();
-    }
-
     unit_builder_manager&
     unit_builder_manager::operator<<(const std::string& data)
     {

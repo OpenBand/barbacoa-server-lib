@@ -29,8 +29,6 @@ namespace network {
 
         const unit_builder_i& builder() const;
 
-        std::string create_network_string(const std::string& input) const;
-
         /**
          * Add data to unit builder data is used to build
          * replies that can be retrieved with get_front later on if receive_available returns true

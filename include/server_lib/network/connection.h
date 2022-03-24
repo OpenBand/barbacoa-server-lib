@@ -51,9 +51,16 @@ namespace network {
 
         connection& post(const std::string& unit);
 
+        connection& post(const unit& unit);
+
         connection& commit();
 
         connection& send(const std::string& unit)
+        {
+            return post(unit).commit();
+        }
+
+        connection& send(const unit& unit)
         {
             return post(unit).commit();
         }
