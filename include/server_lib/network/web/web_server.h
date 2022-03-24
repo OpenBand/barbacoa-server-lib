@@ -2,6 +2,7 @@
 
 #include "web_server_config.h"
 #include "web_server_i.h"
+#include <server_lib/simple_observer.h>
 
 #include <memory>
 
@@ -131,10 +132,13 @@ namespace network {
 
             web_server& start_impl(std::function<std::shared_ptr<web_server_impl_i>()>&&);
 
+            void on_start_impl();
+            void on_fail_impl(std::shared_ptr<web_request_i>, const std::string&);
+
             std::shared_ptr<web_server_impl_i> _impl;
 
-            start_callback_type _start_callback = nullptr;
-            fail_callback_type _fail_callback = nullptr;
+            simple_observable<start_callback_type> _start_observer;
+            simple_observable<fail_callback_type> _fail_observer;
             size_t _next_subscription = 0;
             std::map<std::string, std::map<std::string, std::pair<size_t, request_callback_type>>> _request_callbacks;
         };

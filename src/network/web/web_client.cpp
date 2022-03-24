@@ -208,11 +208,12 @@ namespace network {
         {
             try
             {
-                SRV_ASSERT(!_response_callback, "Response handler required");
-
                 _impl = create_impl();
 
-                SRV_ASSERT(_impl->start(_start_callback, _fail_callback));
+                auto start_handler = std::bind(&web_client::on_start_impl, this);
+                auto fail_handler = std::bind(&web_client::on_fail_impl, this, std::placeholders::_1);
+
+                SRV_ASSERT(_impl->start(start_handler, fail_handler));
             }
             catch (const std::exception& e)
             {
@@ -220,6 +221,16 @@ namespace network {
             }
 
             return *this;
+        }
+
+        void web_client::on_start_impl()
+        {
+            _start_observer.notify();
+        }
+
+        void web_client::on_fail_impl(const std::string& error)
+        {
+            _fail_observer.notify(error);
         }
 
         web_client& web_client::request(const std::string& path,
@@ -287,13 +298,13 @@ namespace network {
 
         web_client& web_client::on_start(start_callback_type&& callback)
         {
-            _start_callback = std::move(callback);
+            _start_observer.subscribe(std::forward<start_callback_type>(callback));
             return *this;
         }
 
         web_client& web_client::on_fail(fail_callback_type&& callback)
         {
-            _fail_callback = std::move(callback);
+            _fail_observer.subscribe(std::forward<fail_callback_type>(callback));
             return *this;
         }
 

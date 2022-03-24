@@ -193,7 +193,10 @@ namespace network {
 
                 _impl = create_impl();
 
-                SRV_ASSERT(_impl->start(_start_callback, _fail_callback, _request_callbacks));
+                auto start_handler = std::bind(&web_server::on_start_impl, this);
+                auto fail_handler = std::bind(&web_server::on_fail_impl, this, std::placeholders::_1, std::placeholders::_2);
+
+                SRV_ASSERT(_impl->start(start_handler, fail_handler, _request_callbacks));
             }
             catch (const std::exception& e)
             {
@@ -201,6 +204,16 @@ namespace network {
             }
 
             return *this;
+        }
+
+        void web_server::on_start_impl()
+        {
+            _start_observer.notify();
+        }
+
+        void web_server::on_fail_impl(std::shared_ptr<web_request_i> request, const std::string& error)
+        {
+            _fail_observer.notify(request, error);
         }
 
         bool web_server::wait(bool wait_until_stop)
@@ -240,13 +253,13 @@ namespace network {
 
         web_server& web_server::on_start(start_callback_type&& callback)
         {
-            _start_callback = callback;
+            _start_observer.subscribe(std::forward<start_callback_type>(callback));
             return *this;
         }
 
         web_server& web_server::on_fail(fail_callback_type&& callback)
         {
-            _fail_callback = callback;
+            _fail_observer.subscribe(std::forward<fail_callback_type>(callback));
             return *this;
         }
 

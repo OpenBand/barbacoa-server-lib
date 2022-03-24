@@ -2,6 +2,7 @@
 
 #include "web_client_config.h"
 #include "web_client_i.h"
+#include <server_lib/simple_observer.h>
 
 #include <memory>
 
@@ -149,11 +150,13 @@ namespace network {
 
             web_client& start_impl(std::function<std::shared_ptr<web_client_impl_i>()>&&);
 
+            void on_start_impl();
+            void on_fail_impl(const std::string&);
+
             std::shared_ptr<web_client_impl_i> _impl;
 
-            start_callback_type _start_callback = nullptr;
-            response_callback_type _response_callback = nullptr;
-            fail_callback_type _fail_callback = nullptr;
+            simple_observable<start_callback_type> _start_observer;
+            simple_observable<fail_callback_type> _fail_observer;
         };
 
     } // namespace web
