@@ -7,6 +7,8 @@
 #include <server_lib/network/client.h>
 #include <server_lib/network/protocols.h>
 
+#include <ssl_helpers/encoding.h>
+
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
@@ -32,7 +34,7 @@ namespace tests {
         std::condition_variable done_test_cond;
 
         auto print_unit = [](const unit& unit) -> std::string {
-            return to_printable(unit.to_printable_string());
+            return ssl_helpers::to_printable(unit.to_printable_string());
         };
 
         // Setup App server
