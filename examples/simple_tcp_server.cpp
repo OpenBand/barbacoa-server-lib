@@ -16,7 +16,6 @@ int main(void)
     server_lib::logger::instance().init_debug_log();
 #endif
 
-    using server_lib::network::connection;
     using server_lib::network::pconnection;
     using server_lib::network::unit;
 

@@ -19,7 +19,6 @@ int main(void)
 
     using namespace std::chrono_literals;
 
-    using server_lib::network::connection;
     using server_lib::network::pconnection;
     using server_lib::network::unit;
 
