@@ -1,6 +1,5 @@
 #include <server_lib/event_loop.h>
-#include <server_lib/logging_helper.h>
-#include <server_lib/asserts.h>
+#include <server_lib/simple_observer.h>
 
 #include <boost/utility/in_place_factory.hpp>
 
@@ -9,13 +8,17 @@
 #include <sys/syscall.h>
 #endif
 
-#ifdef SRV_LOG_CONTEXT_
-#undef SRV_LOG_CONTEXT_
-#endif // #ifdef SRV_LOG_CONTEXT_
-
-#define SRV_LOG_CONTEXT_ "el>" << ((_tid > 0) ? (_tid) : 0) << ((_tid > 0) ? ": " : "| ")
+#include "logger_set_internal_group.h"
 
 namespace server_lib {
+
+class start_observable_type : public protected_observable<event_loop::callback_type>
+{
+};
+
+class stop_observable_type : public protected_observable<event_loop::callback_type>
+{
+};
 
 #if !defined(SERVER_LIB_PLATFORM_LINUX)
 static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
@@ -23,10 +26,6 @@ static std::thread::id MAIN_THREAD_ID = std::this_thread::get_id();
 
 event_loop::event_loop(bool in_separate_thread /*= true*/)
     : _run_in_separate_thread(in_separate_thread)
-    , _pservice(std::make_shared<boost::asio::io_service>())
-    , _strand(*_pservice)
-    , _queue_size(0)
-    , _id(std::this_thread::get_id())
 {
     if (_run_in_separate_thread)
     {
@@ -37,21 +36,63 @@ event_loop::event_loop(bool in_separate_thread /*= true*/)
         SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
     }
 
-    _is_running.store(false);
-    _is_main.store(is_main_loop());
+    reset();
 }
+
 event_loop::~event_loop()
 {
-    if (_run_in_separate_thread)
+    try
     {
-        SRV_LOGC_TRACE(SRV_FUNCTION_NAME_ << " in separate thread");
-    }
-    else
-    {
-        SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
-    }
+        if (_run_in_separate_thread)
+        {
+            SRV_LOGC_TRACE(SRV_FUNCTION_NAME_ << " in separate thread");
+        }
+        else
+        {
+            SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
+        }
 
-    stop();
+        stop();
+    }
+    catch (const std::exception& e)
+    {
+        SRV_LOGC_ERROR(e.what());
+    }
+}
+
+void event_loop::notify_start()
+{
+    SRV_ASSERT(_start_observer);
+    _start_observer->notify();
+}
+
+void event_loop::notify_stop()
+{
+    SRV_ASSERT(_stop_observer);
+    _stop_observer->notify();
+}
+
+void event_loop::reset()
+{
+    _is_running = false;
+    _is_run = false;
+    _start_observer = std::make_unique<start_observable_type>();
+    _stop_observer = std::make_unique<stop_observable_type>();
+    _id = std::this_thread::get_id();
+    _native_thread_id = 0l;
+
+    _pservice = std::make_shared<boost::asio::io_service>();
+    _pstrand = std::make_unique<boost::asio::io_service::strand>(*_pservice);
+    _queue_size = 0;
+    if (_run_in_separate_thread)
+        _thread.reset();
+}
+
+void event_loop::apply_thread_name()
+{
+#if defined(SERVER_LIB_PLATFORM_LINUX)
+    SRV_ASSERT(0 == pthread_setname_np(pthread_self(), _thread_name.c_str()));
+#endif
 }
 
 bool event_loop::is_main_thread()
@@ -63,82 +104,77 @@ bool event_loop::is_main_thread()
 #endif
 }
 
-bool event_loop::is_main_loop()
-{
-    return !_run_in_separate_thread && is_main_thread();
-}
-
-void event_loop::apply_thread_name()
-{
-#if defined(SERVER_LIB_PLATFORM_LINUX)
-    SRV_ASSERT(0 == pthread_setname_np(pthread_self(), _thread_name.c_str()));
-#endif
-}
-
-void event_loop::change_thread_name(const std::string& name)
+event_loop& event_loop::change_thread_name(const std::string& name)
 {
     static int MAX_THREAD_NAME_SZ = 15;
     if (name.length() > MAX_THREAD_NAME_SZ)
         _thread_name = name.substr(0, MAX_THREAD_NAME_SZ);
     else
         _thread_name = name;
-    if (_is_running.load())
+    if (!_run_in_separate_thread)
     {
         apply_thread_name();
     }
+    else if (is_running())
+    {
+        post([this]() {
+            apply_thread_name();
+        });
+    }
+    return *this;
 }
 
-void event_loop::start(std::function<void(void)> start_notify, std::function<void(void)> stop_notify)
+event_loop& event_loop::start()
 {
     if (is_running())
-        return;
+        return *this;
 
     SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
 
-    _is_main.store(is_main_loop());
-
-    _loop_maintainer = boost::in_place(std::ref(*_pservice));
-
-    post([this, start_notify]() {
-        SRV_LOGC_TRACE("Event loop is started");
-
-        _is_running.store(true);
-        if (start_notify)
-            start_notify();
-    });
-
-    if (_run_in_separate_thread)
+    try
     {
-        _thread.reset(new std::thread([this, stop_notify]() {
+        _is_running = true;
+
+        // The 'work' object guarantees that 'run()' function
+        // will not exit while work is underway, and that it does exit
+        // when there is no unfinished work remaining.
+        // It is quite like infinite loop (in CCU safe manner of course)
+        _loop_maintainer = boost::in_place(std::ref(*_pservice));
+
+        post([this]() {
+            SRV_LOGC_TRACE("Event loop has started");
+
+            _is_run = true;
+
+            notify_start();
+        });
+
+        if (_run_in_separate_thread)
+        {
+            _thread.reset(new std::thread([this]() {
 #if defined(SERVER_LIB_PLATFORM_LINUX)
-            _tid = syscall(SYS_gettid);
+                _native_thread_id = syscall(SYS_gettid);
 #elif defined(SERVER_LIB_PLATFORM_WINDOWS)
-            _tid = ::GetCurrentThreadId();
+                _native_thread_id = ::GetCurrentThreadId();
 #else
-            _tid = static_cast<long>(std::this_thread::get_id().native_handle());
+                _native_thread_id = static_cast<long>(std::this_thread::get_id().native_handle());
 #endif
-
-            SRV_LOGC_TRACE("Event loop is starting");
-
+                run();
+            }));
+        }
+        else
+        {
             run();
-
-            SRV_LOGC_TRACE("Event loop is stopped");
-
-            if (stop_notify)
-                stop_notify();
-        }));
+        }
     }
-    else
+    catch (const std::exception& e)
     {
-        SRV_LOGC_TRACE("Event loop is starting");
-
-        run();
-
-        SRV_LOGC_TRACE("Event loop is stopped");
-
-        if (stop_notify)
-            stop_notify();
+        SRV_LOGC_ERROR(e.what());
+        stop();
+        throw;
     }
+
+    return *this;
 }
 
 void event_loop::stop()
@@ -146,99 +182,71 @@ void event_loop::stop()
     if (!is_running())
         return;
 
-    SRV_LOGC_INFO(SRV_FUNCTION_NAME_);
+    SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
 
-    _loop_maintainer = boost::none; //finishing loop
-    _pservice->stop();
+    try
+    {
+        _is_running = false;
 
-    if (_thread && _thread->joinable())
-        _thread->join();
-    _thread.reset();
+        _loop_maintainer = boost::none; // finishing 'infinite loop'
+        _pservice->stop();
 
-    _is_running.store(false);
+        if (_thread && _thread->joinable())
+        {
+            _thread->join();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        SRV_THROW();
+    }
+
+    reset();
+}
+
+event_loop& event_loop::on_start(callback_type&& callback)
+{
+    SRV_ASSERT(_start_observer);
+    _start_observer->subscribe(std::forward<callback_type>(callback));
+    return *this;
+}
+
+event_loop& event_loop::on_stop(callback_type&& callback)
+{
+    SRV_ASSERT(_stop_observer);
+    _stop_observer->subscribe(std::forward<callback_type>(callback));
+    return *this;
+}
+
+void event_loop::wait()
+{
+    if (!is_running())
+    {
+        wait([]() {});
+    }
 }
 
 void event_loop::run()
 {
-    int cloop = 0;
-    for (;;)
+    _id = std::this_thread::get_id();
+    try
     {
-        SRV_LOGC_TRACE("loop = " << ++cloop);
-
-        _id.store(std::this_thread::get_id());
         apply_thread_name();
 
-        try
-        {
-            _pservice->run();
-            break; // run() exited normally
-        }
-        catch (const std::exception& e)
-        {
-            // Deal with exception as appropriate.
-            SRV_LOGC_ERROR("Catched unexpected exception: " << e.what());
-        }
-        catch (...)
-        {
-            SRV_LOGC_ERROR("Unknown exception catched");
-        }
+        SRV_LOGC_TRACE("Event loop is starting");
+
+        _pservice->run();
+
+        SRV_LOGC_TRACE("Event loop has stopped");
+
+        notify_stop();
     }
-}
-
-main_loop::main_loop(const std::string& name)
-    : event_loop(false)
-{
-    SRV_ASSERT(is_main(), "Invalid main loop creation");
-
-    if (!name.empty())
-        change_thread_name(name);
-}
-
-void main_loop::set_exit_callback(std::function<void(void)> exit_callback)
-{
-    _exit_callback = exit_callback;
-}
-
-void main_loop::exit(const int exit_code)
-{
-#ifndef NDEBUG
-    fprintf(stderr, "POST exit main loop with code %d\n", exit_code);
-#endif
-    if (is_running())
+    catch (const std::exception& e)
     {
-        post([this, exit_code]() {
-#ifndef NDEBUG
-            fprintf(stderr, "Exit main loop with code %d\n", exit_code);
-#endif
-            if (_exit_callback)
-            {
-                _exit_callback();
-            }
-            _exit(exit_code);
-        });
+        SRV_LOGC_ERROR(e.what());
+
+        SRV_THROW();
     }
-    else
-    {
-        if (_exit_callback)
-            _exit_callback();
-        _exit(exit_code);
-    }
-}
-
-void main_loop::start(std::function<void(void)> start_notify, std::function<void(void)> stop_notify)
-{
-    SRV_ASSERT(is_main_thread(), "Only for main thread allowed");
-
-    SRV_LOGC_TRACE("MAIN loop is started");
-
-    event_loop::start(start_notify, stop_notify);
-}
-
-void main_loop::stop()
-{
-    SRV_ASSERT(is_main_thread(), "Only for main thread allowed");
-
-    event_loop::stop();
 }
 
 } // namespace server_lib

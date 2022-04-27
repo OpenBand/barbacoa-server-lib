@@ -82,11 +82,6 @@ public:
 #define LOGC_ERROR(ARG) LOG_ERROR(SRV_LOG_CONTEXT_ << ARG)
 #define LOGC_FATAL(ARG) LOG_FATAL(SRV_LOG_CONTEXT_ << ARG)
 
-#define PRINT_ENUM_VALUE(X, Y) \
-    case X::Y:                 \
-        stream << #Y;          \
-        break;
-
 template <typename K, typename V>
 std::string to_string(const std::map<K, V>& value)
 {
@@ -214,11 +209,9 @@ std::string to_json(const std::array<T, S>& value)
 #undef SERVER_LIB_LOGS
 #endif
 #else // SERVER_LIB_SUPPRESS_LOGS
-#ifndef NDEBUG
 #if !defined(SERVER_LIB_LOGS)
 #define SERVER_LIB_LOGS
 #endif
-#endif //DEBUG
 #endif // !SERVER_LIB_SUPPRESS_LOGS
 
 #ifdef SERVER_LIB_LOGS

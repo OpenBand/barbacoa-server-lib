@@ -9,13 +9,18 @@ namespace server_lib {
 
 namespace bpo = boost::program_options;
 
-class server_options
+/**
+ * \ingroup common
+ *
+ * This is extension for boost::program_options
+ */
+class options
 {
 protected:
-    server_options() = default;
+    options() = default;
 
 public:
-    virtual ~server_options() {}
+    virtual ~options() {}
 
     using path = boost::filesystem::path;
 
@@ -52,5 +57,8 @@ public:
                                                             const int64_t& relative_to_time,
                                                             const std::string& default_ago = " ago");
 };
+
+//for backward compatibility
+using server_options = options;
 
 } // namespace server_lib

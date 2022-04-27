@@ -9,7 +9,6 @@
 #include <boost/date_time/time_facet.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-#include <server_lib/logging_helper.h>
 #include <server_lib/asserts.h>
 
 #include <iostream>
@@ -23,6 +22,8 @@
 
 #include <linux/fs.h>
 #endif
+
+#include "logger_set_internal_group.h"
 
 namespace server_lib {
 
@@ -197,8 +198,7 @@ namespace impl {
                 auto separator_pattern_it = pattern_it;
                 switch (read_pattern(pattern_it, log_variable_pattern_))
                 {
-                case 'N':
-                {
+                case 'N': {
                     scroll_number(file_it, file_name);
                     auto pred_pattern_it = pattern_it;
                     scroll_to_separator(pattern_it, log_variable_pattern_);
@@ -350,7 +350,7 @@ log_files_watchdog_config::log_files_watchdog_config(
 
 void log_files_watchdog::remove_excess_logs(const log_files_watchdog_config& config)
 {
-    SRV_LOG_TRACE(SRV_FUNCTION_NAME_);
+    SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
 
     impl::base_max_files_strategy(config, [](const path& file) {
         bfs::remove(file);
@@ -359,7 +359,7 @@ void log_files_watchdog::remove_excess_logs(const log_files_watchdog_config& con
 
 void log_files_watchdog::pack_excess_logs(const log_files_watchdog_config& config)
 {
-    SRV_LOG_TRACE(SRV_FUNCTION_NAME_);
+    SRV_LOGC_TRACE(SRV_FUNCTION_NAME_);
 
 #ifdef SERVER_LIB_PLATFORM_LINUX
     SRV_ASSERT(!config.pack_command.empty());
@@ -373,7 +373,7 @@ void log_files_watchdog::pack_excess_logs(const log_files_watchdog_config& confi
         auto r = system(compress.c_str());
         if (r)
         {
-            SRV_LOG_WARN("Comressor return " << r << ". It is should be error code");
+            SRV_LOGC_WARN("Comressor return " << r << ". It is should be error code");
         }
     });
 #endif

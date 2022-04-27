@@ -8,7 +8,11 @@
 
 namespace server_lib {
 
-//emulation for UNIX __thread local storage
+/**
+ * \ingroup common
+ *
+ * This class is Thread-local storage (TLS)
+ */
 class thread_local_storage
 {
     using buffers_content_type = unsigned char;

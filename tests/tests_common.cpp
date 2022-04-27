@@ -5,6 +5,10 @@
 #include <fstream>
 #include <sstream>
 
+#include <cstring>
+#include <set>
+
+
 namespace server_lib {
 namespace tests {
 
@@ -21,12 +25,12 @@ namespace tests {
         size_t total = 0;
         while (true)
         {
-            memset(buff, 0, sizeof(buff));
+            std::memset(buff, 0, sizeof(buff));
             auto* pbuff_offset = buff;
             for (auto cj = 0; cj < BUFF_SZ / sizeof(float); ++cj)
             {
                 float fl = 9999 + ci++;
-                memcpy(pbuff_offset, &fl, sizeof(float));
+                std::memcpy(pbuff_offset, &fl, sizeof(float));
                 pbuff_offset += sizeof(float);
             }
 
@@ -52,6 +56,21 @@ namespace tests {
         ss << boost::unit_test::framework::current_test_case().p_name;
         ss << "]";
         DUMP_STR(ss.str());
+    }
+
+    bool waiting_for_asynch_test(bool& done,
+                                 std::condition_variable& done_cond,
+                                 std::mutex& done_cond_guard,
+                                 size_t sec_timeout)
+    {
+        std::unique_lock<std::mutex> lck(done_cond_guard);
+        if (!done)
+        {
+            done_cond.wait_for(lck, std::chrono::seconds(sec_timeout), [&done]() {
+                return done;
+            });
+        }
+        return done;
     }
 
 } // namespace tests

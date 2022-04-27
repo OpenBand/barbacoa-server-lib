@@ -5,28 +5,11 @@
 
 namespace server_lib {
 
-/* Quick conversion utilities from http://joelverhagen.com/blog/2010/11/convert-an-int-to-a-string-and-vice-versa-in-c/
- */
-inline int string_to_int(std::string input)
+version::version(uint8_t major, uint8_t minor, uint16_t patch)
 {
-    std::stringstream s(input);
-    int i;
-    s >> i;
-    return i;
-}
-
-inline std::string int_to_string(int input)
-{
-    std::stringstream s;
-    s << input;
-    return s.str();
-}
-
-version::version(uint8_t m, uint8_t h, uint16_t r)
-{
-    v_num = (0 | m) << 8;
-    v_num = (v_num | h) << 16;
-    v_num = v_num | r;
+    v_num = (0 | major) << 8;
+    v_num = (v_num | minor) << 16;
+    v_num = v_num | patch;
 }
 
 uint8_t version::major_v() const
@@ -62,7 +45,7 @@ version version::from_string(const std::string& input_str)
     std::stringstream s { input_str };
     s >> major_ >> dot_a >> hardfork >> dot_b >> revision;
 
-    // We'll accept either m.h.v or m_h_v as canonical version strings
+    // We'll accept either m.h.v or m_h_v as canonical version strings.
     SRV_ASSERT((dot_a == '.' || dot_a == '_') && dot_a == dot_b,
                "Input string does not contain proper dotted decimal format");
     SRV_ASSERT(major_ <= 0xFF, "Major version is out of range");

@@ -1,9 +1,12 @@
 #pragma once
 
-#include <stdexcept>
-
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * \brief Design patterns: Singleton
+ */
 template <class Singleton>
 class singleton
 {
@@ -29,11 +32,12 @@ public:
     static Singleton& instance()
     {
         Singleton* p_instance = get_instance();
-#ifdef _DEBUG
-        if (p_instance == NULL)
-            throw std::logic_error("singleton get_instance failed");
-#endif
         return *p_instance;
+    }
+
+    static bool check_instance()
+    {
+        return p_instance() != nullptr;
     }
 
     /**
@@ -41,10 +45,10 @@ public:
      */
     static void destroy()
     {
-        if (p_instance() != NULL)
+        if (p_instance() != nullptr)
         {
             delete p_instance();
-            (*pp_instance()) = NULL;
+            (*pp_instance()) = nullptr;
         }
     }
 
@@ -57,7 +61,7 @@ protected:
 private:
     static Singleton** pp_instance()
     {
-        static Singleton* p_instance = NULL; // single object instance
+        static Singleton* p_instance = nullptr; // single object instance
         return &p_instance;
     }
 };

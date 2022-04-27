@@ -101,7 +101,7 @@ namespace tests {
         constexpr size_t STORAGE_SIZE = 1024;
         thread_local_storage storage(STORAGE_SIZE);
         auto thread_payload = [&]() {
-            storage.increase(0); //allocate buffer before 'obtain' call
+            storage.increase(0); // allocate buffer before 'obtain' call
 
             for (size_t ci = 0; ci < 3; ++ci)
             {
@@ -168,7 +168,6 @@ namespace tests {
 
             sub_payload();
             sub_payload();
-            //storage.clear(); //it should be protected!
         };
         std::thread th1(thread_payload);
         std::thread th2(thread_payload);

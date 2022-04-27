@@ -1,62 +1,235 @@
 #pragma once
 
-#include <mutex>
-#include <condition_variable>
-#include <chrono>
+#include <server_lib/asserts.h>
+
 #include <functional>
+#include <mutex>
+#include <chrono>
+#include <future>
+#include <memory>
 
 namespace server_lib {
 
+/**
+ * \ingroup common
+ *
+ * Waiting for asynch_func callback result by means of caller_func.
+ *--------------------------------------------------------------
+ * There is timeout if timeout_ms  > 0.
+ * For example if there is function or class method looks like:
+ *
+ * caller_func(asynch_func -> Result) -> void (ignored)
+ *
+ * It waits asynch_func was called and return it's result or initial_result
+ * if timeout was
+ *
+ * \param initial_result - Result that suppose to be if asynch_func was not called
+ * \param caller_func
+ * \param asynch_func - Callback that is invoked by caller_func
+ * \param timeout_ms - Timeout (std::chrono::duration type)
+ *
+ * \return Result
+ *
+ */
 template <typename Result, typename CallerFunc, typename AsynchFunc>
-Result wait_preliminary_async_call(const Result initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
+Result wait_async_result(Result&& initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {
-    std::condition_variable _donecheck;
-    std::mutex _cond_data_guard;
-    Result result = initial_result;
-    bool _done_request = false;
+    Result result = std::forward<Result>(initial_result);
 
-    std::unique_lock<std::mutex> lck(_cond_data_guard); //guard _done_request and result variables
-
-    auto _asynch = [&asynch_func, &result, &_done_request, &_cond_data_guard, &_donecheck]() {
-        std::unique_lock<std::mutex> lck(_cond_data_guard);
-
-        result = asynch_func();
-        _done_request = true;
-        lck.unlock();
-        _donecheck.notify_one(); //internally lock _cond_data_guard
-    };
-
-    result = caller_func(_asynch);
-
-    while (!_done_request) //for OS interruptions case
+    try
     {
-        auto done = [&_done_request]() {
-            return _done_request;
-        };
-
+        std::promise<bool> wait_ctx;
         if (timeout_ms > 0)
         {
-            if (!_donecheck.wait_for(lck, std::chrono::milliseconds(timeout_ms), done))
-                break;
+            auto pguard = std::make_shared<std::mutex>();
+            auto asynch_func_wrapper = [pguard_ = std::weak_ptr<std::mutex>(pguard),
+                                        asynch_func,
+                                        &result,
+                                        &wait_ctx]() {
+                auto pguard = pguard_.lock();
+                if (pguard)
+                {
+                    try
+                    {
+                        auto result_ = asynch_func();
+                        std::lock_guard<std::mutex> lck(*pguard);
+                        if (pguard.use_count() > 1)
+                        {
+                            result = std::move(result_);
+                            wait_ctx.set_value(true);
+                        } //else timeout was arisen
+                    }
+                    catch (...)
+                    {
+                        try
+                        {
+                            std::lock_guard<std::mutex> lck(*pguard);
+                            if (pguard.use_count() > 1)
+                            {
+                                wait_ctx.set_exception(std::current_exception());
+                            } //else:
+                            //        timeout was arisen
+                            //        and caller doesn't wait any exception too
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                } //else event queue was overloaded
+            };
+
+            caller_func(asynch_func_wrapper);
+
+            auto f = wait_ctx.get_future();
+            if (std::future_status::ready == f.wait_for(std::chrono::milliseconds(timeout_ms)))
+                f.get();
+            std::unique_lock<std::mutex> lck(*pguard);
+            return result;
         }
         else
         {
-            _donecheck.wait(lck, done); //internally unlock _cond_data_guard
+            auto asynch_func_wrapper = [&asynch_func,
+                                        &result,
+                                        &wait_ctx]() {
+                try
+                {
+                    result = asynch_func();
+                    wait_ctx.set_value(true);
+                }
+                catch (...)
+                {
+                    try
+                    {
+                        wait_ctx.set_exception(std::current_exception());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+            };
+
+            caller_func(asynch_func_wrapper);
+
+            wait_ctx.get_future().get();
         }
+    }
+    catch (const std::exception& e)
+    {
+        SRV_ERROR(e.what());
     }
 
     return result;
 }
 
-template <typename Result, typename CallerFunc, typename AsynchFunc>
-Result wait_async_call(const Result initial_result, CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
+/**
+ * \ingroup common
+ *
+ * Waiting for asynch_func callback by means of caller_func.
+ *--------------------------------------------------------------
+ * There is timeout if timeout_ms  > 0.
+ * For example if there is function or class method looks like:
+ *
+ * caller_func(asynch_func -> void) -> void (ignored)
+ *
+ * It waits asynch_func was called and return 'true' or 'false'
+ * if timeout was
+ *
+ * \param caller_func
+ * \param asynch_func - Callback that is invoked by caller_func
+ * \param timeout_ms - Timeout (std::chrono::duration type)
+ *
+ * \return bool - if callback was invoked before duration expiration
+ *
+ */
+template <typename CallerFunc, typename AsynchFunc>
+bool wait_async(CallerFunc&& caller_func, AsynchFunc&& asynch_func, int32_t timeout_ms = -1)
 {
-    // ignore preliminary check
-    auto caller_func_wrapper = [&initial_result, &caller_func](auto asynch_func) -> Result {
-        caller_func(asynch_func);
-        return initial_result;
-    };
-    return wait_preliminary_async_call(initial_result, caller_func_wrapper, asynch_func, timeout_ms);
+    try
+    {
+        std::promise<bool> wait_ctx;
+        if (timeout_ms > 0)
+        {
+            std::atomic<bool> complete;
+            complete = false;
+
+            auto pguard = std::make_shared<std::mutex>();
+            std::promise<bool> wait_ctx;
+            auto asynch_func_wrapper = [pguard_ = std::weak_ptr<std::mutex>(pguard),
+                                        asynch_func,
+                                        &complete,
+                                        &wait_ctx]() {
+                auto pguard = pguard_.lock();
+                if (pguard)
+                {
+                    try
+                    {
+                        asynch_func();
+                        std::lock_guard<std::mutex> lck(*pguard);
+                        if (pguard.use_count() > 1)
+                        {
+                            complete = true;
+                            wait_ctx.set_value(true);
+                        } //else timeout was arisen
+                    }
+                    catch (...)
+                    {
+                        try
+                        {
+                            std::lock_guard<std::mutex> lck(*pguard);
+                            if (pguard.use_count() > 1)
+                            {
+                                wait_ctx.set_exception(std::current_exception());
+                            } //else:
+                            //        timeout was arisen
+                            //        and caller doesn't wait any exception too
+                        }
+                        catch (...)
+                        {
+                        }
+                    }
+                } //else event queue was overloaded
+            };
+
+            caller_func(asynch_func_wrapper);
+
+            auto f = wait_ctx.get_future();
+            if (std::future_status::ready == f.wait_for(std::chrono::milliseconds(timeout_ms)))
+                f.get();
+            std::unique_lock<std::mutex> lck(*pguard);
+            return complete.load();
+        }
+        else
+        {
+            auto asynch_func_wrapper = [&asynch_func,
+                                        &wait_ctx]() {
+                try
+                {
+                    asynch_func();
+                    wait_ctx.set_value(true);
+                }
+                catch (...)
+                {
+                    try
+                    {
+                        wait_ctx.set_exception(std::current_exception());
+                    }
+                    catch (...)
+                    {
+                    }
+                }
+            };
+
+            caller_func(asynch_func_wrapper);
+
+            wait_ctx.get_future().get();
+        }
+    }
+    catch (const std::exception& e)
+    {
+        SRV_ERROR(e.what());
+    }
+
+    return true;
 }
 
 } // namespace server_lib

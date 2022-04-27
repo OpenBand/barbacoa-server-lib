@@ -4,6 +4,8 @@
 #include <boost/filesystem/path.hpp>
 
 #include <string>
+#include <condition_variable>
+#include <mutex>
 
 namespace server_lib {
 namespace tests {
@@ -33,6 +35,11 @@ namespace tests {
     boost::filesystem::path create_binary_data_file(const size_t file_size);
 
     void print_current_test_name();
+
+    bool waiting_for_asynch_test(bool& done,
+                                 std::condition_variable& done_cond,
+                                 std::mutex& done_cond_guard,
+                                 size_t sec_timeout = 10);
 
 } // namespace tests
 } // namespace server_lib

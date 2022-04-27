@@ -78,7 +78,7 @@ namespace tests {
 
         raw_builder builder;
 
-        auto protocol = std::shared_ptr<app_unit_builder_i>(builder.clone());
+        auto protocol = std::shared_ptr<unit_builder_i>(builder.clone());
 
         BOOST_REQUIRE(protocol);
     }
@@ -234,7 +234,7 @@ namespace tests {
 
         BOOST_REQUIRE_LE(data.size(), msg1.size() + msg2.size() + sizeof(uint32_t) * 2);
 
-        std::vector<app_unit> units;
+        std::vector<unit> units;
         while (!data.empty())
         {
             builder << data;
@@ -286,7 +286,7 @@ namespace tests {
 
         const size_t little_chunk = sizeof(uint32_t) / 2;
 
-        std::vector<app_unit> units;
+        std::vector<unit> units;
 
         std::string chunk;
         for (size_t pos = 0; pos < data.size();)
@@ -320,7 +320,7 @@ namespace tests {
 
         msg_builder builder { 1024 };
 
-        auto protocol = std::shared_ptr<app_unit_builder_i>(builder.clone());
+        auto protocol = std::shared_ptr<unit_builder_i>(builder.clone());
 
         BOOST_REQUIRE(protocol);
     }
@@ -386,7 +386,7 @@ namespace tests {
 
         dstream_builder builder;
 
-        auto protocol = std::shared_ptr<app_unit_builder_i>(builder.clone());
+        auto protocol = std::shared_ptr<unit_builder_i>(builder.clone());
 
         BOOST_REQUIRE(protocol);
     }

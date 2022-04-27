@@ -18,9 +18,10 @@ libs/server-clib.*
 
 lcov
 
+#Doxygen
 doxygen
-
-build
+docs/
+Doxyfile
 
 nohup.out
 

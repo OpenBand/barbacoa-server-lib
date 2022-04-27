@@ -14,10 +14,10 @@
 
 using logger_type = server_lib::logger;
 
-// to prevent fouling for Boost memory leaks detector
-std::unique_ptr<logger_type, void (*)(logger_type*)> _s_logger{ nullptr, [](logger_type*) { logger_type::destroy(); } };
+// Prevent fouling for Boost memory leaks detector.
+std::unique_ptr<logger_type, void (*)(logger_type*)> _s_logger { nullptr, [](logger_type*) { logger_type::destroy(); } };
 
-boost::unit_test::test_suite* init_unit_test_suite(int, char* [])
+boost::unit_test::test_suite* init_unit_test_suite(int, char*[])
 {
 #ifndef NDEBUG
     boost::debug::detect_memory_leaks(true);

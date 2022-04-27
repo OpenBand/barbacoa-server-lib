@@ -15,38 +15,41 @@
 namespace server_lib {
 
 DECLARE_PTR(event_loop);
+class start_observable_type;
+class stop_observable_type;
 
-/* To hold transport events (etc. from epool)
- * wrapped by boost::asio and a little bit more
- * that supposed by message queue
-*/
+/**
+ * \ingroup common
+ *
+ * \brief This class provides minimal thread management with message queue
+ * It is crucial class for multythread applications based on server_lib!
+ */
 class event_loop
 {
+public:
+    using callback_type = std::function<void(void)>;
+
+private:
+    template <typename Handler>
+    callback_type register_queue(Handler&& callback)
+    {
+        SRV_ASSERT(_pservice);
+        auto callback_ = [this, callback = std::move(callback)]() mutable {
+            callback();
+            std::atomic_fetch_sub<uint64_t>(&this->_queue_size, 1);
+        };
+        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
+        return callback_;
+    }
+
+    void apply_thread_name();
+
 public:
     using timer = server_lib::timer<event_loop>;
     using periodical_timer = server_lib::periodical_timer<event_loop>;
 
     event_loop(bool in_separate_thread = true);
     virtual ~event_loop();
-
-    static bool is_main_thread();
-
-    template <typename Handler>
-    void post(Handler&& handler)
-    {
-        SRV_ASSERT(_pservice);
-        auto handler_ = [pqueue_size = &_queue_size, handler = std::move(handler)]() mutable {
-            handler();
-            std::atomic_fetch_sub<uint64_t>(pqueue_size, 1);
-        };
-        std::atomic_fetch_add<uint64_t>(&_queue_size, 1);
-        _pservice->post(_strand.wrap(std::move(handler_)));
-    }
-
-    auto queue_size() const
-    {
-        return _queue_size.load();
-    }
 
     operator boost::asio::io_service&()
     {
@@ -59,51 +62,120 @@ public:
         return _pservice;
     }
 
-    void change_thread_name(const std::string&);
+    event_loop& change_thread_name(const std::string&);
 
-    virtual void start(std::function<void(void)> start_notify = nullptr, std::function<void(void)> stop_notify = nullptr);
+    /**
+     * Start loop
+     *
+     */
+    virtual event_loop& start();
+
+    /**
+     * Stop loop
+     *
+     */
     virtual void stop();
+
+    /**
+     * \brief Invoke callback when loop will start
+     *
+     * \param callback
+     *
+     * \return loop object
+     *
+     */
+    event_loop& on_start(callback_type&& callback);
+
+    /**
+     * \brief Invoke callback when loop will stop
+     *
+     * \param callback
+     *
+     * \return loop object
+     *
+     */
+    event_loop& on_stop(callback_type&& callback);
+
+    /**
+     * Start has just called but loop probably couldn't run yet
+     */
     bool is_running() const
     {
         return _is_running;
     }
 
-    bool is_main() const
+    /**
+     * Loop has run
+     */
+    bool is_run() const
     {
-        return _is_main;
+        return _is_run;
     }
 
-    bool is_this_loop() const
+    static bool is_main_thread();
+
+    auto queue_size() const
+    {
+        return _queue_size.load();
+    }
+
+    virtual bool is_this_loop() const
     {
         return _id.load() == std::this_thread::get_id();
     }
 
-    template <typename Result, typename AsynchFunc>
-    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func)
+    long native_thread_id() const
     {
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
-        };
-        return wait_async_call(initial_result, call, asynch_func);
+        return _native_thread_id.load();
     }
 
-    template <typename Result, typename AsynchFunc, typename DurationType>
-    Result wait_async(const Result initial_result, AsynchFunc&& asynch_func, DurationType&& duration)
-    {
-        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
-
-        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
-
-        auto call = [this](auto asynch_func) {
-            this->post(asynch_func);
-        };
-        return wait_async_call(initial_result, call, asynch_func, ms.count());
-    }
-
-    template <typename DurationType, typename Handler>
-    void start_timer(DurationType&& duration, Handler&& callback)
+    /**
+     * Callback that is invoked in thread owned by this event_loop
+     * Multiple invokes are executed in queue. Post can be called
+     * before or after starting. Callback wiil be invoked in 'run'
+     * state
+     *
+     * \param callback
+     *
+     * \return loop object
+     *
+     */
+    template <typename Handler>
+    event_loop& post(Handler&& callback)
     {
         SRV_ASSERT(_pservice);
+        SRV_ASSERT(_pstrand);
+
+        auto callback_ = register_queue(callback);
+
+        //-------------POST(WRAP(...)) - design explanation:
+        //
+        //* The 'post' guarantees that the callback will only be called in a thread
+        //  in which the 'run()'
+        //* The 'strand' object guarantees that all 'post's are executed in queue
+        //
+        _pservice->post(_pstrand->wrap(std::move(callback_)));
+
+        return *this;
+    }
+
+    /**
+     * Callback that is invoked after certain timeout
+     * in thread owned by this event_loop
+     *
+     * \param duration - Timeout (std::chrono::duration type)
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     * \return loop object
+     *
+     */
+    template <typename DurationType, typename Handler>
+    event_loop& post(DurationType&& duration, Handler&& callback)
+    {
+        SRV_ASSERT(_pservice);
+        SRV_ASSERT(_pstrand);
+
+        auto callback_ = register_queue(callback);
 
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
@@ -112,48 +184,146 @@ public:
         auto timer = std::make_shared<boost::asio::deadline_timer>(*_pservice);
 
         timer->expires_from_now(boost::posix_time::milliseconds(ms.count()));
-        timer->async_wait(_strand.wrap([timer /*save timer object*/, callback](const boost::system::error_code& ec) {
+        timer->async_wait(_pstrand->wrap([timer /*save timer object*/, callback_](const boost::system::error_code& ec) {
             if (!ec)
             {
-                callback();
+                callback_();
             }
         }));
+        return *this;
     }
+
+    /**
+     * Callback that is invoked periodically after certain timeout
+     * in thread owned by this event_loop
+     *
+     * \param duration - Timeout (std::chrono::duration type)
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     * \return loop object
+     *
+     */
+    template <typename DurationType, typename Handler>
+    event_loop& repeat(DurationType&& duration, Handler&& callback)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum timer accuracy");
+
+        auto timer = std::make_shared<periodical_timer>(*this);
+        timer->start(duration, [timer, callback]() {
+            callback();
+        });
+
+        //All periodic timers will be destroyed when this thread stops
+        return *this;
+    }
+
+    /**
+     * Waiting for callback with result endlessly
+     *
+     * \param initial_result - Result for case when callback can't be invoked
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     */
+    template <typename Result, typename AsynchFunc>
+    Result wait_result(Result&& initial_result, AsynchFunc&& callback)
+    {
+        auto call = [this](auto callback) {
+            this->post(callback);
+        };
+        return wait_async_result(std::forward<Result>(initial_result), call, callback);
+    }
+
+    /**
+     * Waiting for callback with result
+     *
+     * \param initial_result - Result for case when callback can't be invoked
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     * \param duration - Timeout (std::chrono::duration type)
+     *
+     */
+    template <typename Result, typename AsynchFunc, typename DurationType>
+    Result wait_result(Result&& initial_result, AsynchFunc&& callback, DurationType&& duration)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+        auto call = [this](auto callback) {
+            this->post(callback);
+        };
+        return wait_async_result(std::forward<Result>(initial_result), call, callback, ms.count());
+    }
+
+    /**
+     * Waiting for callback without result (void) endlessly
+     *
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     *
+     */
+    template <typename AsynchFunc>
+    void wait(AsynchFunc&& callback)
+    {
+        auto call = [this](auto callback) {
+            this->post(callback);
+        };
+        wait_async(call, callback);
+    }
+
+    /**
+     * Waiting for callback without result (void)
+     *
+     * \param callback - Callback that is invoked in thread owned by this event_loop
+     * only before this function return
+     * \param duration - Timeout (std::chrono::duration type)
+     *
+     * \return bool - if callback was invoked before duration expiration
+     *
+     */
+    template <typename AsynchFunc, typename DurationType>
+    bool wait(AsynchFunc&& callback, DurationType&& duration)
+    {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+
+        SRV_ASSERT(ms.count() > 0, "1 millisecond is minimum waiting accuracy");
+
+        auto call = [this](auto callback) {
+            this->post(callback);
+        };
+        return wait_async(call, callback, ms.count());
+    }
+
+    /**
+     * \brief Waiting for finish for starting procedure
+     * or immediately (if event loop has already started)
+     * return
+     *
+     */
+    void wait();
 
 protected:
     void run();
+    void reset();
+    void notify_start();
+    void notify_stop();
 
 protected:
     const bool _run_in_separate_thread = false;
     std::atomic_bool _is_running;
-    std::atomic_bool _is_main;
-    long _tid = 0;
+    std::atomic_bool _is_run;
+    std::atomic<std::thread::id> _id;
+    std::atomic_long _native_thread_id;
     std::shared_ptr<boost::asio::io_service> _pservice;
-    boost::asio::io_service::strand _strand;
+    std::unique_ptr<boost::asio::io_service::strand> _pstrand;
     boost::optional<boost::asio::io_service::work> _loop_maintainer;
-    std::unique_ptr<std::thread> _thread;
     std::string _thread_name = "io_service loop";
     std::atomic_uint64_t _queue_size;
-    std::atomic<std::thread::id> _id;
+    std::unique_ptr<std::thread> _thread;
 
 private:
-    bool is_main_loop();
-    void apply_thread_name();
-};
-
-class main_loop : public event_loop
-{
-public:
-    main_loop(const std::string& name = {});
-
-    void set_exit_callback(std::function<void(void)>);
-    void exit(const int = 0);
-
-    void start(std::function<void(void)> start_notify = nullptr, std::function<void(void)> stop_notify = nullptr) override;
-    void stop() override;
-
-private:
-    std::function<void(void)> _exit_callback = nullptr;
+    std::unique_ptr<start_observable_type> _start_observer;
+    std::unique_ptr<stop_observable_type> _stop_observer;
 };
 
 } // namespace server_lib

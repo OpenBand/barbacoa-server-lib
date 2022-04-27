@@ -12,8 +12,42 @@
 
 namespace server_lib {
 
-/* logger with different destinations (standard output, files, syslog)
- * with extension ability. It is used with helpers macros.
+/**
+ * \ingroup common
+ *
+ * \brief This is the Logger with different destinations
+ * (standard output, files, syslog)
+ * with extension ability.
+ *
+ * It is used with helpers macros:
+ * \li \c LOG_TRACE
+ * \li \c LOG_DEBUG
+ * \li \c LOG_INFO
+ * \li \c LOG_WARN
+ * \li \c LOG_ERROR
+ * \li \c LOG_FATAL
+ * \n
+ * \n
+ * \li \c LOGC_TRACE (with log context locally defined by SRV_LOG_CONTEXT_)
+ * \li \c LOGC_DEBUG
+ * \li \c LOGC_INFO
+ * \li \c LOGC_WARN
+ * \li \c LOGC_ERROR
+ * \li \c LOGC_FATAL
+ *
+ * \code{.c}
+ *
+ * LOG_TRACE("Foo");
+ * LOG_WARN("Foo " << 42 << '!');
+ *
+ * \endcode
+ *
+ * \code{.c}
+ * #define SRV_LOG_CONTEXT_ "payments> " << SRV_FUNCTION_NAME_ << ": "
+ *
+ * LOGC_ERROR("Invalid ticket. Id = " << id);
+ *
+ * \endcode
 */
 class logger : public singleton<logger>
 {
@@ -53,7 +87,7 @@ public:
     using log_handler_type = std::function<void(const log_message&)>;
 
 protected:
-    logger() = default;
+    logger();
 
     friend class singleton<logger>;
 
@@ -63,6 +97,8 @@ public:
     void init_sys_log();
     void init_file_log(const char* file_path, const size_t rotation_size_kb, const bool flush, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
     void init_debug_log(bool async = false, bool cerr = false, const char* dtf = DEFAULT_DATE_TIME_FORMAT);
+    void lock();
+    void unlock();
 
     //suppress trace logs by default
     void set_level_filter(int filter = 0x10);
@@ -76,6 +112,8 @@ public:
         return _appenders.size();
     }
 
+    void flush();
+
 private:
     void add_syslog_destination();
     void add_stdout_destination();
@@ -85,5 +123,7 @@ private:
 private:
     std::vector<log_handler_type> _appenders;
     int _filter = 0;
+    std::atomic_bool _logs_on;
 };
+
 } // namespace server_lib

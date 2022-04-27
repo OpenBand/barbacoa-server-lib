@@ -1,32 +1,41 @@
 #pragma once
 
-#include <server_lib/network/app_unit_builder_i.h>
+#include <server_lib/network/unit_builder_i.h>
+#include <server_lib/asserts.h>
 
 namespace server_lib {
 namespace network {
 
     /**
-     * @brief Represents 32-integer (uint32_t)
+     * \ingroup network_unit
+     *
+     * \brief Represents 32-integer (uint32_t)
      */
-    class integer_builder : public app_unit_builder_i
+    class integer_builder : public unit_builder_i
     {
     public:
         integer_builder() = default;
 
         ~integer_builder() override = default;
 
-        using integer_type = app_unit::integer_type;
+        using integer_type = unit::integer_type;
 
         static std::string pack(const integer_type);
 
-        app_unit_builder_i& operator<<(std::string& network_data) override;
+        unit create(const std::string& data) const override
+        {
+            SRV_ERROR("Can't be created from string in this context");
+            return {};
+        }
+
+        unit_builder_i& operator<<(std::string& network_data) override;
 
         bool unit_ready() const override
         {
             return _unit.ok();
         }
 
-        app_unit get_unit() const override
+        unit get_unit() const override
         {
             return _unit;
         }
@@ -37,7 +46,7 @@ namespace network {
         }
 
     private:
-        app_unit _unit;
+        unit _unit;
     };
 
 } // namespace network
